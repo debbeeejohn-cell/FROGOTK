@@ -20,7 +20,7 @@
 
         <nav class="main-nav" aria-label="Hauptnavigation">
           <button class="nav-item active" data-view="learn">Lernen</button>
-          <button class="nav-item" data-view="quiz">Blitz-Quiz</button>
+          <button class="nav-item" data-view="quiz">Quiz</button>
           <button class="nav-item" data-view="sandbox">Sandbox</button>
           <button class="nav-item" data-view="lexicon">Lexikon</button>
           <button class="nav-item" data-view="dashboard">Dashboard</button>
@@ -69,8 +69,16 @@
           <div class="panel">
             <div class="panel-header">
               <p class="eyebrow">Training</p>
-              <h2>Blitz-Quiz</h2>
-              <p>Aus den Szenarien werden zufällige Fragen und Gegenstands-Situationen generiert.</p>
+              <h2>Was kommt als Nächstes?</h2>
+              <p>Aus den Sequenzen werden Fragen generiert — kannst du die nächsten Schritte und das Endboard vorhersagen?</p>
+            </div>
+
+            <div id="quizContainer" class="quiz-container">
+              <div id="quizQuestion" class="quiz-question"></div>
+              <div id="quizAnswers" class="quiz-answers"></div>
+              <div id="quizFeedback" class="quiz-feedback"></div>
+              <div id="quizProgress" class="quiz-progress"></div>
+              <div id="quizActions" class="quiz-actions"></div>
             </div>
           </div>
         </section>
