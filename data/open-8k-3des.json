@@ -1,0 +1,291 @@
+{
+  "formatVersion": 1,
+  "lines": [
+    {
+      "id": "open-8k-3des",
+      "family": "Open 8k",
+      "desFrogs": 3,
+      "beelze": null,
+      "beelzeNeedsReview": true,
+      "endBoardSheet": "Goyo + Brio + Des + Swap (8k)",
+      "source": {
+        "type": "duelingbook-log",
+        "player": "armo1234"
+      },
+      "startHand": [
+        "Dupe Frog",
+        "Dandylion",
+        "Swap Frog",
+        "Fishborg Blaster",
+        "Substitoad"
+      ],
+      "actions": [
+        {
+          "t": "0:06",
+          "log": "Normal Summoned Substitoad from hand (5/5) to M-1",
+          "type": "summon",
+          "card": "Substitoad",
+          "from": "hand",
+          "to": "M1",
+          "step": 1
+        },
+        {
+          "t": "0:09",
+          "log": "Sent Fishborg Blaster from hand (4/4) to GY",
+          "type": "toGrave",
+          "card": "Fishborg Blaster",
+          "from": "hand",
+          "step": 2
+        },
+        {
+          "t": "0:13",
+          "log": "Special Summoned Treeborn Frog from Deck to M-2 (DEF)",
+          "type": "specialSummon",
+          "card": "Treeborn Frog",
+          "from": "deck",
+          "to": "M2",
+          "position": "DEF",
+          "step": 3
+        },
+        {
+          "t": "0:18",
+          "log": "Returned Dupe Frog from hand (1/3) to bottom of deck",
+          "type": "returnToDeck",
+          "card": "Dupe Frog",
+          "from": "hand",
+          "position": "bottom",
+          "step": 4
+        },
+        {
+          "t": "0:44",
+          "log": "Declared effect of Fishborg Blaster from GY",
+          "type": "activateEffect",
+          "card": "Fishborg Blaster",
+          "from": "grave",
+          "step": 5
+        },
+        {
+          "t": "0:46",
+          "log": "Sent Dandylion from hand (1/2) to GY",
+          "type": "toGrave",
+          "card": "Dandylion",
+          "from": "hand",
+          "step": 6
+        },
+        {
+          "t": "0:52",
+          "log": "Special Summoned Fishborg Blaster from GY to M-3 (DEF)",
+          "type": "specialSummon",
+          "card": "Fishborg Blaster",
+          "from": "grave",
+          "to": "M3",
+          "position": "DEF",
+          "step": 7
+        },
+        {
+          "t": "0:54",
+          "log": "Summoned a token in M-4",
+          "type": "token",
+          "card": "Token",
+          "to": "M4",
+          "step": 8
+        },
+        {
+          "t": "0:56",
+          "log": "Summoned a token in M-5",
+          "type": "token",
+          "card": "Token",
+          "to": "M5",
+          "step": 9
+        },
+        {
+          "t": "1:00",
+          "log": "Declared effect of Substitoad in M-1",
+          "type": "activateEffect",
+          "card": "Substitoad",
+          "from": "M1",
+          "step": 10
+        },
+        {
+          "t": "1:02",
+          "log": "Removed \"Token\" from M-4",
+          "type": "removeToken",
+          "card": "Token",
+          "from": "M4",
+          "step": 11
+        },
+        {
+          "t": "1:07",
+          "log": "Special Summoned Des Frog from Deck to M-4 (ATK)",
+          "type": "specialSummon",
+          "card": "Des Frog",
+          "from": "deck",
+          "to": "M4",
+          "position": "ATK",
+          "step": 12
+        },
+        {
+          "t": "1:08",
+          "log": "Removed \"Token\" from M-5",
+          "type": "removeToken",
+          "card": "Token",
+          "from": "M5",
+          "step": 13
+        },
+        {
+          "t": "1:10",
+          "log": "Special Summoned Des Frog from Deck to M-5 (ATK)",
+          "type": "specialSummon",
+          "card": "Des Frog",
+          "from": "deck",
+          "to": "M5",
+          "position": "ATK",
+          "step": 14
+        },
+        {
+          "t": "1:12",
+          "log": "Sent Fishborg Blaster from M-3 to GY",
+          "type": "toGrave",
+          "card": "Fishborg Blaster",
+          "from": "M3",
+          "step": 15
+        },
+        {
+          "t": "1:13",
+          "log": "Sent Des Frog from M-4 to GY",
+          "type": "toGrave",
+          "card": "Des Frog",
+          "from": "M4",
+          "step": 16
+        },
+        {
+          "t": "1:20",
+          "log": "Special Summoned Goyo Guardian from Extra Deck to M-3 (ATK)",
+          "type": "specialSummon",
+          "card": "Goyo Guardian",
+          "from": "extraDeck",
+          "to": "M3",
+          "position": "ATK",
+          "step": 17,
+          "inferredSynchro": {
+            "materials": [
+              { "card": "Fishborg Blaster", "from": "M3", "step": 15 },
+              { "card": "Des Frog", "from": "M4", "step": 16 }
+            ],
+            "needsReview": true
+          }
+        },
+        {
+          "t": "1:23",
+          "log": "Sent Swap Frog from hand (1/1) to GY",
+          "type": "toGrave",
+          "card": "Swap Frog",
+          "from": "hand",
+          "step": 18
+        },
+        {
+          "t": "1:27",
+          "log": "Special Summoned Fishborg Blaster from GY to M-4 (DEF)",
+          "type": "specialSummon",
+          "card": "Fishborg Blaster",
+          "from": "grave",
+          "to": "M4",
+          "position": "DEF",
+          "step": 19
+        },
+        {
+          "t": "1:29",
+          "log": "Sent Fishborg Blaster from M-4 to GY",
+          "type": "toGrave",
+          "card": "Fishborg Blaster",
+          "from": "M4",
+          "step": 20
+        },
+        {
+          "t": "1:30",
+          "log": "Sent Des Frog from M-5 to GY",
+          "type": "toGrave",
+          "card": "Des Frog",
+          "from": "M5",
+          "step": 21
+        },
+        {
+          "t": "1:34",
+          "log": "Special Summoned Brionac, Dragon of the Ice Barrier from Extra Deck to M-4 (ATK)",
+          "type": "specialSummon",
+          "card": "Brionac, Dragon of the Ice Barrier",
+          "from": "extraDeck",
+          "to": "M4",
+          "position": "ATK",
+          "step": 22,
+          "inferredSynchro": {
+            "materials": [
+              { "card": "Fishborg Blaster", "from": "M4", "step": 20 },
+              { "card": "Des Frog", "from": "M5", "step": 21 }
+            ],
+            "needsReview": true
+          }
+        },
+        {
+          "t": "1:36",
+          "log": "Sent Treeborn Frog from M-2 to GY",
+          "type": "toGrave",
+          "card": "Treeborn Frog",
+          "from": "M2",
+          "step": 23
+        },
+        {
+          "t": "1:42",
+          "log": "Special Summoned Des Frog from Deck to M-2 (ATK)",
+          "type": "specialSummon",
+          "card": "Des Frog",
+          "from": "deck",
+          "to": "M2",
+          "position": "ATK",
+          "step": 24
+        },
+        {
+          "t": "1:45",
+          "log": "Sent Substitoad from M-1 to GY",
+          "type": "toGrave",
+          "card": "Substitoad",
+          "from": "M1",
+          "step": 25
+        },
+        {
+          "t": "2:00",
+          "log": "Special Summoned Swap Frog from Deck to M-1 (ATK)",
+          "type": "specialSummon",
+          "card": "Swap Frog",
+          "from": "deck",
+          "to": "M1",
+          "position": "ATK",
+          "step": 26
+        }
+      ],
+      "finalBoard": {
+        "M1": "Swap Frog",
+        "M2": "Des Frog",
+        "M3": "Goyo Guardian",
+        "M4": "Brionac, Dragon of the Ice Barrier"
+      },
+      "finalGrave": [
+        "Dandylion",
+        "Des Frog",
+        "Swap Frog",
+        "Fishborg Blaster",
+        "Des Frog",
+        "Treeborn Frog",
+        "Substitoad"
+      ],
+      "finalBanished": [],
+      "ignoredLogLines": 21,
+      "needsReview": true,
+      "notes": [
+        "Karteneffekte und Kosten stehen nicht im Log und sind nicht eingetragen (nur 'activateEffect', wo das Log es nennt).",
+        "Synchro-Beschwörungen sind aus den zwei vorherigen Friedhofs-Aktionen abgeleitet (inferredSynchro) und müssen geprüft werden.",
+        "'Token' sind im Log nicht benannt."
+      ]
+    }
+  ]
+}
