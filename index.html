@@ -41,8 +41,8 @@
           <div class="panel board-panel">
             <div class="panel-header">
               <p class="eyebrow">Lernen</p>
-              <h2>Line-Player</h2>
-              <p>Die passende Line für die aktuelle Situation und die Zugreihenfolge im Blick.</p>
+              <h2>Study Mode</h2>
+              <p>Merke dir die Line in kleinen Schritten, prüfe das Endboard und wiederhole die Sequenz.</p>
             </div>
 
             <div class="app-layout">
@@ -50,6 +50,14 @@
 
               <section class="line-detail" id="lineDetail">
                 <div class="line-summary" id="lineSummary"></div>
+
+                <div class="study-controls">
+                  <button id="prevLineBtn" class="secondary-button" type="button">Vorherige Line</button>
+                  <button id="nextLineBtn" class="secondary-button" type="button">Nächste Line</button>
+                  <button id="revealStepBtn" class="primary-button" type="button">Nächsten Schritt zeigen</button>
+                  <button id="markMemorizedBtn" class="ghost-button" type="button">Als gelernt markieren</button>
+                </div>
+
                 <div class="board-preview" id="boardPreview"></div>
                 <div class="steps-box" id="lineSteps"></div>
               </section>
