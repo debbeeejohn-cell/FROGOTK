@@ -1,0 +1,20 @@
+FORG OTK COMBO SHEET,,, ,,,
+Materials refers to the number of cards in hand or on field that can be used for the combo,,,,
+"generally a card on field or in hand is worth 1 material, but there are some exceptions:",,,,
+1) Salvage/Avarice are both worth 2 cards,,,,
+2) Dandylion is worth 3 cards,,,,
+3) Foolish/FuFu send dandy is worth 2 cards,,,,
+4) Foolish/FuFu send fishborg is worth 0 cards (if used),,,,
+5) 141 is worth 0 cards (if used),,,,
+6) Fishborg is worth 0 cards in hand if you have to swap pitch it into gy,,,,
+"Extra deck monsters require a certain number of materials, which vary based on whether you have beelze or des frog in deck",,,,
+Level,Beelze or Des,Just Des,Just Beelze,No Beelze or Des
+4,2,3,2,3
+5,3,3,3,3
+6,2,2,3,4
+7,3,3,4,4
+8,3,3,4,5
+9,3,4,5,5
+"The rest of this sheet uses potential otk situations into an open board, and estimates the number of cards cost using the estimates above.",,,,
+"While these otks are useful, they are not the entire game, and often you will have to adapt endboards to the situation, or conditions that have arrisen during it.",,,,
+*Shoutout to Vaas for the replays!,,,,

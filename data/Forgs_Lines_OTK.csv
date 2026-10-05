@@ -1,0 +1,41 @@
+Line,Use-Case,Des Frogs,End-Board (Dmg),No Beelze Materials (+ Brio disc),W/Beelze Materials (+ Brio disc),Notes,Replay Demo (W/ Beelze),Replay Demo No Beelze
+Open 8k,Kill into open board,3,Goyo + Brio + Des + Swap (8k),6 (+),,Attack in normal gorz fashion,n/a,https://www.duelingbook.com/replay?id=1278857-73770521
+,,2,Goyo + Brio + Des + Swap (8k),7 (+),,Swap/Dupe Loop Des,n/a,https://www.duelingbook.com/replay?id=1278857-73770591
+,,1,Goyo + Android + Des + Swap (8.1k),8 (+),,Swap/Dupe Loop Des,n/a,https://www.duelingbook.com/replay?id=1278857-73771788
+,,0,Goyo + Android + Catastor + Swap (8.4k),9 (+),,"Swap/Dupe Loop Des, 7 level 2s needed",,
+Open 8k with Moray or Avarice,"Kill into open board, requires Moray or Avarice",4,Brio + 3*Des (8k),5 (+),,"Summon Brio, Summon 2 Des, Avarice Des back (or Swap/Dupe Des into hand + Moray), Summon last Des",n/a,https://www.duelingbook.com/replay?id=1278857-73771893
+8k through Gorz,"Open board, but respecting Gorz/Trag",3,Goyo + Arm*2 + Des*2 (No Gorz: 8.6k/Gorz 8.2k),10,8,"Equip 2 arm to one des -> thats big des. Attack Goyo first, then little des, then big des. If gorz dropped on goyo, big des attacks over it.",https://www.duelingbook.com/replay?id=1278857-73771990,https://www.duelingbook.com/replay?id=1278857-73772188
+,,2,Goyo + Brio + Arm*2 + Swap (No Gorz: 8.1k/Gorz 8.2k),11 (+),9 (+),"Equip the arms to Swap, Atk Goyo, Brio, Swap",https://www.duelingbook.com/replay?id=1278857-73772334,https://www.duelingbook.com/replay?id=1278857-73772509
+,,1,Goyo + Android + Arm*2 + Swap (No Gorz: 8.2k/Gorz 8.2k),12,10,,https://www.duelingbook.com/replay?id=1278857-73783740,https://www.duelingbook.com/replay?id=1278857-73783799
+8k through Gorz + set monster(s),"Set Monster(s) only, kill while respecting Gorz (Trag maybe depending on hand size)",2,Brio + Goyo + Arm*2 + Swap (No Gorz: 8.1k/Gorz 8.2k),11 (+),9 (+),"Same as above, Equip Arms to Swap",,
+,,1,Brio + Android + Arm*2 + Swap + Uni (No Gorz: 8.1k/Gorz 8.2k),13 (+),11 (+),"Android first, Can skip uni if they're at 7.8k or less",,
+8k through Necro,Kill through Necro Gardna in GY,3,Android + Brio + Des + Des + Des (8.0k),9 (+) 8 (+) with Moray 7 (+) with Avarice (replace Android with Goyo),,"Android first, then Brio, Swap-Dupe add Des to hand, Summon 2 other Des, Extra Des in hand by tributing Sub. Can shuffle Des back into Deck instead of Swap-Dupe + Extra Normal if Moray/Avarice, reducing Materials by 1-2. Pro-tip, don't redraw the Des.",https://www.duelingbook.com/replay?id=1067682-84798782,
+Colossal-Arm,Punish them for leaving a 1.9k+ body on board,1,Colossal + Arm (8k+),6,5,"Equip arm to opponents monster. Attack with colossal into it until they die. Make sure you have enough life to survive it (or dont, your loss).",https://www.duelingbook.com/replay?id=1278857-73773014,https://www.duelingbook.com/replay?id=1278857-73773081
+,Col-Arm Sequence through Brio,1,Colossal + Arm (8k+),7 (+),6 (+),"Go Brio, pitch, sync Arm, sync with Sub + Brio + Borg for colossal",https://www.duelingbook.com/replay?id=1278857-73783899,https://www.duelingbook.com/replay?id=1278857-73783927
+,Push through Gardna,2,Colossal*2 + Arm (8k+),9,8,,https://www.duelingbook.com/replay?id=1278857-73783951,https://www.duelingbook.com/replay?id=1278857-73783995
+,"Reduce necessary attack by 1k, and number of attacks by 1",1,Colossal + Arm*2 (8k+),9,7,Consider handtraps dmg when doing this,https://www.duelingbook.com/replay?id=1278857-73784189,https://www.duelingbook.com/replay?id=1278857-73784258
+Lil-Arm,8k Attacking into monsters with <=800 atk,2,Arm*2 + Des + Des + Uni (8.2k),9,7,"This line has a bunch of variations based on kalut/honest, but boil it down to 2 arms + Frog/Synchro crashes as needed",https://www.duelingbook.com/replay?id=1278857-73784340,https://www.duelingbook.com/replay?id=1278857-73784389
+,"Above, but kills Through Necro",3,Arm*2 + Des + Des + Des + Uni (8.2k),10,8,,,
+,"Same as above, but with brio, needs a 400+ atk monster",2,Arm*2 + Brio + Des (8.4k),9 (+),7 (+),"Brio first to force backrow, if it doesn't survive, add 3 materials and summon 2 swaps + uni",https://www.duelingbook.com/replay?id=1278857-73784454,https://www.duelingbook.com/replay?id=1278857-73784514
+,,1,Arm*2 + Des + Swap*2 + Uni,10,8,Calc dmg you'll take it can get high,,
+,,1,Arm*2 + Brio + Swap*2 + Uni,11 (+),9 (+),, ,
+Amma-killahs,8k attacking into def position ama,1,"Uruq + Arm*2 (Ama: 8.5k, Lyla: 7.3k, Bora: 6.7k, Shura: 6.5k)",8 (+),6 (+),Doesn't work if Tyt is on field (Arm targets),https://www.duelingbook.com/replay?id=1278857-73785587,https://www.duelingbook.com/replay?id=1278857-73785624
+,8k into def Shura/Bora/Lyla if no Gorz,1,Above + Des (Kills in most positions if no other bodies),9 (+),7 (+),,,
+Duped!,8k attacking into a foolish frog in attack position,3,Goyo + Brio + Gaia + Swap + Sub (8.3k),8 (+),,"If no Gaia in Extra, can do Android for +1 material",n/a,https://www.duelingbook.com/replay?id=1278857-73834050
+,,2,Goyo + Brio + Gaia + Swap + Sub (8.3k),9 (+),,Swap/Dupe Loop Des,n/a,https://www.duelingbook.com/replay?id=1278857-73834141
+,,1,Goyo + Brio + Android + Swap + Sub (8.1k),10 (+),,Have to use extra swap send dupe line above,n/a,https://www.duelingbook.com/replay?id=1278857-73834253
+Kiss from a Rose (Requires Dandy),8k attacking into a defense position frog,3,Black Rose + Goyo + Des + Swap + Sub (8.2k),8 (+),,"You can sequence into brio first, and pitch until only 1 face up dupe if necessary, then sync brio for black rose",n/a,https://www.duelingbook.com/replay?id=1278857-73832994
+,,2,Black Rose + Goyo + Des + Swap +Sub (8.2k),9 (+),,"You have to use swap send dupe add back des frog, bounce swap pitch borg extra normal des frog",n/a,https://www.duelingbook.com/replay?id=1278857-73833122
+,,1,Black Rose + Brio + Android + Swap + Sub (8.2k),11 (+),,"In this version of the line, you have to swap/dupe loop des",n/a,https://www.duelingbook.com/replay?id=1278857-73833366
+,8k through any Defense position monster (w/o a flip eff or floodgate)(requires Dandy),2,Black Rose + 2*Arm + 2 Des (8k),11 (+),9 (+),"Black Rose monster into Atk, equip 2 Arms to their 0 atk monster, crash Des Des, then kill with rose. If they honest first des, crash with black rose",https://www.duelingbook.com/replay?id=1278857-73834622,https://www.duelingbook.com/replay?id=1278857-73834969
+Kalut no more,Attacking into a lone Shura/Bora/Gale for game through 0-2 kalut,2,Goyo/Brio + Arm*2 + Des (Shura = 8.5k),9 (+),7 (+),"Kills through 2x Kalut on shura/bora with Goyo, 1x kalut using Brio or Goyo attacking sirocco",https://www.duelingbook.com/replay?id=1278857-73837432,https://www.duelingbook.com/replay?id=1278857-73837539
+Anti-Tyt line,8k through a 2.8k atk (+ warriors) monster,3,Colossal + Brio + Des + Swap (8k),7 (+),,Crash Colossal into monster so it revives first,n/a,https://www.duelingbook.com/replay?id=1278857-73835138
+,,2,Colossal + Brio + Des + Swap (8k),8 (+),,Swap/Dupe Loop Des,n/a,https://www.duelingbook.com/replay?id=1278857-73835249
+,,1,Colossal + Brio + Android + Swap (8.5k),9 (+),,Swap/Dupe Loop Des,n/a,https://www.duelingbook.com/replay?id=1278857-73836410
+3-Arm Lines,8k by attacking over any Atk position monster with 1.6k atk or higher (through 2x kalut),1,Des + 3 Arm,10 (+),7 (+),"Requires Avarice the beelze for 3rd arm, or +1 material",,
+,8k over like a lot but you gotta do the math Ok?,1,Uruq + 3 Arm,11 (+),8 (+),"This kills most things with more atk then def, and atk > 1000",,
+,Low-LP Crash line (their monster needs 1.9k+),1,Goyo + 3-arm + Uni,12 (+),9 (+),"If you can't do above des line (abs zero or something), equip 2 arms to their monster, 1 to goyo, crash goyo for 7.6k, then uni to kill",,
+
+
+
+
