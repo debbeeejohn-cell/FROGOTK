@@ -1,18 +1,17 @@
-const familyList = document.getElementById('familyList');
-const lineDetail = document.getElementById('lineDetail');
-const lineSummary = document.getElementById('lineSummary');
-const boardPreview = document.getElementById('boardPreview');
-const lineSteps = document.getElementById('lineSteps');
+const lineCatalog = await fetch('./data/line-catalog.json').then((res) => res.json());
 
 const navButtons = document.querySelectorAll('.nav-item');
 const screens = document.querySelectorAll('.screen');
 const themeToggle = document.getElementById('themeToggle');
 const animMode = document.getElementById('animMode');
+const familyList = document.getElementById('familyList');
+const lineSummary = document.getElementById('lineSummary');
+const boardPreview = document.getElementById('boardPreview');
+const lineSteps = document.getElementById('lineSteps');
 
-let lines = [];
-let selectedFamily = null;
+let activeLineId = lineCatalog.lines[0]?.id || null;
 
-function setActiveView(viewName) {
+function setView(viewName) {
   navButtons.forEach((button) => {
     const active = button.dataset.view === viewName;
     button.classList.toggle('active', active);
@@ -34,111 +33,98 @@ function applyAnimMode(mode) {
 }
 
 function renderFamilyList() {
-  const families = [...new Set(lines.map((line) => line.family))];
+  const uniqueFamilies = [...new Set(lineCatalog.lines.map((line) => line.family))];
   familyList.innerHTML = '';
 
-  families.forEach((family) => {
+  uniqueFamilies.forEach((family) => {
+    const familyLines = lineCatalog.lines.filter((line) => line.family === family);
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'family-button';
-    if (family === selectedFamily) button.classList.add('active');
 
-    const familyLines = lines.filter((line) => line.family === family);
+    const active = familyLines.some((line) => line.id === activeLineId);
+    if (active) button.classList.add('active');
+
     button.innerHTML = `
       <span class="family-name">${family}</span>
-      <span class="family-meta">${familyLines.length} Varianten</span>
+      <span class="family-meta">${familyLines.length} Line${familyLines.length > 1 ? 's' : ''}</span>
     `;
 
     button.addEventListener('click', () => {
-      selectedFamily = family;
-      renderFamilyList();
-      renderSelectedLine();
+      const firstLine = familyLines[0];
+      if (firstLine) {
+        activeLineId = firstLine.id;
+        renderFamilyList();
+        renderActiveLine();
+      }
     });
 
     familyList.appendChild(button);
   });
 }
 
-function renderSelectedLine() {
-  const current = lines.find((line) => line.family === selectedFamily) || lines[0];
-  if (!current) return;
+function renderActiveLine() {
+  const activeLine = lineCatalog.lines.find((line) => line.id === activeLineId) || lineCatalog.lines[0];
+  if (!activeLine) return;
 
   lineSummary.innerHTML = `
     <div>
-      <h3>${current.family}</h3>
-      <p>${current.useCase}</p>
+      <h3>${activeLine.title}</h3>
+      <p>${activeLine.summary}</p>
     </div>
-    <span class="badge">${current.desFrogs} Des</span>
+    <span class="badge">${activeLine.family}</span>
   `;
 
-  const slots = [
-    { label: 'Endboard', name: current.endBoard || '—' },
-    { label: 'Damage', name: current.damage ? `${current.damage} LP` : '—' },
-    { label: 'Materials', name: current.materials?.noBeelze ?? '—' },
-    { label: 'Notes', name: current.notes || '—' }
-  ];
-
-  boardPreview.innerHTML = slots.map((slot) => `
+  const endBoard = activeLine.endBoard || [];
+  boardPreview.innerHTML = endBoard.map((card) => `
     <div class="card-slot">
-      <span class="type-label">${slot.label}</span>
-      <span class="card-name">${slot.name}</span>
+      <span class="type-label">Endboard</span>
+      <span class="card-name">${card}</span>
     </div>
   `).join('');
 
+  const chips = (activeLine.tags || []).map((tag) => `<span class="chip">${tag}</span>`).join('');
+
   lineSteps.innerHTML = `
-    <h4>Schritte</h4>
+    <h4>Wichtige Schritte</h4>
+    <div class="tag-row">${chips}</div>
+    <div class="meta-block">
+      <strong>Material:</strong>
+      <span>${activeLine.materials}</span>
+    </div>
     <ol class="steps-list">
-      ${(current.steps || []).map((step) => `<li>${step}</li>`).join('')}
+      ${(activeLine.steps || []).map((step) => `<li>${step}</li>`).join('')}
     </ol>
   `;
 }
 
-async function loadData() {
-  const [lineResponse, materialsResponse] = await Promise.all([
-    fetch('data/lines.json'),
-    fetch('data/materials.json')
-  ]);
+function initTheme() {
+  const saved = JSON.parse(localStorage.getItem('frogOtk.v1') || '{}');
+  const theme = saved.theme || 'light';
+  const mode = saved.animMode || 'full';
 
-  const lineData = await lineResponse.json();
-  lines = Array.isArray(lineData) ? lineData : [];
-
-  if (lines.length) {
-    selectedFamily = lines[0].family;
-    renderFamilyList();
-    renderSelectedLine();
-  }
-}
-
-function initShell() {
-  const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-  const settings = {
-    theme: document.documentElement.getAttribute('data-theme') || 'light',
-    animMode: 'full',
-    ...stored
-  };
-
-  applyTheme(settings.theme);
-  applyAnimMode(settings.animMode);
-  animMode.value = settings.animMode;
-
-  navButtons.forEach((button) => {
-    button.addEventListener('click', () => setActiveView(button.dataset.view));
-  });
+  applyTheme(theme);
+  applyAnimMode(mode);
+  animMode.value = mode;
 
   themeToggle.addEventListener('click', () => {
-    const nextTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-    applyTheme(nextTheme);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...settings, theme: nextTheme }));
+    const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    applyTheme(next);
+    localStorage.setItem('frogOtk.v1', JSON.stringify({ ...saved, theme: next }));
   });
 
   animMode.addEventListener('change', (event) => {
-    const mode = event.target.value;
-    applyAnimMode(mode);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...settings, animMode: mode }));
+    const value = event.target.value;
+    applyAnimMode(value);
+    localStorage.setItem('frogOtk.v1', JSON.stringify({ ...saved, animMode: value }));
   });
-
-  setActiveView('learn');
 }
 
-initShell();
-loadData();
+navButtons.forEach((button) => {
+  button.addEventListener('click', () => setView(button.dataset.view));
+});
+
+initTheme();
+setView('learn');
+renderFamilyList();
+renderActiveLine();
