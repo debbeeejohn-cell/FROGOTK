@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Frog OTK Learning Lab</title>
+    <meta name="description" content="Lern- und Trainingsapp für Frog OTK Lines und Edison-Karten." />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-wrap">
+          <div class="brand-mark">F</div>
+          <div>
+            <p class="eyebrow">Edison study</p>
+            <h1>Frog OTK Learning Lab</h1>
+          </div>
+        </div>
+
+        <nav class="main-nav" aria-label="Hauptnavigation">
+          <button class="nav-item active" data-view="learn">Lernen</button>
+          <button class="nav-item" data-view="quiz">Blitz-Quiz</button>
+          <button class="nav-item" data-view="sandbox">Sandbox</button>
+          <button class="nav-item" data-view="lexicon">Lexikon</button>
+          <button class="nav-item" data-view="dashboard">Dashboard</button>
+        </nav>
+
+        <div class="topbar-actions">
+          <button id="themeToggle" class="ghost-button" aria-label="Theme wechseln">Theme</button>
+          <select id="animMode" aria-label="Animationsmodus">
+            <option value="full">voll</option>
+            <option value="reduced">reduziert</option>
+            <option value="off">aus</option>
+          </select>
+        </div>
+      </header>
+
+      <main class="content-grid">
+        <section class="screen active" id="screen-learn" aria-label="Lernbereich">
+          <div class="panel hero-panel">
+            <p class="eyebrow">Lernen</p>
+            <h2>Line-Player</h2>
+            <p>Die Frog OTK-Lines werden hier als visuelles Lernwerkzeug aufgeführt.</p>
+          </div>
+        </section>
+
+        <section class="screen" id="screen-quiz" aria-label="Blitz-Quiz">
+          <div class="panel hero-panel">
+            <p class="eyebrow">Blitz-Quiz</p>
+            <h2>Wie weit komme ich mit der Hand?</h2>
+            <p>Hand, Materialwerte und Linien werden später hier ausgewertet.</p>
+          </div>
+        </section>
+
+        <section class="screen" id="screen-sandbox" aria-label="Sandbox">
+          <div class="panel hero-panel">
+            <p class="eyebrow">Sandbox</p>
+            <h2>Freies Testen</h2>
+            <p>Decks, Phasen und Züge werden hier als Spielbrett aufgebaut.</p>
+          </div>
+        </section>
+
+        <section class="screen" id="screen-lexicon" aria-label="Lexikon">
+          <div class="panel hero-panel">
+            <p class="eyebrow">Lexikon</p>
+            <h2>Karten, Begriffe und Abkürzungen</h2>
+            <p>Alle Abkürzungen und Kartennamen werden hier aufgelöst.</p>
+          </div>
+        </section>
+
+        <section class="screen" id="screen-dashboard" aria-label="Dashboard">
+          <div class="panel hero-panel">
+            <p class="eyebrow">Dashboard</p>
+            <h2>Fortschritt & Streak</h2>
+            <p>Spaced repetition, XP und Beherrschung werden hier sichtbar.</p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
