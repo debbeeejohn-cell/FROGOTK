@@ -12,9 +12,9 @@
       <header class="topbar">
         <div class="brand-wrap">
           <div class="brand-mark">F</div>
-          <div>
-            <p class="eyebrow">Edison study</p>
-            <h1>Frog OTK Learning Lab</h1>
+          <div class="brand-text">
+            <p class="eyebrow">Edison Study</p>
+            <h1>Frog OTK Lab</h1>
           </div>
         </div>
 
@@ -27,53 +27,73 @@
         </nav>
 
         <div class="topbar-actions">
-          <button id="themeToggle" class="ghost-button" aria-label="Theme wechseln">Theme</button>
+          <button id="themeToggle" class="ghost-button" aria-label="Theme wechseln">🌗</button>
           <select id="animMode" aria-label="Animationsmodus">
-            <option value="full">voll</option>
-            <option value="reduced">reduziert</option>
-            <option value="off">aus</option>
+            <option value="full">Animationen</option>
+            <option value="reduced">Reduziert</option>
+            <option value="off">Aus</option>
           </select>
         </div>
       </header>
 
       <main class="content-grid">
         <section class="screen active" id="screen-learn" aria-label="Lernbereich">
-          <div class="panel hero-panel">
-            <p class="eyebrow">Lernen</p>
-            <h2>Line-Player</h2>
-            <p>Die Frog OTK-Lines werden hier als visuelles Lernwerkzeug aufgeführt.</p>
+          <div class="panel board-panel">
+            <div class="panel-header">
+              <p class="eyebrow">Lernen</p>
+              <h2>Line-Player</h2>
+              <p>Die passende Line für die aktuelle Situation und die Zugreihenfolge im Blick.</p>
+            </div>
+
+            <div class="app-layout">
+              <aside class="family-list" id="familyList" aria-label="Familien"></aside>
+
+              <section class="line-detail" id="lineDetail">
+                <div class="line-summary" id="lineSummary"></div>
+                <div class="board-preview" id="boardPreview"></div>
+                <div class="steps-box" id="lineSteps"></div>
+              </section>
+            </div>
           </div>
         </section>
 
         <section class="screen" id="screen-quiz" aria-label="Blitz-Quiz">
-          <div class="panel hero-panel">
-            <p class="eyebrow">Blitz-Quiz</p>
-            <h2>Wie weit komme ich mit der Hand?</h2>
-            <p>Hand, Materialwerte und Linien werden später hier ausgewertet.</p>
+          <div class="panel">
+            <div class="panel-header">
+              <p class="eyebrow">Training</p>
+              <h2>Blitz-Quiz</h2>
+              <p>Aus den Szenarien werden zufällige Fragen und Gegenstands-Situationen generiert.</p>
+            </div>
           </div>
         </section>
 
         <section class="screen" id="screen-sandbox" aria-label="Sandbox">
-          <div class="panel hero-panel">
-            <p class="eyebrow">Sandbox</p>
-            <h2>Freies Testen</h2>
-            <p>Decks, Phasen und Züge werden hier als Spielbrett aufgebaut.</p>
+          <div class="panel">
+            <div class="panel-header">
+              <p class="eyebrow">Frei spielen</p>
+              <h2>Sandbox</h2>
+              <p>Baue Situationen auf, testest Decks und prüfst das passende Endboard.</p>
+            </div>
           </div>
         </section>
 
         <section class="screen" id="screen-lexicon" aria-label="Lexikon">
-          <div class="panel hero-panel">
-            <p class="eyebrow">Lexikon</p>
-            <h2>Karten, Begriffe und Abkürzungen</h2>
-            <p>Alle Abkürzungen und Kartennamen werden hier aufgelöst.</p>
+          <div class="panel">
+            <div class="panel-header">
+              <p class="eyebrow">Nachschlag</p>
+              <h2>Karten & Begriffe</h2>
+              <p>Abkürzungen und Karteigenschaften werden hier aufgelöst.</p>
+            </div>
           </div>
         </section>
 
         <section class="screen" id="screen-dashboard" aria-label="Dashboard">
-          <div class="panel hero-panel">
-            <p class="eyebrow">Dashboard</p>
-            <h2>Fortschritt & Streak</h2>
-            <p>Spaced repetition, XP und Beherrschung werden hier sichtbar.</p>
+          <div class="panel">
+            <div class="panel-header">
+              <p class="eyebrow">Fortschritt</p>
+              <h2>Dashboard</h2>
+              <p>Ein Blick auf die aktuelle Lernquote, die stärksten Familien und den nächsten Rückruf.</p>
+            </div>
           </div>
         </section>
       </main>

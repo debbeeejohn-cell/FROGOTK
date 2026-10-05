@@ -1,0 +1,340 @@
+/*
+  Frog OTK Learning Lab - clean interface
+*/
+
+:root {
+  --bg: #ffffff;
+  --bg-secondary: #f5f5f7;
+  --fg: #1d1d1f;
+  --fg-secondary: #6e6e73;
+  --border: #d2d2d7;
+  --accent: #0071e3;
+  --accent-soft: rgba(0, 113, 227, 0.1);
+  --success: #34c759;
+  --warning: #ff9500;
+  --error: #ff3b30;
+  --shadow: 0 8px 24px rgba(0,0,0,0.08);
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 18px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+}
+
+:root[data-theme="dark"] {
+  --bg: #000000;
+  --bg-secondary: #1c1c1e;
+  --fg: #f5f5f7;
+  --fg-secondary: #a1a1a6;
+  --border: #3a3a3c;
+  --accent: #0a84ff;
+  --accent-soft: rgba(10, 132, 255, 0.12);
+  --success: #32d74b;
+  --warning: #ff9f0a;
+  --error: #ff453a;
+  --shadow: 0 8px 24px rgba(0,0,0,0.32);
+}
+
+* { box-sizing: border-box; }
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.5;
+}
+
+button, select, input {
+  font: inherit;
+}
+
+button:focus-visible, select:focus-visible, input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+h1, h2, h3, p { margin: 0; }
+
+.app-shell {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(14px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+:root[data-theme="dark"] .topbar {
+  background: rgba(0,0,0,0.7);
+}
+
+.brand-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--accent), #7cc7ff);
+  color: white;
+  font-weight: 700;
+}
+
+.eyebrow {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--fg-secondary);
+  margin-bottom: 4px;
+}
+
+.brand-text h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.main-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.nav-item {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--fg-secondary);
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-item:hover {
+  background: var(--bg-secondary);
+  color: var(--fg);
+}
+
+.nav-item.active {
+  background: var(--accent-soft);
+  border-color: rgba(0, 113, 227, 0.08);
+  color: var(--fg);
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ghost-button, select {
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--fg);
+}
+
+.content-grid {
+  margin-top: 18px;
+  display: grid;
+  gap: 18px;
+}
+
+.screen {
+  display: none;
+}
+
+.screen.active {
+  display: block;
+}
+
+.panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+.panel-header {
+  margin-bottom: 20px;
+}
+
+.panel-header h2 {
+  font-size: clamp(1.4rem, 2.2vw, 2rem);
+}
+
+.app-layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 20px;
+}
+
+.family-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.family-button {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg);
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.family-button.active {
+  background: var(--accent-soft);
+  border-color: rgba(0, 113, 227, 0.2);
+}
+
+.family-name {
+  display: block;
+  font-weight: 600;
+}
+
+.family-meta {
+  display: block;
+  margin-top: 4px;
+  color: var(--fg-secondary);
+  font-size: 0.85rem;
+}
+
+.line-detail {
+  display: grid;
+  gap: 18px;
+}
+
+.line-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.line-summary h3 {
+  font-size: 1.2rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--fg);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.board-preview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(110px, 1fr));
+  gap: 12px;
+}
+
+.card-slot {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(255,255,255,0.6);
+  min-height: 110px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+:root[data-theme="dark"] .card-slot {
+  background: rgba(255,255,255,0.02);
+}
+
+.type-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-secondary);
+}
+
+.card-name {
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.steps-box {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  background: rgba(255,255,255,0.3);
+}
+
+.steps-box h4 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+
+.steps-list {
+  list-style: decimal;
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .main-nav {
+    justify-content: flex-start;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .app-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .board-preview {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "intro": {
+    "title": "Frog OTK Combo Sheet",
+    "note": "Die Linien sind Beispiele für OTK-Situationen gegen ein offenes Board. In echten Spielen musst du anpassen.",
+    "materials": {
+      "general": "Jede Karte auf dem Feld oder in der Hand zählt als 1 Material. Ausnahmen: Salvage/Avarice = 2, Dandylion = 3, Foolish/FuFu send Dandy = 2, Fishborg = 0, 141 = 0."
+    }
+  },
+  "table": [
+    { "level": 4, "beelzeOrDes": 2, "justDes": 3, "justBeelze": 2, "neither": 3 },
+    { "level": 5, "beelzeOrDes": 3, "justDes": 3, "justBeelze": 3, "neither": 3 },
+    { "level": 6, "beelzeOrDes": 2, "justDes": 2, "justBeelze": 3, "neither": 4 },
+    { "level": 7, "beelzeOrDes": 3, "justDes": 3, "justBeelze": 4, "neither": 4 },
+    { "level": 8, "beelzeOrDes": 3, "justDes": 3, "justBeelze": 4, "neither": 5 },
+    { "level": 9, "beelzeOrDes": 3, "justDes": 4, "justBeelze": 5, "neither": 5 }
+  ]
+}
