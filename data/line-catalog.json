@@ -1,0 +1,48 @@
+{
+  "lines": [
+    {
+      "id": "open-8k-3des",
+      "family": "Open 8k",
+      "title": "Open 8k — 3 Des",
+      "useCase": "Open board finish with Goyo + Brio + Des + Swap",
+      "summary": "3 Des Frog line that converts into Goyo + Brio and a final Swap finish.",
+      "materials": "3 Des Frog, 1 Substitoad, 1 Treeborn, 1 Fishborg, 1 Dandylion",
+      "tags": ["open board", "3 des", "goyo", "brio"],
+      "steps": [
+        "Use Substitoad to set up the Frog engine.",
+        "Fishborg loop into Dandylion and generate the Des Frog setup.",
+        "Summon first Des Frog and achieve the material shell.",
+        "Synchro into Goyo Guardian with Fishborg + Des.",
+        "Use Brionac as the second body and finish with Swap Frog to create the final board."
+      ],
+      "endBoard": [
+        "Swap Frog",
+        "Des Frog",
+        "Goyo Guardian",
+        "Brionac, Dragon of the Ice Barrier"
+      ]
+    },
+    {
+      "id": "open-8k-2des",
+      "family": "Open 8k",
+      "title": "Open 8k — 2 Des",
+      "useCase": "Open board finish with Goyo + Brio + Des + Swap",
+      "summary": "2 Des Frog line using Moray / Avarice / Salvage to rebuild and finish the turn.",
+      "materials": "2 Des Frog, 1 Substitoad, 1 Treeborn, Fishborg loop, Moray / Avarice / Salvage support",
+      "tags": ["open board", "2 des", "moray", "swap frog"],
+      "steps": [
+        "Build the Frog engine with Substitoad and Treeborn.",
+        "Use Moray / Avarice / Salvage as recovery pieces to return to the combo.",
+        "Summon Goyo Guardian with Fishborg + Des.",
+        "Use Brionac as the second big body and keep the final Swap Frog conversion alive.",
+        "Finish with the remaining Des Frog and Swap Frog to end the turn."
+      ],
+      "endBoard": [
+        "Swap Frog",
+        "Des Frog",
+        "Goyo Guardian",
+        "Brionac, Dragon of the Ice Barrier"
+      ]
+    }
+  ]
+}
