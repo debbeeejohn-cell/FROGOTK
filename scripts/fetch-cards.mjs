@@ -73,6 +73,7 @@ async function main() {
   if (!Array.isArray(data) || data.length === 0) throw new Error('cardinfo.php returned no cards');
 
   const cards = data
+    .filter((c) => Number.isInteger(c.id)) // the id becomes a file name, so it must be a plain number
     .map((c) => ({
       id: c.id,
       name: c.name,

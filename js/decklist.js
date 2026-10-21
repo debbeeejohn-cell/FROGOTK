@@ -11,6 +11,8 @@ const HEADERS = [
   [/^(!side|side(?: deck)?\s*:?\s*\(?\d*\)?)$/i, 'side']
 ];
 
+const MAX_LINE = 120; // longer lines are not card names; also keeps the regexes cheap
+
 export function parseDecklist(text, { idToName = new Map(), known = new Set() } = {}) {
   const sections = { main: new Map(), extra: new Map(), side: new Map() };
   const unknownIds = new Set();
@@ -25,7 +27,7 @@ export function parseDecklist(text, { idToName = new Map(), known = new Set() } 
 
   for (const raw of text.replace(/^﻿/, '').split(/\r?\n/)) {
     const line = raw.trim();
-    if (!line || line.startsWith('//')) continue;
+    if (!line || line.length > MAX_LINE || line.startsWith('//')) continue;
 
     const header = HEADERS.find(([re]) => re.test(line));
     if (header) { section = header[1]; continue; }

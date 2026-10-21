@@ -1,8 +1,10 @@
 // Hypergeometric calculator: P(draw >= min of every card group) from a deck.
 import { esc } from './util.js';
 import { parseDecklist } from './decklist.js';
+import { loadCards } from './decks.js';
 
 const MAX_DECK = 80;
+const MAX_IMPORT_BYTES = 500 * 1024; // a decklist is a few KB; this only stops accidents
 
 const choose = (n, k) => {
   if (k < 0n || k > n) return 0n;
@@ -84,7 +86,7 @@ const HANDS = [
  */
 export async function initCalc(root) {
   // Optional card database: turns .ydk passcodes into names and fixes name spelling.
-  const cardData = await fetch('./data/cards.json').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  const cardData = await loadCards();
   const pool = cardData?.cards ?? [];
   const idToName = new Map(pool.map((c) => [c.id, c.name]));
   const officialName = new Map(pool.map((c) => [c.name.toLowerCase(), c.name]));
@@ -267,6 +269,10 @@ export async function initCalc(root) {
   root.addEventListener('change', async (event) => {
     if (event.target.id !== 'calcFile' || !event.target.files[0]) return;
     const file = event.target.files[0];
+    if (file.size > MAX_IMPORT_BYTES) {
+      setMsg(`Die Datei ist zu groß (${Math.round(file.size / 1024)} KB, erlaubt sind ${MAX_IMPORT_BYTES / 1024} KB).`, true);
+      return render();
+    }
     loadFromText(await file.text(), file.name.replace(/\.[^.]+$/, ''));
   });
 
