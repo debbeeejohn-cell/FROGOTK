@@ -28,6 +28,7 @@
           <button class="nav-item" type="button" data-view="quiz">Quiz</button>
           <button class="nav-item" type="button" data-view="calc">Rechner</button>
           <button class="nav-item" type="button" data-view="sandbox">Sandbox</button>
+          <button class="nav-item" type="button" data-view="duel">Bot Duel</button>
           <button class="nav-item" type="button" data-view="lexicon">Lexikon</button>
           <button class="nav-item" type="button" data-view="dashboard">Fortschritt</button>
         </nav>
@@ -123,6 +124,18 @@
             <p>Spiele eine aufgezeichnete Line auf dem Board nach oder übe sie selbst. Es gibt keine Regelprüfung, die App vergleicht dich nur mit der Aufzeichnung.</p>
           </header>
           <div id="sandboxRoot"></div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-duel" aria-labelledby="h-duel" hidden>
+        <div class="panel">
+          <header class="panel-header">
+            <label class="deck-switch">Deck <select data-deck-switch></select></label>
+            <p class="eyebrow">Gegen den Bot üben</p>
+            <h2 id="h-duel">Bot Duel</h2>
+            <p>Übungsfeld mit zwei Seiten: Du bewegst die Karten selbst, die App hält Zonen, Lebenspunkte, Phasen und Kampfschaden korrekt. Kartentexte werden nicht ausgeführt, der Bot spielt nicht.</p>
+          </header>
+          <div id="duelRoot"></div>
         </div>
       </section>
 
