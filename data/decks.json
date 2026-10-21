@@ -1,96 +1,669 @@
 {
   "frogOtk": {
+    "name": "Frog OTK",
     "main": [
-      { "card": "Des Frog", "count": 3 },
-      { "card": "Duplicated Frog", "count": 3 },
-      { "card": "Substitoad", "count": 3 },
-      { "card": "Swap Frog", "count": 3 },
-      { "card": "Flip-Flop Frog", "count": 1 },
-      { "card": "Treeborn Frog", "count": 1 },
-      { "card": "Unifrog", "count": 1 },
-      { "card": "Fishborg Blaster", "count": 3 },
-      { "card": "Battle Fader", "count": 1 },
-      { "card": "Dandylion", "count": 1 },
-      { "card": "Gorz the Emissary of Darkness", "count": 1 },
-      { "card": "Tragoedia", "count": 1 },
-      { "card": "Moray of Greed", "count": 3 },
-      { "card": "Pot of Avarice", "count": 3 },
-      { "card": "Salvage", "count": 3 },
-      { "card": "Brain Control", "count": 1 },
-      { "card": "Foolish Burial", "count": 1 },
-      { "card": "Giant Trunade", "count": 1 },
-      { "card": "Heavy Storm", "count": 1 },
-      { "card": "One for One", "count": 1 },
-      { "card": "Scapegoat", "count": 1 },
-      { "card": "Reckless Greed", "count": 3 }
+      {
+        "card": "Des Frog",
+        "count": 3
+      },
+      {
+        "card": "Dupe Frog",
+        "count": 3
+      },
+      {
+        "card": "Substitoad",
+        "count": 3
+      },
+      {
+        "card": "Swap Frog",
+        "count": 3
+      },
+      {
+        "card": "Flip Flop Frog",
+        "count": 1
+      },
+      {
+        "card": "Treeborn Frog",
+        "count": 1
+      },
+      {
+        "card": "Unifrog",
+        "count": 1
+      },
+      {
+        "card": "Fishborg Blaster",
+        "count": 3
+      },
+      {
+        "card": "Battle Fader",
+        "count": 1
+      },
+      {
+        "card": "Dandylion",
+        "count": 1
+      },
+      {
+        "card": "Gorz the Emissary of Darkness",
+        "count": 1
+      },
+      {
+        "card": "Tragoedia",
+        "count": 1
+      },
+      {
+        "card": "Moray of Greed",
+        "count": 3
+      },
+      {
+        "card": "Pot of Avarice",
+        "count": 3
+      },
+      {
+        "card": "Salvage",
+        "count": 3
+      },
+      {
+        "card": "Brain Control",
+        "count": 1
+      },
+      {
+        "card": "Foolish Burial",
+        "count": 1
+      },
+      {
+        "card": "Giant Trunade",
+        "count": 1
+      },
+      {
+        "card": "Heavy Storm",
+        "count": 1
+      },
+      {
+        "card": "One for One",
+        "count": 1
+      },
+      {
+        "card": "Scapegoat",
+        "count": 1
+      },
+      {
+        "card": "Reckless Greed",
+        "count": 3
+      }
     ],
     "extra": [
-      { "card": "Mist Wurm", "count": 1 },
-      { "card": "Red Dragon Archfiend", "count": 1 },
-      { "card": "Colossal Fighter", "count": 2 },
-      { "card": "Thought Ruler Archfiend", "count": 1 },
-      { "card": "Stardust Dragon", "count": 1 },
-      { "card": "Black Rose Dragon", "count": 1 },
-      { "card": "Goyo Guardian", "count": 1 },
-      { "card": "Gaia Knight, the Force of Earth", "count": 1 },
-      { "card": "Brionac, Dragon of the Ice Barrier", "count": 1 },
-      { "card": "Flamvell Uruquizas", "count": 1 },
-      { "card": "Magical Android", "count": 1 },
-      { "card": "Ally of Justice Catastor", "count": 1 },
-      { "card": "Armory Arm", "count": 2 }
+      {
+        "card": "Mist Wurm",
+        "count": 1
+      },
+      {
+        "card": "Red Dragon Archfiend",
+        "count": 1
+      },
+      {
+        "card": "Colossal Fighter",
+        "count": 2
+      },
+      {
+        "card": "Thought Ruler Archfiend",
+        "count": 1
+      },
+      {
+        "card": "Stardust Dragon",
+        "count": 1
+      },
+      {
+        "card": "Black Rose Dragon",
+        "count": 1
+      },
+      {
+        "card": "Goyo Guardian",
+        "count": 1
+      },
+      {
+        "card": "Gaia Knight, the Force of Earth",
+        "count": 1
+      },
+      {
+        "card": "Brionac, Dragon of the Ice Barrier",
+        "count": 1
+      },
+      {
+        "card": "Flamvell Uruquizas",
+        "count": 1
+      },
+      {
+        "card": "Magical Android",
+        "count": 1
+      },
+      {
+        "card": "Ally of Justice Catastor",
+        "count": 1
+      },
+      {
+        "card": "Armory Arm",
+        "count": 2
+      }
     ],
     "side": [
-      { "card": "Treeborn Frog", "count": 1 },
-      { "card": "Caius the Shadow Monarch", "count": 3 },
-      { "card": "Raiza the Storm Monarch", "count": 2 },
-      { "card": "Soul Exchange", "count": 3 },
-      { "card": "Mystical Space Typhoon", "count": 1 },
-      { "card": "Raigeki Break", "count": 3 },
-      { "card": "Mirror Force", "count": 1 },
-      { "card": "Torrential Tribute", "count": 1 }
+      {
+        "card": "Treeborn Frog",
+        "count": 1
+      },
+      {
+        "card": "Caius the Shadow Monarch",
+        "count": 3
+      },
+      {
+        "card": "Raiza the Storm Monarch",
+        "count": 2
+      },
+      {
+        "card": "Soul Exchange",
+        "count": 3
+      },
+      {
+        "card": "Mystical Space Typhoon",
+        "count": 1
+      },
+      {
+        "card": "Raigeki Break",
+        "count": 3
+      },
+      {
+        "card": "Mirror Force",
+        "count": 1
+      },
+      {
+        "card": "Torrential Tribute",
+        "count": 1
+      }
     ]
   },
-  "blackwing": {
+  "gigavise": {
+    "name": "Gigavise",
+    "source": "https://cardcluster.com/deck/0yKom7 (crevice, Edison, Januar 2025) - Beispielliste, nicht von Konami geprüft",
     "main": [
-      { "card": "Blackwing - Blizzard the Far North", "count": 3 },
-      { "card": "Blackwing - Bora the Spear", "count": 3 },
-      { "card": "Blackwing - Gale the Whirlwind", "count": 1 },
-      { "card": "Blackwing - Kalut the Moon Shadow", "count": 3 },
-      { "card": "Blackwing - Shura the Blue Flame", "count": 3 },
-      { "card": "Blackwing - Sirocco the Dawn", "count": 3 },
-      { "card": "Blackwing - Vayu the Emblem of Honor", "count": 2 },
-      { "card": "Dark Armed Dragon", "count": 1 },
-      { "card": "Allure of Darkness", "count": 1 },
-      { "card": "Black Whirlwind", "count": 2 },
-      { "card": "Book of Moon", "count": 1 },
-      { "card": "Brain Control", "count": 1 },
-      { "card": "Heavy Storm", "count": 1 },
-      { "card": "Mystical Space Typhoon", "count": 1 },
-      { "card": "Bottomless Trap Hole", "count": 2 },
-      { "card": "Dimensional Prison", "count": 3 },
-      { "card": "Icarus Attack", "count": 3 },
-      { "card": "Legacy of Yata-Garasu", "count": 1 },
-      { "card": "Mirror Force", "count": 1 },
-      { "card": "Royal Oppression", "count": 1 },
-      { "card": "Solemn Judgment", "count": 1 },
-      { "card": "Starlight Road", "count": 1 },
-      { "card": "Trap Dustshoot", "count": 1 }
+      {
+        "card": "Tytannial, Princess of Camellias",
+        "count": 1
+      },
+      {
+        "card": "Lonefire Blossom",
+        "count": 2
+      },
+      {
+        "card": "Dandylion",
+        "count": 2
+      },
+      {
+        "card": "Gigaplant",
+        "count": 2
+      },
+      {
+        "card": "Nettles",
+        "count": 1
+      },
+      {
+        "card": "Copy Plant",
+        "count": 1
+      },
+      {
+        "card": "Sangan",
+        "count": 1
+      },
+      {
+        "card": "Cyber Valley",
+        "count": 3
+      },
+      {
+        "card": "Hidden Armory",
+        "count": 3
+      },
+      {
+        "card": "Supervise",
+        "count": 3
+      },
+      {
+        "card": "D.D.R. - Different Dimension Reincarnation",
+        "count": 2
+      },
+      {
+        "card": "Mark of the Rose",
+        "count": 2
+      },
+      {
+        "card": "Miracle Fertilizer",
+        "count": 2
+      },
+      {
+        "card": "Super Solar Nutrient",
+        "count": 1
+      },
+      {
+        "card": "One for One",
+        "count": 1
+      },
+      {
+        "card": "Brain Control",
+        "count": 1
+      },
+      {
+        "card": "Mind Control",
+        "count": 1
+      },
+      {
+        "card": "Foolish Burial",
+        "count": 1
+      },
+      {
+        "card": "Heavy Storm",
+        "count": 1
+      },
+      {
+        "card": "Mystical Space Typhoon",
+        "count": 1
+      },
+      {
+        "card": "Gold Sarcophagus",
+        "count": 2
+      },
+      {
+        "card": "Mirror Force",
+        "count": 1
+      },
+      {
+        "card": "Torrential Tribute",
+        "count": 1
+      },
+      {
+        "card": "Trap Dustshoot",
+        "count": 1
+      },
+      {
+        "card": "Damage Condenser",
+        "count": 1
+      },
+      {
+        "card": "Raigeki Break",
+        "count": 2
+      }
     ],
     "extra": [
-      { "card": "Chimeratech Fortress Dragon", "count": 1 },
-      { "card": "Ally of Justice Catastor", "count": 1 },
-      { "card": "Black Rose Dragon", "count": 1 },
-      { "card": "Blackwing - Silverwind the Ascendant", "count": 1 },
-      { "card": "Blackwing Armed Wing", "count": 2 },
-      { "card": "Blackwing Armor Master", "count": 1 },
-      { "card": "Brionac, Dragon of the Ice Barrier", "count": 1 },
-      { "card": "Colossal Fighter", "count": 1 },
-      { "card": "Dark End Dragon", "count": 1 },
-      { "card": "Goyo Guardian", "count": 1 },
-      { "card": "Magical Android", "count": 1 },
-      { "card": "Mist Wurm", "count": 1 },
-      { "card": "Stardust Dragon", "count": 1 },
-      { "card": "Thought Ruler Archfiend", "count": 1 }
+      {
+        "card": "Armory Arm",
+        "count": 1
+      },
+      {
+        "card": "Power Tool Dragon",
+        "count": 2
+      },
+      {
+        "card": "Mist Wurm",
+        "count": 1
+      },
+      {
+        "card": "Red Dragon Archfiend",
+        "count": 1
+      },
+      {
+        "card": "Stardust Dragon",
+        "count": 1
+      },
+      {
+        "card": "Thought Ruler Archfiend",
+        "count": 1
+      },
+      {
+        "card": "Colossal Fighter",
+        "count": 1
+      },
+      {
+        "card": "Goyo Guardian",
+        "count": 1
+      },
+      {
+        "card": "Brionac, Dragon of the Ice Barrier",
+        "count": 1
+      },
+      {
+        "card": "Ally of Justice Catastor",
+        "count": 1
+      },
+      {
+        "card": "Black Rose Dragon",
+        "count": 1
+      },
+      {
+        "card": "Ancient Fairy Dragon",
+        "count": 1
+      },
+      {
+        "card": "Black Brutdrago",
+        "count": 1
+      },
+      {
+        "card": "Queen of Thorns",
+        "count": 1
+      }
+    ],
+    "side": [
+      {
+        "card": "Cyber Dragon",
+        "count": 2
+      },
+      {
+        "card": "Consecrated Light",
+        "count": 2
+      },
+      {
+        "card": "Lightning Vortex",
+        "count": 1
+      },
+      {
+        "card": "Pulling the Rug",
+        "count": 2
+      },
+      {
+        "card": "Starlight Road",
+        "count": 1
+      },
+      {
+        "card": "Prohibition",
+        "count": 2
+      },
+      {
+        "card": "D.D. Crow",
+        "count": 2
+      },
+      {
+        "card": "Dust Tornado",
+        "count": 2
+      },
+      {
+        "card": "Seven Tools of the Bandit",
+        "count": 1
+      }
+    ]
+  },
+  "jinzoOtk": {
+    "name": "Jinzo OTK",
+    "source": "https://cardcluster.com/deck/58gQWV (dary.arw, Edison, Februar/März 2010) - Beispielliste, nicht von Konami geprüft",
+    "main": [
+      {
+        "card": "Machina Force",
+        "count": 3
+      },
+      {
+        "card": "Machina Fortress",
+        "count": 3
+      },
+      {
+        "card": "Machina Gearframe",
+        "count": 3
+      },
+      {
+        "card": "Jinzo",
+        "count": 3
+      },
+      {
+        "card": "Jinzo - Returner",
+        "count": 3
+      },
+      {
+        "card": "Dekoichi the Battlechanted Locomotive",
+        "count": 3
+      },
+      {
+        "card": "Black Salvo",
+        "count": 2
+      },
+      {
+        "card": "Cyber Dragon",
+        "count": 2
+      },
+      {
+        "card": "Ryko, Lightsworn Hunter",
+        "count": 2
+      },
+      {
+        "card": "Caius the Shadow Monarch",
+        "count": 1
+      },
+      {
+        "card": "Card Trooper",
+        "count": 1
+      },
+      {
+        "card": "Super-Nimble Mega Hamster",
+        "count": 1
+      },
+      {
+        "card": "Pot of Avarice",
+        "count": 3
+      },
+      {
+        "card": "Gold Sarcophagus",
+        "count": 2
+      },
+      {
+        "card": "Giant Trunade",
+        "count": 1
+      },
+      {
+        "card": "Heavy Storm",
+        "count": 1
+      },
+      {
+        "card": "Overload Fusion",
+        "count": 1
+      },
+      {
+        "card": "Future Fusion",
+        "count": 1
+      },
+      {
+        "card": "Book of Moon",
+        "count": 2
+      },
+      {
+        "card": "Limiter Removal",
+        "count": 1
+      },
+      {
+        "card": "Mystical Space Typhoon",
+        "count": 1
+      }
+    ],
+    "extra": [
+      {
+        "card": "Chimeratech Overdragon",
+        "count": 3
+      },
+      {
+        "card": "Chimeratech Fortress Dragon",
+        "count": 1
+      },
+      {
+        "card": "Black Rose Dragon",
+        "count": 1
+      },
+      {
+        "card": "Arcanite Magician",
+        "count": 1
+      },
+      {
+        "card": "Goyo Guardian",
+        "count": 1
+      },
+      {
+        "card": "Brionac, Dragon of the Ice Barrier",
+        "count": 1
+      },
+      {
+        "card": "Flamvell Uruquizas",
+        "count": 1
+      },
+      {
+        "card": "Ally of Justice Catastor",
+        "count": 1
+      }
+    ],
+    "side": []
+  },
+  "blackwing": {
+    "name": "Blackwing",
+    "main": [
+      {
+        "card": "Blackwing - Blizzard the Far North",
+        "count": 3
+      },
+      {
+        "card": "Blackwing - Bora the Spear",
+        "count": 3
+      },
+      {
+        "card": "Blackwing - Gale the Whirlwind",
+        "count": 1
+      },
+      {
+        "card": "Blackwing - Kalut the Moon Shadow",
+        "count": 3
+      },
+      {
+        "card": "Blackwing - Shura the Blue Flame",
+        "count": 3
+      },
+      {
+        "card": "Blackwing - Sirocco the Dawn",
+        "count": 3
+      },
+      {
+        "card": "Blackwing - Vayu the Emblem of Honor",
+        "count": 2
+      },
+      {
+        "card": "Dark Armed Dragon",
+        "count": 1
+      },
+      {
+        "card": "Allure of Darkness",
+        "count": 1
+      },
+      {
+        "card": "Black Whirlwind",
+        "count": 2
+      },
+      {
+        "card": "Book of Moon",
+        "count": 1
+      },
+      {
+        "card": "Brain Control",
+        "count": 1
+      },
+      {
+        "card": "Heavy Storm",
+        "count": 1
+      },
+      {
+        "card": "Mystical Space Typhoon",
+        "count": 1
+      },
+      {
+        "card": "Bottomless Trap Hole",
+        "count": 2
+      },
+      {
+        "card": "Dimensional Prison",
+        "count": 3
+      },
+      {
+        "card": "Icarus Attack",
+        "count": 3
+      },
+      {
+        "card": "Legacy of Yata-Garasu",
+        "count": 1
+      },
+      {
+        "card": "Mirror Force",
+        "count": 1
+      },
+      {
+        "card": "Royal Oppression",
+        "count": 1
+      },
+      {
+        "card": "Solemn Judgment",
+        "count": 1
+      },
+      {
+        "card": "Starlight Road",
+        "count": 1
+      },
+      {
+        "card": "Trap Dustshoot",
+        "count": 1
+      }
+    ],
+    "extra": [
+      {
+        "card": "Chimeratech Fortress Dragon",
+        "count": 1
+      },
+      {
+        "card": "Ally of Justice Catastor",
+        "count": 1
+      },
+      {
+        "card": "Black Rose Dragon",
+        "count": 1
+      },
+      {
+        "card": "Blackwing - Silverwind the Ascendant",
+        "count": 1
+      },
+      {
+        "card": "Blackwing Armed Wing",
+        "count": 2
+      },
+      {
+        "card": "Blackwing Armor Master",
+        "count": 1
+      },
+      {
+        "card": "Brionac, Dragon of the Ice Barrier",
+        "count": 1
+      },
+      {
+        "card": "Colossal Fighter",
+        "count": 1
+      },
+      {
+        "card": "Dark End Dragon",
+        "count": 1
+      },
+      {
+        "card": "Goyo Guardian",
+        "count": 1
+      },
+      {
+        "card": "Magical Android",
+        "count": 1
+      },
+      {
+        "card": "Mist Wurm",
+        "count": 1
+      },
+      {
+        "card": "Stardust Dragon",
+        "count": 1
+      },
+      {
+        "card": "Thought Ruler Archfiend",
+        "count": 1
+      }
     ]
   }
 }
