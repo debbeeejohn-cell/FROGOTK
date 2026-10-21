@@ -1,5 +1,6 @@
 import { getDefaultSettings, getStoredSettings, saveSettings } from './store.js';
 import { initCalc } from './calc.js';
+import { buildYdk } from './ydk.js';
 
 const $ = (id) => document.getElementById(id);
 const navButtons = document.querySelectorAll('.nav-item');
@@ -480,7 +481,13 @@ function renderLexicon() {
     ? `<p class="calc-note">Tippe auf eine Karte für Text und Bild. Kartenpool: ${esc(lexicon.poolName)}. Einzelne Karten dieser Zeit sind trotzdem nicht erlaubt.</p>`
     : '<p class="calc-note">Kartendatenbank noch nicht geladen: Starte auf GitHub den Workflow „Karten laden", dann gibt es Kartentext, Bilder und die Suche über alle Edison-Karten.</p>';
 
-  lexiconBody.innerHTML = check + dbNote + (sections || '<p class="empty-state">Keine Karte gefunden.</p>') + rules;
+  const exportBar = `
+    <div class="lex-export">
+      <button type="button" class="secondary-button" data-ydk${lexicon.pool ? '' : ' disabled'}>Deck als .ydk exportieren</button>
+      <span id="ydkStatus" role="status"></span>
+    </div>`;
+
+  lexiconBody.innerHTML = check + exportBar + dbNote + (sections || '<p class="empty-state">Keine Karte gefunden.</p>') + rules;
 }
 
 /* ---------- Init ---------- */
@@ -509,6 +516,21 @@ function bindEvents() {
   revealStepBtn.addEventListener('click', revealNextStep);
   markMemorizedBtn.addEventListener('click', toggleLearned);
   lexiconSearch.addEventListener('input', () => lexicon && renderLexicon());
+  lexiconBody.addEventListener('click', (event) => {
+    if (!event.target.closest('[data-ydk]')) return;
+    const status = $('ydkStatus');
+    const { text, missing } = buildYdk(lexicon.deck, lexicon.byName);
+    if (missing.length) {
+      status.textContent = `Nicht exportiert, Karten fehlen in der Datenbank: ${missing.join(', ')}`;
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+    link.download = 'frog-otk-edison.ydk';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    status.textContent = 'Exportiert: frog-otk-edison.ydk';
+  });
   navButtons.forEach((button) => button.addEventListener('click', () => setView(button.dataset.view)));
   familyList.addEventListener('click', (event) => {
     const button = event.target.closest('.family-button');

@@ -263,6 +263,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   width: 100%; max-width: 420px; min-height: var(--tap); padding: 0 14px; margin-bottom: 20px;
   border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface);
 }
+.lex-export { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 12px 0; }
+.lex-export [role="status"] { color: var(--fg-muted); font-size: 0.9rem; }
 .lex-section { margin-bottom: 24px; }
 #lexiconBody > .calc-note { margin: 10px 0 18px; }
 .lex-section h3 { font-size: 1rem; margin-bottom: 8px; }
