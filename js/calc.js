@@ -1,4 +1,5 @@
 // Hypergeometric calculator: P(draw >= min of every card group) from a deck.
+import { esc } from './util.js';
 
 const MAX_DECK = 80;
 
@@ -67,9 +68,6 @@ export function validate(deckSize, draws, groups) {
 
 /* ---------- UI ---------- */
 
-const esc = (value) => String(value).replace(/[&<>"']/g, (c) => (
-  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-));
 const pct = (p) => `${(p * 100).toFixed(1).replace('.', ',')} %`;
 
 const HANDS = [

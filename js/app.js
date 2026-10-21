@@ -1,6 +1,8 @@
 import { getDefaultSettings, getStoredSettings, saveSettings } from './store.js';
 import { initCalc } from './calc.js';
 import { buildYdk } from './ydk.js';
+import { initSandbox } from './sandbox.js';
+import { esc } from './util.js';
 
 const $ = (id) => document.getElementById(id);
 const navButtons = document.querySelectorAll('.nav-item');
@@ -24,10 +26,6 @@ const dashboardBody = $('dashboardBody');
 const lexiconBody = $('lexiconBody');
 const lexiconSearch = $('lexiconSearch');
 
-const esc = (value) => String(value).replace(/[&<>"']/g, (c) => (
-  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-));
-
 // Fisher-Yates; sort(() => random - 0.5) is biased.
 function shuffle(list) {
   const out = [...list];
@@ -39,6 +37,7 @@ function shuffle(list) {
 }
 
 let calcReady = false;
+let sandboxReady = false;
 let lines = [];
 let activeLineId = null;
 let revealedSteps = 0;
@@ -62,6 +61,7 @@ function setView(viewName) {
   if (viewName === 'dashboard') renderDashboard();
   if (viewName === 'lexicon') loadLexicon();
   if (viewName === 'calc' && !calcReady) { calcReady = true; initCalc($('calcRoot')); }
+  if (viewName === 'sandbox' && !sandboxReady) { sandboxReady = true; initSandbox($('sandboxRoot'), lines); }
   history.replaceState(null, '', `#${viewName}`);
 }
 
