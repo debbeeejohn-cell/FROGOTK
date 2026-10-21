@@ -208,7 +208,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .quiz-question { border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; background: var(--surface-2); }
 .quiz-q { display: grid; gap: 10px; }
 .quiz-title { font-weight: 700; font-size: 1.1rem; }
-.quiz-highlight { background: var(--surface); padding: 12px; border-radius: var(--radius-sm); border-left: 4px solid var(--accent); font-weight: 600; }
+.quiz-highlight { background: var(--surface); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--accent); font-weight: 600; }
 .quiz-meta { color: var(--fg-muted); font-size: 0.9rem; }
 .quiz-answers { display: grid; gap: 8px; }
 .quiz-option {
