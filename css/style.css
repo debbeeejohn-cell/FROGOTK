@@ -382,8 +382,8 @@ details > .lex-sum:hover { background: var(--accent-soft); }
 .dl-phases button[aria-pressed="true"] { background: var(--gold); color: #1b1500; border-color: var(--gold); }
 .dl-side { display: grid; gap: 12px; }
 .dl-lps { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.dl-lp { padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); border-left: 4px solid #4ade80; }
-.dl-lp.bot { border-left-color: var(--foe, #60a5fa); }
+.dl-lp { padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); border-color: color-mix(in srgb, #4ade80 55%, var(--border)); }
+.dl-lp.bot { border-color: color-mix(in srgb, #60a5fa 55%, var(--border)); }
 .dl-lp-top { display: flex; justify-content: space-between; font-weight: 700; }
 .dl-bar { height: 6px; margin: 6px 0; border-radius: 3px; background: var(--border); overflow: hidden; }
 .dl-bar i { display: block; height: 100%; background: var(--accent); }
