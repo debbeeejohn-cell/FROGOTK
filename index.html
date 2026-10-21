@@ -25,6 +25,7 @@
         <nav class="main-nav" aria-label="Hauptnavigation">
           <button class="nav-item" type="button" data-view="learn">Lernen</button>
           <button class="nav-item" type="button" data-view="quiz">Quiz</button>
+          <button class="nav-item" type="button" data-view="calc">Rechner</button>
           <button class="nav-item" type="button" data-view="sandbox">Sandbox</button>
           <button class="nav-item" type="button" data-view="lexicon">Lexikon</button>
           <button class="nav-item" type="button" data-view="dashboard">Fortschritt</button>
@@ -95,6 +96,17 @@
             <div id="quizFeedback" class="quiz-feedback" role="status" aria-live="polite"></div>
             <div id="quizActions" class="quiz-actions"></div>
           </div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-calc" aria-labelledby="h-calc" hidden>
+        <div class="panel">
+          <header class="panel-header">
+            <p class="eyebrow">Wahrscheinlichkeit</p>
+            <h2 id="h-calc">Hypergeometrischer Rechner</h2>
+            <p>Wie wahrscheinlich ist es, die Karten für deine Combo in der Starthand zu haben?</p>
+          </header>
+          <div id="calcRoot"></div>
         </div>
       </section>
 

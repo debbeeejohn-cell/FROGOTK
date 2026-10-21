@@ -1,4 +1,5 @@
 import { getDefaultSettings, getStoredSettings, saveSettings } from './store.js';
+import { initCalc } from './calc.js';
 
 const $ = (id) => document.getElementById(id);
 const navButtons = document.querySelectorAll('.nav-item');
@@ -36,6 +37,7 @@ function shuffle(list) {
   return out;
 }
 
+let calcReady = false;
 let lines = [];
 let activeLineId = null;
 let revealedSteps = 0;
@@ -58,6 +60,7 @@ function setView(viewName) {
   if (viewName === 'quiz') initializeQuiz();
   if (viewName === 'dashboard') renderDashboard();
   if (viewName === 'lexicon') loadLexicon();
+  if (viewName === 'calc' && !calcReady) { calcReady = true; initCalc($('calcRoot')); }
   history.replaceState(null, '', `#${viewName}`);
 }
 
