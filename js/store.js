@@ -19,5 +19,9 @@ export function getStoredSettings() {
 export function saveSettings(next) {
   const current = getStoredSettings();
   const merged = { ...current, ...next };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+  } catch {
+    // private mode / quota: settings just don't persist
+  }
 }
