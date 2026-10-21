@@ -254,6 +254,9 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .lex-count { color: var(--fg-muted); font-weight: 700; font-variant-numeric: tabular-nums; }
 .lex-name { font-weight: 600; }
+.ban-badge { margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; background: var(--surface); border: 1px solid var(--border); white-space: nowrap; }
+.ban-0 { color: var(--error); border-color: var(--error); }
+.ban-1 { color: var(--accent); border-color: var(--accent); }
 .lex-used { grid-column: 2; color: var(--fg-muted); font-size: 0.85rem; }
 .lex-used:empty { display: none; }
 .table-wrap { overflow-x: auto; margin-top: 12px; }

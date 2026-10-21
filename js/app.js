@@ -366,13 +366,22 @@ async function loadLexicon() {
   if (!lexicon) {
     lexiconBody.textContent = 'Lade …';
     try {
-      const [decks, materials] = await Promise.all(
-        ['decks', 'materials'].map((name) => fetch(`./data/${name}.json`).then((res) => {
+      const [decks, materials, banlist] = await Promise.all(
+        ['decks', 'materials', 'edison-banlist'].map((name) => fetch(`./data/${name}.json`).then((res) => {
           if (!res.ok) throw new Error(`${name}.json: HTTP ${res.status}`);
           return res.json();
         }))
       );
-      lexicon = { deck: decks.frogOtk, materials };
+      const limits = new Map([
+        ...banlist.forbidden.map((n) => [n, { max: 0, label: 'Verboten' }]),
+        ...banlist.limited.map((n) => [n, { max: 1, label: 'Limitiert' }]),
+        ...banlist.semiLimited.map((n) => [n, { max: 2, label: 'Semi-Limitiert' }])
+      ]);
+      // Edison counts copies across Main + Extra + Side together.
+      const copies = new Map();
+      Object.values(decks.frogOtk).flat().forEach(({ card, count }) => copies.set(card, (copies.get(card) || 0) + count));
+      const illegal = [...copies].filter(([card, n]) => limits.has(card) && n > limits.get(card).max).map(([card]) => card);
+      lexicon = { deck: decks.frogOtk, materials, limits, illegal, banlistName: banlist.banlist };
     } catch (error) {
       lexiconBody.innerHTML = `<p class="notice notice-error">Lexikon konnte nicht geladen werden (${esc(error.message)}).</p>`;
       return;
@@ -396,10 +405,12 @@ function renderLexicon() {
     if (!cards.length) return '';
     const items = cards.map(({ card, count }) => {
       const used = linesUsing(card);
+      const limit = lexicon.limits.get(card);
+      const badge = limit ? `<span class="ban-badge ban-${limit.max}">${limit.label}</span>` : '';
       return `
         <li class="lex-card">
           <span class="lex-count" aria-label="${count} Kopie${count > 1 ? 'n' : ''}">${count}×</span>
-          <span class="lex-name">${esc(card)}</span>
+          <span class="lex-name">${esc(card)} ${badge}</span>
           <span class="lex-used">${used.length ? `in ${used.map((l) => esc(l.title)).join(', ')}` : ''}</span>
         </li>`;
     }).join('');
@@ -420,7 +431,11 @@ function renderLexicon() {
       </div>
     </section>`;
 
-  lexiconBody.innerHTML = (sections || '<p class="empty-state">Keine Karte gefunden.</p>') + rules;
+  const check = lexicon.illegal.length
+    ? `<p class="notice notice-error">Nicht legal im Edison-Format (${esc(lexicon.banlistName)}): ${lexicon.illegal.map(esc).join(', ')}</p>`
+    : `<p class="notice">✓ Deck ist legal im Edison-Format (Banliste ${esc(lexicon.banlistName)}).</p>`;
+
+  lexiconBody.innerHTML = check + (sections || '<p class="empty-state">Keine Karte gefunden.</p>') + rules;
 }
 
 /* ---------- Init ---------- */
