@@ -25,4 +25,11 @@ export function pickDeck(decks) {
 
 export const rememberDeck = (id) => saveSettings({ deck: id });
 
+let cardsCache;
+
+/** The optional card database (data/cards.json); null until the "Karten laden" workflow has run. */
+export const loadCards = () => (cardsCache ??= fetch('./data/cards.json')
+  .then((res) => (res.ok ? res.json() : null))
+  .catch(() => null));
+
 export const deckTotal = (deck, section) => (deck[section] || []).reduce((sum, c) => sum + c.count, 0);

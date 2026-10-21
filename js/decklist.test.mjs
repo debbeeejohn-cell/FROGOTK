@@ -40,4 +40,9 @@ assert.deepEqual(c.main, [{ card: '7 Colored Fish', count: 1 }, { card: 'Des Fro
 
 // Empty input -> nothing, no crash
 assert.deepEqual(parseDecklist('  \n\n').main, []);
+// Absurdly long lines are skipped and cannot stall the page (regex stays cheap)
+const started = Date.now();
+const huge = parseDecklist(`${'x'.repeat(200_000)} 9\n2 Des Frog\n${'9'.repeat(300)}`);
+assert.deepEqual(huge.main, [{ card: 'Des Frog', count: 2 }]);
+assert.ok(Date.now() - started < 500, 'long line must not be slow');
 console.log('decklist: all checks passed');

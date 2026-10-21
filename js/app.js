@@ -3,7 +3,7 @@ import { initCalc } from './calc.js';
 import { buildYdk } from './ydk.js';
 import { initSandbox } from './sandbox.js';
 import { esc } from './util.js';
-import { loadDecks, deckOptions, pickDeck, rememberDeck } from './decks.js';
+import { loadDecks, loadCards, deckOptions, pickDeck, rememberDeck } from './decks.js';
 
 const $ = (id) => document.getElementById(id);
 const navButtons = document.querySelectorAll('.nav-item');
@@ -414,7 +414,7 @@ async function loadLexicon() {
         ...banlist.semiLimited.map((n) => [n, { max: 2, label: 'Semi-Limitiert' }])
       ]);
       // Optional: only exists after the "Karten laden" workflow / scripts/fetch-cards.mjs ran.
-      const cardData = await fetch('./data/cards.json').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+      const cardData = await loadCards();
       const pool = cardData?.cards ?? null;
       lexicon = {
         materials, limits, banlistName: banlist.banlist,
@@ -457,7 +457,7 @@ function cardRow(name, count) {
   const info = lexicon.byName.get(name.toLowerCase());
   if (!info) return `<li class="lex-card"><div class="lex-sum">${head}</div></li>`;
 
-  const img = info.img ? `<img class="lex-img" src="assets/cards-small/${info.id}.jpg" alt="" loading="lazy" width="100" height="146" />` : '';
+  const img = info.img ? `<img class="lex-img" src="assets/cards-small/${Number(info.id)}.jpg" alt="" loading="lazy" width="100" height="146" />` : '';
   return `
     <li class="lex-card">
       <details>
@@ -500,7 +500,7 @@ function renderLexicon() {
   }
 
   const { intro, table } = lexicon.materials;
-  const rows = table.map((r) => `<tr><th scope="row">${r.level}</th><td>${r.beelzeOrDes}</td><td>${r.justDes}</td><td>${r.justBeelze}</td><td>${r.neither}</td></tr>`).join('');
+  const rows = table.map((r) => `<tr><th scope="row">${esc(r.level)}</th><td>${esc(r.beelzeOrDes)}</td><td>${esc(r.justDes)}</td><td>${esc(r.justBeelze)}</td><td>${esc(r.neither)}</td></tr>`).join('');
   const rules = query ? '' : `
     <section class="lex-section">
       <h3>Material-Regeln</h3>
