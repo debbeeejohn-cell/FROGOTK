@@ -374,12 +374,12 @@ details > .lex-sum:hover { background: var(--accent-soft); }
   color: var(--ink); background: var(--felt-2); border: 1px solid var(--line); border-radius: 6px; cursor: pointer;
 }
 .dl-pile b { font-size: 1rem; }
-.dl-card.can { box-shadow: 0 0 0 2px #4ade80, 0 0 10px rgba(74, 222, 128, 0.55); }
-.dl-card.can.sel, .dl-card.sel { box-shadow: 0 0 0 3px var(--gold); }
+.dl-card.can { outline: 2px solid #4ade80; outline-offset: -2px; }
+.dl-card.can.sel { outline-color: var(--gold); }
 .dl-card.peek img { opacity: 0.55; }
 .dl-card.down.peek { background: #223329; }
 .dl-stat { position: absolute; left: 0; right: 0; bottom: 0; padding: 1px 0; background: rgba(0, 0, 0, 0.75); color: #fff; font-size: 0.6rem; text-align: center; }
-.dl-pile.can { border-color: #4ade80; box-shadow: 0 0 8px rgba(74, 222, 128, 0.5); }
+.dl-pile.can { border: 2px solid #4ade80; }
 .dl-check { display: flex !important; align-items: center; gap: 8px; font-weight: 500 !important; min-height: var(--tap); }
 .dl-check input { width: 20px; height: 20px; }
 .dl-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; max-height: 50vh; overflow-y: auto; margin: 8px 0 12px; }
