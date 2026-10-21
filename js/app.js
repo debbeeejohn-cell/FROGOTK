@@ -1,4 +1,8 @@
 import { getDefaultSettings, getStoredSettings, saveSettings } from './store.js';
+import { initCalc } from './calc.js';
+import { buildYdk } from './ydk.js';
+import { initSandbox } from './sandbox.js';
+import { esc } from './util.js';
 
 const $ = (id) => document.getElementById(id);
 const navButtons = document.querySelectorAll('.nav-item');
@@ -19,10 +23,8 @@ const quizFeedback = $('quizFeedback');
 const quizProgress = $('quizProgress');
 const quizActions = $('quizActions');
 const dashboardBody = $('dashboardBody');
-
-const esc = (value) => String(value).replace(/[&<>"']/g, (c) => (
-  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-));
+const lexiconBody = $('lexiconBody');
+const lexiconSearch = $('lexiconSearch');
 
 // Fisher-Yates; sort(() => random - 0.5) is biased.
 function shuffle(list) {
@@ -34,6 +36,8 @@ function shuffle(list) {
   return out;
 }
 
+let calcReady = false;
+let sandboxReady = false;
 let lines = [];
 let activeLineId = null;
 let revealedSteps = 0;
@@ -55,6 +59,9 @@ function setView(viewName) {
 
   if (viewName === 'quiz') initializeQuiz();
   if (viewName === 'dashboard') renderDashboard();
+  if (viewName === 'lexicon') loadLexicon();
+  if (viewName === 'calc' && !calcReady) { calcReady = true; initCalc($('calcRoot')); }
+  if (viewName === 'sandbox' && !sandboxReady) { sandboxReady = true; initSandbox($('sandboxRoot'), lines); }
   history.replaceState(null, '', `#${viewName}`);
 }
 
@@ -353,6 +360,136 @@ function renderDashboard() {
     <div class="family-progress">${bars}</div>`;
 }
 
+/* ---------- Lexikon ---------- */
+
+let lexicon = null;
+const SECTIONS = [['main', 'Main Deck'], ['extra', 'Extra Deck'], ['side', 'Side Deck']];
+const TABLE_HEAD = ['Level', 'Beelze oder Des', 'Nur Des', 'Nur Beelze', 'Keins von beiden'];
+
+async function loadLexicon() {
+  if (!lexicon) {
+    lexiconBody.textContent = 'Lade …';
+    try {
+      const [decks, materials, banlist] = await Promise.all(
+        ['decks', 'materials', 'edison-banlist'].map((name) => fetch(`./data/${name}.json`).then((res) => {
+          if (!res.ok) throw new Error(`${name}.json: HTTP ${res.status}`);
+          return res.json();
+        }))
+      );
+      const limits = new Map([
+        ...banlist.forbidden.map((n) => [n, { max: 0, label: 'Verboten' }]),
+        ...banlist.limited.map((n) => [n, { max: 1, label: 'Limitiert' }]),
+        ...banlist.semiLimited.map((n) => [n, { max: 2, label: 'Semi-Limitiert' }])
+      ]);
+      // Edison counts copies across Main + Extra + Side together.
+      const copies = new Map();
+      Object.values(decks.frogOtk).flat().forEach(({ card, count }) => copies.set(card, (copies.get(card) || 0) + count));
+      const illegal = [...copies].filter(([card, n]) => limits.has(card) && n > limits.get(card).max).map(([card]) => card);
+      // Optional: only exists after the "Karten laden" workflow / scripts/fetch-cards.mjs ran.
+      const cardData = await fetch('./data/cards.json').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+      const pool = cardData?.cards ?? null;
+      lexicon = {
+        deck: decks.frogOtk, materials, limits, illegal, copies, banlistName: banlist.banlist,
+        pool, poolName: cardData ? `${cardData.pool}, Stand ${cardData.generated}` : '',
+        byName: new Map((pool || []).map((c) => [c.name.toLowerCase(), c]))
+      };
+    } catch (error) {
+      lexiconBody.innerHTML = `<p class="notice notice-error">Lexikon konnte nicht geladen werden (${esc(error.message)}).</p>`;
+      return;
+    }
+  }
+  renderLexicon();
+}
+
+// ponytail: substring match on line text; "Treeborn" won't match "Treeborn Frog" style shorthand, add aliases.json if needed
+function linesUsing(card) {
+  const needle = card.toLowerCase();
+  return lines.filter((line) => [line.materials, ...line.steps, ...(line.endBoard || [])]
+    .some((text) => text.toLowerCase().includes(needle)));
+}
+
+const MAX_RESULTS = 50;
+
+const cardStats = (c) => [
+  c.type, c.race, c.attribute,
+  c.level != null ? `Level ${c.level}` : null,
+  c.atk != null ? `ATK ${c.atk} / DEF ${c.def ?? '?'}` : null
+].filter(Boolean).join(' · ');
+
+// One list entry; expands (native <details>) when the card database knows the card.
+function cardRow(name, count) {
+  const used = linesUsing(name);
+  const limit = lexicon.limits.get(name);
+  const badge = limit ? `<span class="ban-badge ban-${limit.max}">${limit.label}</span>` : '';
+  const head = `
+    <span class="lex-count"${count ? ` aria-label="${count} Kopie${count > 1 ? 'n' : ''}"` : ''}>${count ? `${count}×` : ''}</span>
+    <span class="lex-name">${esc(name)} ${badge}</span>
+    <span class="lex-used">${used.length ? `in ${used.map((l) => esc(l.title)).join(', ')}` : ''}</span>`;
+
+  const info = lexicon.byName.get(name.toLowerCase());
+  if (!info) return `<li class="lex-card"><div class="lex-sum">${head}</div></li>`;
+
+  const img = info.img ? `<img class="lex-img" src="assets/cards-small/${info.id}.jpg" alt="" loading="lazy" width="100" height="146" />` : '';
+  return `
+    <li class="lex-card">
+      <details>
+        <summary class="lex-sum">${head}</summary>
+        <div class="lex-detail">${img}<div><p class="lex-stats">${esc(cardStats(info))}</p><p class="lex-text">${esc(info.desc)}</p></div></div>
+      </details>
+    </li>`;
+}
+
+function renderLexicon() {
+  const query = lexiconSearch.value.trim().toLowerCase();
+  const section = (title, items) => `<section class="lex-section"><h3>${title}</h3><ul class="lex-list">${items}</ul></section>`;
+
+  let sections;
+  if (query && lexicon.pool) {
+    // With the card database, search the whole Edison pool, not just the deck.
+    const hits = lexicon.pool.filter((c) => c.name.toLowerCase().includes(query));
+    const shown = hits.slice(0, MAX_RESULTS);
+    sections = hits.length
+      ? section(`Edison-Kartenpool: ${hits.length} Treffer${hits.length > shown.length ? ` (erste ${shown.length})` : ''}`,
+        shown.map((c) => cardRow(c.name, lexicon.copies.get(c.name) || 0)).join(''))
+      : '';
+  } else {
+    sections = SECTIONS.map(([key, label]) => {
+      const cards = (lexicon.deck[key] || []).filter((c) => c.card.toLowerCase().includes(query));
+      return cards.length ? section(label, cards.map(({ card, count }) => cardRow(card, count)).join('')) : '';
+    }).join('');
+  }
+
+  const { intro, table } = lexicon.materials;
+  const rows = table.map((r) => `<tr><th scope="row">${r.level}</th><td>${r.beelzeOrDes}</td><td>${r.justDes}</td><td>${r.justBeelze}</td><td>${r.neither}</td></tr>`).join('');
+  const rules = query ? '' : `
+    <section class="lex-section">
+      <h3>Material-Regeln</h3>
+      <p class="meta-block">${esc(intro.materials.general)}</p>
+      <div class="table-wrap">
+        <table class="lex-table">
+          <thead><tr>${TABLE_HEAD.map((h) => `<th scope="col">${h}</th>`).join('')}</tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </section>`;
+
+  const check = lexicon.illegal.length
+    ? `<p class="notice notice-error">Nicht legal im Edison-Format (${esc(lexicon.banlistName)}): ${lexicon.illegal.map(esc).join(', ')}</p>`
+    : `<p class="notice">✓ Deck ist legal im Edison-Format (Banliste ${esc(lexicon.banlistName)}).</p>`;
+
+  const dbNote = lexicon.pool
+    ? `<p class="calc-note">Tippe auf eine Karte für Text und Bild. Kartenpool: ${esc(lexicon.poolName)}. Einzelne Karten dieser Zeit sind trotzdem nicht erlaubt.</p>`
+    : '<p class="calc-note">Kartendatenbank noch nicht geladen: Starte auf GitHub den Workflow „Karten laden", dann gibt es Kartentext, Bilder und die Suche über alle Edison-Karten.</p>';
+
+  const exportBar = `
+    <div class="lex-export">
+      <button type="button" class="secondary-button" data-ydk${lexicon.pool ? '' : ' disabled'}>Deck als .ydk exportieren</button>
+      <span id="ydkStatus" role="status"></span>
+    </div>`;
+
+  lexiconBody.innerHTML = check + exportBar + dbNote + (sections || '<p class="empty-state">Keine Karte gefunden.</p>') + rules;
+}
+
 /* ---------- Init ---------- */
 
 function initSettings() {
@@ -378,6 +515,22 @@ function bindEvents() {
   nextLineBtn.addEventListener('click', () => cycleLine(1));
   revealStepBtn.addEventListener('click', revealNextStep);
   markMemorizedBtn.addEventListener('click', toggleLearned);
+  lexiconSearch.addEventListener('input', () => lexicon && renderLexicon());
+  lexiconBody.addEventListener('click', (event) => {
+    if (!event.target.closest('[data-ydk]')) return;
+    const status = $('ydkStatus');
+    const { text, missing } = buildYdk(lexicon.deck, lexicon.byName);
+    if (missing.length) {
+      status.textContent = `Nicht exportiert, Karten fehlen in der Datenbank: ${missing.join(', ')}`;
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+    link.download = 'frog-otk-edison.ydk';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    status.textContent = 'Exportiert: frog-otk-edison.ydk';
+  });
   navButtons.forEach((button) => button.addEventListener('click', () => setView(button.dataset.view)));
   familyList.addEventListener('click', (event) => {
     const button = event.target.closest('.family-button');

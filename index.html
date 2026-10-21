@@ -25,6 +25,7 @@
         <nav class="main-nav" aria-label="Hauptnavigation">
           <button class="nav-item" type="button" data-view="learn">Lernen</button>
           <button class="nav-item" type="button" data-view="quiz">Quiz</button>
+          <button class="nav-item" type="button" data-view="calc">Rechner</button>
           <button class="nav-item" type="button" data-view="sandbox">Sandbox</button>
           <button class="nav-item" type="button" data-view="lexicon">Lexikon</button>
           <button class="nav-item" type="button" data-view="dashboard">Fortschritt</button>
@@ -98,13 +99,25 @@
         </div>
       </section>
 
+      <section class="screen" id="screen-calc" aria-labelledby="h-calc" hidden>
+        <div class="panel">
+          <header class="panel-header">
+            <p class="eyebrow">Wahrscheinlichkeit</p>
+            <h2 id="h-calc">Hypergeometrischer Rechner</h2>
+            <p>Wie wahrscheinlich ist es, die Karten für deine Combo in der Starthand zu haben?</p>
+          </header>
+          <div id="calcRoot"></div>
+        </div>
+      </section>
+
       <section class="screen" id="screen-sandbox" aria-labelledby="h-sandbox" hidden>
         <div class="panel">
           <header class="panel-header">
             <p class="eyebrow">Frei spielen</p>
             <h2 id="h-sandbox">Sandbox</h2>
+            <p>Spiele eine aufgezeichnete Line auf dem Board nach oder übe sie selbst. Es gibt keine Regelprüfung, die App vergleicht dich nur mit der Aufzeichnung.</p>
           </header>
-          <p class="empty-state">Kommt bald: Situationen aufbauen, Decks testen und das passende Endboard prüfen.</p>
+          <div id="sandboxRoot"></div>
         </div>
       </section>
 
@@ -114,7 +127,9 @@
             <p class="eyebrow">Nachschlagen</p>
             <h2 id="h-lexicon">Karten &amp; Begriffe</h2>
           </header>
-          <p class="empty-state">Kommt bald: Abkürzungen und Karteneigenschaften werden hier aufgelöst.</p>
+          <label class="visually-hidden" for="lexiconSearch">Karte suchen</label>
+          <input id="lexiconSearch" class="search-input" type="search" placeholder="Karte suchen, z. B. Des Frog" autocomplete="off" />
+          <div id="lexiconBody"></div>
         </div>
       </section>
 

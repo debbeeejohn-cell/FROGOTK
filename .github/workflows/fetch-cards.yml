@@ -1,0 +1,26 @@
+# Manual run: Actions tab -> "Karten laden" -> Run workflow.
+# Downloads the Edison card pool once and commits it to the selected branch.
+name: Karten laden
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Download card pool and images
+        run: node scripts/fetch-cards.mjs
+      - name: Commit result
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/cards.json assets/cards-small
+          git diff --cached --quiet || { git commit -m "Update card database" && git push; }
