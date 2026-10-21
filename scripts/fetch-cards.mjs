@@ -1,162 +1,110 @@
 #!/usr/bin/env node
+// Downloads the Edison card pool from YGOPRODeck ONCE and stores it locally
+// (their API guide asks for local storage instead of hotlinking/polling).
+//
+//   node scripts/fetch-cards.mjs
+//
+// Writes data/cards.json (all cards up to the Edison cut-off set) and
+// assets/cards-small/<id>.jpg for the cards used in decks.json / line-catalog.json.
+// YGOPRODECK_API / YGOPRODECK_IMAGES override the hosts (used for offline tests).
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
+const API = process.env.YGOPRODECK_API ?? 'https://db.ygoprodeck.com/api/v7';
+const IMAGES = process.env.YGOPRODECK_IMAGES ?? 'https://images.ygoprodeck.com/images/cards_small';
+// Edison = March 2010 banlist, cards up to and including Duelist Pack: Kaiba.
+// The date is looked up from the API instead of being hard-coded.
+const CUTOFF_SET = 'Duelist Pack: Kaiba';
+const IMAGE_DELAY_MS = 100; // API limit is 20 requests/second
+
 const ROOT = process.cwd();
 const DATA_DIR = path.join(ROOT, 'data');
-const ASSETS_DIR = path.join(ROOT, 'assets');
-const CARDS_DIR = path.join(ASSETS_DIR, 'cards');
-const SMALL_CARDS_DIR = path.join(ASSETS_DIR, 'cards-small');
+const IMAGE_DIR = path.join(ROOT, 'assets', 'cards-small');
 const OUTPUT_FILE = path.join(DATA_DIR, 'cards.json');
-const ERROR_FILE = path.join(DATA_DIR, 'cards.errors.json');
 
-const neededNames = new Set();
+const headers = { 'User-Agent': 'FrogOTK-Learning-App/1.0' };
 
-function ensureDir(dir) {
-  fs.mkdirSync(dir, { recursive: true });
+async function getJson(url) {
+  const response = await fetch(url, { headers });
+  if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
+  return response.json();
 }
 
-function loadJson(filePath, fallback) {
+function readJson(file, fallback) {
   try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
   } catch {
     return fallback;
   }
 }
 
-function collectNames() {
-  const aliases = loadJson(path.join(DATA_DIR, 'aliases.json'), {});
-  for (const key of Object.keys(aliases)) {
-    const values = Array.isArray(aliases[key]) ? aliases[key] : [aliases[key]];
-    for (const value of values) {
-      if (typeof value === 'string' && value.trim()) neededNames.add(value.trim());
-    }
+/** Names the app actually shows: every deck card plus every line end board card. */
+function neededNames() {
+  const names = new Set();
+  const decks = readJson(path.join(DATA_DIR, 'decks.json'), {});
+  for (const deck of Object.values(decks)) {
+    for (const section of Object.values(deck)) section.forEach((item) => item?.card && names.add(item.card));
   }
-
-  const decks = loadJson(path.join(DATA_DIR, 'decks.json'), {});
-  for (const deckName of Object.keys(decks)) {
-    const deck = decks[deckName];
-    for (const section of Object.keys(deck)) {
-      for (const item of deck[section] || []) {
-        if (item && item.card) neededNames.add(item.card);
-      }
-    }
-  }
-
-  const lines = loadJson(path.join(DATA_DIR, 'lines.json'), []);
-  for (const line of lines) {
-    if (line && line.family) {
-      // keep only explicit card names if available later; no guessing here
-    }
-  }
+  const catalog = readJson(path.join(DATA_DIR, 'line-catalog.json'), { lines: [] });
+  for (const line of catalog.lines) (line.endBoard || []).forEach((name) => names.add(name));
+  return names;
 }
 
-function buildSearchUrl(name) {
-  return `https://db.ygoprodeck.com/api/v7/cardinfo.php?name=${encodeURIComponent(name)}`;
-}
-
-async function fetchJson(url) {
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': 'FrogOTK-Learning-App/1.0'
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} for ${url}`);
-  }
-
-  return response.json();
-}
-
-async function fetchImage(url, outputPath) {
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': 'FrogOTK-Learning-App/1.0'
-    }
-  });
-
-  if (!response.ok) throw new Error(`Image fetch failed: ${response.status} ${url}`);
-
-  const buffer = Buffer.from(await response.arrayBuffer());
-  fs.writeFileSync(outputPath, buffer);
+async function downloadImage(id) {
+  const target = path.join(IMAGE_DIR, `${id}.jpg`);
+  if (fs.existsSync(target)) return true; // idempotent: never fetch an image twice
+  const response = await fetch(`${IMAGES}/${id}.jpg`, { headers });
+  if (!response.ok) return false;
+  fs.writeFileSync(target, Buffer.from(await response.arrayBuffer()));
+  return true;
 }
 
 async function main() {
-  ensureDir(DATA_DIR);
-  ensureDir(CARDS_DIR);
-  ensureDir(SMALL_CARDS_DIR);
+  const sets = await getJson(`${API}/cardsets.php`);
+  const cutoff = sets.find((set) => set.set_name === CUTOFF_SET);
+  if (!cutoff?.tcg_date) throw new Error(`Set "${CUTOFF_SET}" with tcg_date not found in cardsets.php`);
+  console.log(`Edison cut-off: ${CUTOFF_SET} (${cutoff.tcg_date})`);
 
-  collectNames();
+  const { data } = await getJson(`${API}/cardinfo.php?startdate=1999-01-01&enddate=${cutoff.tcg_date}&dateregion=tcg`);
+  if (!Array.isArray(data) || data.length === 0) throw new Error('cardinfo.php returned no cards');
 
-  const names = [...neededNames];
-  const cards = {};
-  const errors = { missingCards: [], missingImages: [] };
+  const cards = data
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      type: c.type,
+      race: c.race ?? null,
+      attribute: c.attribute ?? null,
+      level: c.level ?? null,
+      atk: c.atk ?? null,
+      def: c.def ?? null,
+      desc: c.desc ?? ''
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
-  for (let i = 0; i < names.length; i += 1) {
-    const name = names[i];
-    await delay(120);
-
-    try {
-      const data = await fetchJson(buildSearchUrl(name));
-      const card = Array.isArray(data?.data) ? data.data[0] : null;
-
-      if (!card) {
-        errors.missingCards.push({ name, reason: 'not found in YGOPRODeck' });
-        continue;
-      }
-
-      const cardId = String(card.id);
-      const fileName = `${cardId}.jpg`;
-      const fileNameSmall = `${cardId}-small.jpg`;
-      const fullImagePath = path.join(CARDS_DIR, fileName);
-      const smallImagePath = path.join(SMALL_CARDS_DIR, fileNameSmall);
-
-      cards[cardId] = {
-        id: cardId,
-        names: {
-          en: card.name || name,
-          de: card.name || name
-        },
-        type: card.type || null,
-        subtype: card.race || null,
-        attribute: card.attribute || null,
-        level: card.level ?? null,
-        atk: card.atk ?? null,
-        def: card.def ?? null,
-        text: {
-          en: card.desc || '',
-          de: card.desc || ''
-        },
-        image: fileName,
-        imageSmall: fileNameSmall,
-        source: 'YGOPRODeck'
-      };
-
-      try {
-        await fetchImage(card.card_images?.[0]?.image_url || card.card_images?.[0]?.image_url_small, fullImagePath);
-      } catch {
-        errors.missingImages.push({ id: cardId, name: card.name || name, path: fullImagePath, reason: 'missing full image' });
-      }
-
-      try {
-        await fetchImage(card.card_images?.[0]?.image_url_small || card.card_images?.[0]?.image_url, smallImagePath);
-      } catch {
-        errors.missingImages.push({ id: cardId, name: card.name || name, path: smallImagePath, reason: 'missing small image' });
-      }
-    } catch (error) {
-      errors.missingCards.push({ name, reason: String(error.message || error) });
-    }
+  // Images only for cards the app uses, otherwise this would be thousands of downloads.
+  fs.mkdirSync(IMAGE_DIR, { recursive: true });
+  const byName = new Map(cards.map((c) => [c.name.toLowerCase(), c]));
+  const missing = [];
+  let images = 0;
+  for (const name of neededNames()) {
+    const card = byName.get(name.toLowerCase());
+    if (!card) { missing.push(name); continue; }
+    await delay(IMAGE_DELAY_MS);
+    if (await downloadImage(card.id)) { card.img = 1; images += 1; }
   }
 
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(cards, null, 2) + '\n');
-  fs.writeFileSync(ERROR_FILE, JSON.stringify(errors, null, 2) + '\n');
+  fs.writeFileSync(OUTPUT_FILE, JSON.stringify({
+    source: 'https://db.ygoprodeck.com/api/v7/cardinfo.php',
+    pool: `Edison (TCG bis ${CUTOFF_SET}, ${cutoff.tcg_date})`,
+    generated: new Date().toISOString().slice(0, 10),
+    cards
+  }));
 
-  console.log(`Fetched ${Object.keys(cards).length} cards.`);
-  console.log(`Missing cards: ${errors.missingCards.length}`);
-  console.log(`Missing images: ${errors.missingImages.length}`);
+  console.log(`Saved ${cards.length} cards, ${images} images.`);
+  if (missing.length) console.warn(`WARNING: not in the Edison pool (check names/cut-off): ${missing.join(', ')}`);
 }
 
 main().catch((error) => {

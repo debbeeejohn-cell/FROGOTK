@@ -264,12 +264,17 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface);
 }
 .lex-section { margin-bottom: 24px; }
+#lexiconBody > .calc-note { margin: 10px 0 18px; }
 .lex-section h3 { font-size: 1rem; margin-bottom: 8px; }
 .lex-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.lex-card {
-  display: grid; grid-template-columns: 36px minmax(0, 1fr); column-gap: 8px;
-  padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface-2);
-}
+.lex-card { border-radius: var(--radius-sm); background: var(--surface-2); }
+.lex-sum { display: grid; grid-template-columns: 36px minmax(0, 1fr); column-gap: 8px; align-content: center; min-height: var(--tap); padding: 10px 12px; }
+details > .lex-sum { cursor: pointer; border-radius: var(--radius-sm); }
+details > .lex-sum:hover { background: var(--accent-soft); }
+.lex-detail { display: flex; flex-wrap: wrap; gap: 16px; padding: 4px 12px 14px 56px; }
+.lex-img { flex: none; height: auto; border-radius: 6px; }
+.lex-stats { font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; }
+.lex-text { white-space: pre-line; color: var(--fg-muted); font-size: 0.92rem; max-width: 60ch; }
 .lex-count { color: var(--fg-muted); font-weight: 700; font-variant-numeric: tabular-nums; }
 .lex-name { font-weight: 600; }
 .ban-badge { margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; background: var(--surface); border: 1px solid var(--border); white-space: nowrap; }

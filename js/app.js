@@ -384,7 +384,14 @@ async function loadLexicon() {
       const copies = new Map();
       Object.values(decks.frogOtk).flat().forEach(({ card, count }) => copies.set(card, (copies.get(card) || 0) + count));
       const illegal = [...copies].filter(([card, n]) => limits.has(card) && n > limits.get(card).max).map(([card]) => card);
-      lexicon = { deck: decks.frogOtk, materials, limits, illegal, banlistName: banlist.banlist };
+      // Optional: only exists after the "Karten laden" workflow / scripts/fetch-cards.mjs ran.
+      const cardData = await fetch('./data/cards.json').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+      const pool = cardData?.cards ?? null;
+      lexicon = {
+        deck: decks.frogOtk, materials, limits, illegal, copies, banlistName: banlist.banlist,
+        pool, poolName: cardData ? `${cardData.pool}, Stand ${cardData.generated}` : '',
+        byName: new Map((pool || []).map((c) => [c.name.toLowerCase(), c]))
+      };
     } catch (error) {
       lexiconBody.innerHTML = `<p class="notice notice-error">Lexikon konnte nicht geladen werden (${esc(error.message)}).</p>`;
       return;
@@ -400,25 +407,56 @@ function linesUsing(card) {
     .some((text) => text.toLowerCase().includes(needle)));
 }
 
+const MAX_RESULTS = 50;
+
+const cardStats = (c) => [
+  c.type, c.race, c.attribute,
+  c.level != null ? `Level ${c.level}` : null,
+  c.atk != null ? `ATK ${c.atk} / DEF ${c.def ?? '?'}` : null
+].filter(Boolean).join(' · ');
+
+// One list entry; expands (native <details>) when the card database knows the card.
+function cardRow(name, count) {
+  const used = linesUsing(name);
+  const limit = lexicon.limits.get(name);
+  const badge = limit ? `<span class="ban-badge ban-${limit.max}">${limit.label}</span>` : '';
+  const head = `
+    <span class="lex-count"${count ? ` aria-label="${count} Kopie${count > 1 ? 'n' : ''}"` : ''}>${count ? `${count}×` : ''}</span>
+    <span class="lex-name">${esc(name)} ${badge}</span>
+    <span class="lex-used">${used.length ? `in ${used.map((l) => esc(l.title)).join(', ')}` : ''}</span>`;
+
+  const info = lexicon.byName.get(name.toLowerCase());
+  if (!info) return `<li class="lex-card"><div class="lex-sum">${head}</div></li>`;
+
+  const img = info.img ? `<img class="lex-img" src="assets/cards-small/${info.id}.jpg" alt="" loading="lazy" width="100" height="146" />` : '';
+  return `
+    <li class="lex-card">
+      <details>
+        <summary class="lex-sum">${head}</summary>
+        <div class="lex-detail">${img}<div><p class="lex-stats">${esc(cardStats(info))}</p><p class="lex-text">${esc(info.desc)}</p></div></div>
+      </details>
+    </li>`;
+}
+
 function renderLexicon() {
   const query = lexiconSearch.value.trim().toLowerCase();
+  const section = (title, items) => `<section class="lex-section"><h3>${title}</h3><ul class="lex-list">${items}</ul></section>`;
 
-  const sections = SECTIONS.map(([key, label]) => {
-    const cards = (lexicon.deck[key] || []).filter((c) => c.card.toLowerCase().includes(query));
-    if (!cards.length) return '';
-    const items = cards.map(({ card, count }) => {
-      const used = linesUsing(card);
-      const limit = lexicon.limits.get(card);
-      const badge = limit ? `<span class="ban-badge ban-${limit.max}">${limit.label}</span>` : '';
-      return `
-        <li class="lex-card">
-          <span class="lex-count" aria-label="${count} Kopie${count > 1 ? 'n' : ''}">${count}×</span>
-          <span class="lex-name">${esc(card)} ${badge}</span>
-          <span class="lex-used">${used.length ? `in ${used.map((l) => esc(l.title)).join(', ')}` : ''}</span>
-        </li>`;
+  let sections;
+  if (query && lexicon.pool) {
+    // With the card database, search the whole Edison pool, not just the deck.
+    const hits = lexicon.pool.filter((c) => c.name.toLowerCase().includes(query));
+    const shown = hits.slice(0, MAX_RESULTS);
+    sections = hits.length
+      ? section(`Edison-Kartenpool: ${hits.length} Treffer${hits.length > shown.length ? ` (erste ${shown.length})` : ''}`,
+        shown.map((c) => cardRow(c.name, lexicon.copies.get(c.name) || 0)).join(''))
+      : '';
+  } else {
+    sections = SECTIONS.map(([key, label]) => {
+      const cards = (lexicon.deck[key] || []).filter((c) => c.card.toLowerCase().includes(query));
+      return cards.length ? section(label, cards.map(({ card, count }) => cardRow(card, count)).join('')) : '';
     }).join('');
-    return `<section class="lex-section"><h3>${label}</h3><ul class="lex-list">${items}</ul></section>`;
-  }).join('');
+  }
 
   const { intro, table } = lexicon.materials;
   const rows = table.map((r) => `<tr><th scope="row">${r.level}</th><td>${r.beelzeOrDes}</td><td>${r.justDes}</td><td>${r.justBeelze}</td><td>${r.neither}</td></tr>`).join('');
@@ -438,7 +476,11 @@ function renderLexicon() {
     ? `<p class="notice notice-error">Nicht legal im Edison-Format (${esc(lexicon.banlistName)}): ${lexicon.illegal.map(esc).join(', ')}</p>`
     : `<p class="notice">✓ Deck ist legal im Edison-Format (Banliste ${esc(lexicon.banlistName)}).</p>`;
 
-  lexiconBody.innerHTML = check + (sections || '<p class="empty-state">Keine Karte gefunden.</p>') + rules;
+  const dbNote = lexicon.pool
+    ? `<p class="calc-note">Tippe auf eine Karte für Text und Bild. Kartenpool: ${esc(lexicon.poolName)}. Einzelne Karten dieser Zeit sind trotzdem nicht erlaubt.</p>`
+    : '<p class="calc-note">Kartendatenbank noch nicht geladen: Starte auf GitHub den Workflow „Karten laden", dann gibt es Kartentext, Bilder und die Suche über alle Edison-Karten.</p>';
+
+  lexiconBody.innerHTML = check + dbNote + (sections || '<p class="empty-state">Keine Karte gefunden.</p>') + rules;
 }
 
 /* ---------- Init ---------- */
