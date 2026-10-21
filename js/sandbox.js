@@ -1,9 +1,11 @@
 // Board replay + practice for recorded lines (data/<id>.json "actions").
 // No rules engine: it replays what the log recorded and checks you against it.
 import { esc } from './util.js';
+import { deckTotal } from './decks.js';
 
 const ZONES = ['M1', 'M2', 'M3', 'M4', 'M5'];
-const LINE_FILES = ['open-8k-3des'];
+// Recorded lines per deck id (data/<name>.json). Add a file here to give a deck a line.
+const LINE_FILES = { frogOtk: ['open-8k-3des'] };
 const MOVES = new Set(['summon', 'specialSummon', 'toGrave', 'returnToDeck', 'removeToken']);
 const KNOWN = new Set([...MOVES, 'token', 'activateEffect']);
 
@@ -76,35 +78,30 @@ const getJson = (url) => fetch(url).then((res) => {
 });
 
 export async function initSandbox(root, catalog) {
-  let lines;
+  let lines = [];
+  let deckName = '';
   let deckSize = 40;
   let extraSize = 15;
-  try {
-    const [files, decks] = await Promise.all([
-      Promise.all(LINE_FILES.map((name) => getJson(`./data/${name}.json`))),
-      getJson('./data/decks.json')
-    ]);
-    lines = files.flatMap((f) => f.lines).filter((l) => l.actions?.length && l.startHand?.length);
-    const total = (section) => (decks.frogOtk[section] || []).reduce((sum, c) => sum + c.count, 0);
-    deckSize = total('main') || deckSize;
-    extraSize = total('extra') || extraSize;
-  } catch (error) {
-    root.innerHTML = `<p class="notice notice-error">Sandbox konnte nicht geladen werden (${esc(error.message)}).</p>`;
-    return;
-  }
-  if (!lines.length) {
-    root.innerHTML = '<p class="empty-state">Noch keine Line mit Aktionsdaten vorhanden.</p>';
-    return;
-  }
+  let loadToken = 0;
+  const files = new Map(); // line file -> parsed JSON, fetched once
+
+  const loadLines = async (deckId) => {
+    const jsons = await Promise.all((LINE_FILES[deckId] ?? []).map(async (name) => {
+      if (!files.has(name)) files.set(name, await getJson(`./data/${name}.json`));
+      return files.get(name);
+    }));
+    return jsons.flatMap((f) => f.lines).filter((l) => l.actions?.length && l.startHand?.length);
+  };
 
   const ui = { line: 0, mode: 'replay', step: 0, picked: 0, mistakes: 0, hint: false, msg: '' };
-  let boards;
+  let boards = null;
   const current = () => lines[ui.line];
   const load = () => {
+    boards = null;
+    if (!lines.length) return;
     try {
       boards = replay(current(), deckSize, extraSize);
     } catch (error) {
-      boards = null;
       ui.error = error.message;
     }
   };
@@ -113,6 +110,11 @@ export async function initSandbox(root, catalog) {
   const title = (line) => catalog.find((l) => l.id === line.id)?.title ?? line.id;
 
   const render = () => {
+    if (!lines.length) {
+      root.innerHTML = `<p class="empty-state"><strong>${esc(deckName)}: noch keine Lines mit Aktionsdaten.</strong><br>
+        Eine Line kommt dazu, indem du eine JSON-Datei im Format von data/open-8k-3des.json anlegst und sie in LINE_FILES (js/sandbox.js) einträgst.</p>`;
+      return;
+    }
     const line = current();
     if (!boards) {
       root.innerHTML = `<p class="notice notice-error">Die Line "${esc(title(line))}" passt nicht zu den Daten: ${esc(ui.error)}</p>`;
@@ -229,6 +231,24 @@ export async function initSandbox(root, catalog) {
     reset(); load(); render();
   });
 
-  load();
-  render();
+  return {
+    async setDeck(id, deck) {
+      const token = ++loadToken;
+      deckName = deck.name;
+      deckSize = deckTotal(deck, 'main') || 40;
+      extraSize = deckTotal(deck, 'extra') || 15;
+      try {
+        const loaded = await loadLines(id);
+        if (token !== loadToken) return; // a newer deck switch won
+        lines = loaded;
+      } catch (error) {
+        root.innerHTML = `<p class="notice notice-error">Sandbox konnte nicht geladen werden (${esc(error.message)}).</p>`;
+        return;
+      }
+      ui.line = 0;
+      reset();
+      load();
+      render();
+    }
+  };
 }
