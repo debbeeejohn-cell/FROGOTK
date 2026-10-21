@@ -3,117 +3,131 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Frog OTK Learning Lab</title>
+    <meta name="color-scheme" content="light dark" />
+    <title>Frog OTK Lab</title>
     <meta name="description" content="Lern- und Trainingsapp für Frog OTK Lines und Edison-Karten." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231a7f37'/%3E%3Ctext x='16' y='23' font-size='20' font-family='sans-serif' font-weight='700' text-anchor='middle' fill='white'%3EF%3C/text%3E%3C/svg%3E" />
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
-    <div class="app-shell">
-      <header class="topbar">
-        <div class="brand-wrap">
-          <div class="brand-mark">F</div>
-          <div class="brand-text">
+    <a class="skip-link" href="#main">Zum Inhalt springen</a>
+
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">F</div>
+          <div>
             <p class="eyebrow">Edison Study</p>
             <h1>Frog OTK Lab</h1>
           </div>
         </div>
 
         <nav class="main-nav" aria-label="Hauptnavigation">
-          <button class="nav-item active" data-view="learn">Lernen</button>
-          <button class="nav-item" data-view="quiz">Quiz</button>
-          <button class="nav-item" data-view="sandbox">Sandbox</button>
-          <button class="nav-item" data-view="lexicon">Lexikon</button>
-          <button class="nav-item" data-view="dashboard">Dashboard</button>
+          <button class="nav-item" type="button" data-view="learn">Lernen</button>
+          <button class="nav-item" type="button" data-view="quiz">Quiz</button>
+          <button class="nav-item" type="button" data-view="sandbox">Sandbox</button>
+          <button class="nav-item" type="button" data-view="lexicon">Lexikon</button>
+          <button class="nav-item" type="button" data-view="dashboard">Fortschritt</button>
         </nav>
 
         <div class="topbar-actions">
-          <button id="themeToggle" class="ghost-button" aria-label="Theme wechseln">🌗</button>
-          <select id="animMode" aria-label="Animationsmodus">
-            <option value="full">Animationen</option>
+          <label class="visually-hidden" for="animMode">Animationen</label>
+          <select id="animMode">
+            <option value="full">Animationen an</option>
             <option value="reduced">Reduziert</option>
             <option value="off">Aus</option>
           </select>
+          <button id="themeToggle" class="icon-button" type="button" aria-label="Zwischen hellem und dunklem Design wechseln">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
+            </svg>
+          </button>
         </div>
-      </header>
+      </div>
+    </header>
 
-      <main class="content-grid">
-        <section class="screen active" id="screen-learn" aria-label="Lernbereich">
-          <div class="panel board-panel">
-            <div class="panel-header">
-              <p class="eyebrow">Lernen</p>
-              <h2>Study Mode</h2>
-              <p>Merke dir die Line in kleinen Schritten, prüfe das Endboard und wiederhole die Sequenz.</p>
-            </div>
+    <main id="main" class="content" tabindex="-1">
+      <noscript><p class="notice">Diese App benötigt JavaScript.</p></noscript>
+      <p id="loadError" class="notice notice-error" role="alert" hidden></p>
 
-            <div class="app-layout">
-              <aside class="family-list" id="familyList" aria-label="Familien"></aside>
+      <section class="screen" id="screen-learn" aria-labelledby="h-learn" hidden>
+        <div class="panel">
+          <header class="panel-header">
+            <p class="eyebrow">Lernen</p>
+            <h2 id="h-learn">Study Mode</h2>
+            <p>Decke die Line Schritt für Schritt auf und versuche dir vorher das Ergebnis vorzustellen.</p>
+          </header>
 
-              <section class="line-detail" id="lineDetail">
-                <div class="line-summary" id="lineSummary"></div>
+          <div class="app-layout">
+            <nav class="family-list" id="familyList" aria-label="Familien"></nav>
 
-                <div class="study-controls">
-                  <button id="prevLineBtn" class="secondary-button" type="button">Vorherige Line</button>
-                  <button id="nextLineBtn" class="secondary-button" type="button">Nächste Line</button>
-                  <button id="revealStepBtn" class="primary-button" type="button">Nächsten Schritt zeigen</button>
-                  <button id="markMemorizedBtn" class="ghost-button" type="button">Als gelernt markieren</button>
-                </div>
+            <section class="line-detail" aria-live="polite">
+              <div class="line-summary" id="lineSummary"></div>
 
-                <div class="board-preview" id="boardPreview"></div>
-                <div class="steps-box" id="lineSteps"></div>
-              </section>
-            </div>
+              <div class="study-controls">
+                <button id="revealStepBtn" class="primary-button" type="button"></button>
+                <button id="markMemorizedBtn" class="secondary-button" type="button" aria-pressed="false"></button>
+                <span class="spacer"></span>
+                <button id="prevLineBtn" class="ghost-button" type="button" aria-label="Vorherige Line">← Zurück</button>
+                <button id="nextLineBtn" class="ghost-button" type="button" aria-label="Nächste Line">Weiter →</button>
+              </div>
+
+              <div class="board-preview" id="boardPreview"></div>
+              <div class="steps-box" id="lineSteps"></div>
+            </section>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section class="screen" id="screen-quiz" aria-label="Blitz-Quiz">
-          <div class="panel">
-            <div class="panel-header">
-              <p class="eyebrow">Training</p>
-              <h2>Was kommt als Nächstes?</h2>
-              <p>Aus den Sequenzen werden Fragen generiert — kannst du die nächsten Schritte und das Endboard vorhersagen?</p>
-            </div>
+      <section class="screen" id="screen-quiz" aria-labelledby="h-quiz" hidden>
+        <div class="panel">
+          <header class="panel-header">
+            <p class="eyebrow">Training</p>
+            <h2 id="h-quiz">Was kommt als Nächstes?</h2>
+            <p>Sage den nächsten Schritt voraus und prüfe dein Gedächtnis für das Endboard.</p>
+          </header>
 
-            <div id="quizContainer" class="quiz-container">
-              <div id="quizQuestion" class="quiz-question"></div>
-              <div id="quizAnswers" class="quiz-answers"></div>
-              <div id="quizFeedback" class="quiz-feedback"></div>
-              <div id="quizProgress" class="quiz-progress"></div>
-              <div id="quizActions" class="quiz-actions"></div>
-            </div>
+          <div id="quizContainer" class="quiz-container">
+            <div id="quizProgress" class="quiz-progress"></div>
+            <div id="quizQuestion" class="quiz-question" tabindex="-1"></div>
+            <div id="quizAnswers" class="quiz-answers"></div>
+            <div id="quizFeedback" class="quiz-feedback" role="status" aria-live="polite"></div>
+            <div id="quizActions" class="quiz-actions"></div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section class="screen" id="screen-sandbox" aria-label="Sandbox">
-          <div class="panel">
-            <div class="panel-header">
-              <p class="eyebrow">Frei spielen</p>
-              <h2>Sandbox</h2>
-              <p>Baue Situationen auf, testest Decks und prüfst das passende Endboard.</p>
-            </div>
-          </div>
-        </section>
+      <section class="screen" id="screen-sandbox" aria-labelledby="h-sandbox" hidden>
+        <div class="panel">
+          <header class="panel-header">
+            <p class="eyebrow">Frei spielen</p>
+            <h2 id="h-sandbox">Sandbox</h2>
+          </header>
+          <p class="empty-state">Kommt bald: Situationen aufbauen, Decks testen und das passende Endboard prüfen.</p>
+        </div>
+      </section>
 
-        <section class="screen" id="screen-lexicon" aria-label="Lexikon">
-          <div class="panel">
-            <div class="panel-header">
-              <p class="eyebrow">Nachschlag</p>
-              <h2>Karten & Begriffe</h2>
-              <p>Abkürzungen und Karteigenschaften werden hier aufgelöst.</p>
-            </div>
-          </div>
-        </section>
+      <section class="screen" id="screen-lexicon" aria-labelledby="h-lexicon" hidden>
+        <div class="panel">
+          <header class="panel-header">
+            <p class="eyebrow">Nachschlagen</p>
+            <h2 id="h-lexicon">Karten &amp; Begriffe</h2>
+          </header>
+          <p class="empty-state">Kommt bald: Abkürzungen und Karteneigenschaften werden hier aufgelöst.</p>
+        </div>
+      </section>
 
-        <section class="screen" id="screen-dashboard" aria-label="Dashboard">
-          <div class="panel">
-            <div class="panel-header">
-              <p class="eyebrow">Fortschritt</p>
-              <h2>Dashboard</h2>
-              <p>Ein Blick auf die aktuelle Lernquote, die stärksten Familien und den nächsten Rückruf.</p>
-            </div>
-          </div>
-        </section>
-      </main>
-    </div>
+      <section class="screen" id="screen-dashboard" aria-labelledby="h-dashboard" hidden>
+        <div class="panel">
+          <header class="panel-header">
+            <p class="eyebrow">Fortschritt</p>
+            <h2 id="h-dashboard">Dein Lernstand</h2>
+          </header>
+          <div id="dashboardBody"></div>
+        </div>
+      </section>
+    </main>
 
     <script type="module" src="js/app.js"></script>
   </body>
