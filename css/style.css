@@ -374,12 +374,27 @@ details > .lex-sum:hover { background: var(--accent-soft); }
   color: var(--ink); background: var(--felt-2); border: 1px solid var(--line); border-radius: 6px; cursor: pointer;
 }
 .dl-pile b { font-size: 1rem; }
+.dl-card.can { box-shadow: 0 0 0 2px #4ade80, 0 0 10px rgba(74, 222, 128, 0.55); }
+.dl-card.can.sel, .dl-card.sel { box-shadow: 0 0 0 3px var(--gold); }
+.dl-card.peek img { opacity: 0.55; }
+.dl-card.down.peek { background: #223329; }
+.dl-stat { position: absolute; left: 0; right: 0; bottom: 0; padding: 1px 0; background: rgba(0, 0, 0, 0.75); color: #fff; font-size: 0.6rem; text-align: center; }
+.dl-pile.can { border-color: #4ade80; box-shadow: 0 0 8px rgba(74, 222, 128, 0.5); }
+.dl-check { display: flex !important; align-items: center; gap: 8px; font-weight: 500 !important; min-height: var(--tap); }
+.dl-check input { width: 20px; height: 20px; }
+.dl-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; max-height: 50vh; overflow-y: auto; margin: 8px 0 12px; }
+.dl-tile { display: grid; gap: 4px; padding: 4px; border: 2px solid transparent; border-radius: var(--radius-sm); background: var(--surface-2); color: var(--fg); cursor: pointer; text-align: center; }
+.dl-tile .dl-card { aspect-ratio: 59 / 86; height: auto; pointer-events: none; }
+.dl-tile small { font-size: 0.7rem; line-height: 1.2; overflow-wrap: anywhere; }
+.dl-tile[aria-pressed="true"] { border-color: var(--gold, #e6b422); background: var(--accent-soft); }
+.dl-tile:disabled { cursor: default; opacity: 1; }
+.dl-ask { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+.dl-ask img, .dl-dialog > img { width: 84px; border-radius: 4px; }
+.dl-announce { width: 100%; min-height: var(--tap); margin: 8px 0 12px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--fg); }
+.dl-dialog [data-bit][aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
 .dl-pile.static { cursor: default; }
 .dl-pile:hover:not(:disabled):not(.static) { border-color: var(--gold); }
 .dl-mid { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; font-weight: 700; font-size: 0.85rem; }
-.dl-phases { display: flex; flex-wrap: wrap; gap: 4px; }
-.dl-phases button { min-height: 36px; min-width: 40px; padding: 0 8px; border-radius: 6px; background: var(--felt-2); color: var(--ink); border-color: var(--line); font-size: 0.75rem; font-weight: 700; }
-.dl-phases button[aria-pressed="true"] { background: var(--gold); color: #1b1500; border-color: var(--gold); }
 .dl-side { display: grid; gap: 12px; }
 .dl-lps { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .dl-lp { padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); border-color: color-mix(in srgb, #4ade80 55%, var(--border)); }
@@ -387,10 +402,6 @@ details > .lex-sum:hover { background: var(--accent-soft); }
 .dl-lp-top { display: flex; justify-content: space-between; font-weight: 700; }
 .dl-bar { height: 6px; margin: 6px 0; border-radius: 3px; background: var(--border); overflow: hidden; }
 .dl-bar i { display: block; height: 100%; background: var(--accent); }
-.dl-lp-btns { display: flex; gap: 6px; }
-.dl-lp-btns button { flex: 1; min-height: var(--tap); }
-.dl-amt { display: flex; align-items: center; gap: 8px; font-weight: 600; }
-.dl-amt input { width: 110px; min-height: var(--tap); padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
 .dl-bar-btns, .dl-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .dl-bar-btns button, .dl-actions button { min-height: var(--tap); }
 .dl-status { min-height: 1.4em; margin: 0; color: var(--error); font-weight: 600; }
