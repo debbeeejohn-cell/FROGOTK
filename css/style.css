@@ -240,6 +240,27 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .family-progress { display: grid; gap: 14px; }
 .family-progress h3 { font-size: 1rem; margin-bottom: 8px; }
 
+/* Lexikon */
+.search-input {
+  width: 100%; max-width: 420px; min-height: var(--tap); padding: 0 14px; margin-bottom: 20px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface);
+}
+.lex-section { margin-bottom: 24px; }
+.lex-section h3 { font-size: 1rem; margin-bottom: 8px; }
+.lex-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.lex-card {
+  display: grid; grid-template-columns: 36px minmax(0, 1fr); column-gap: 8px;
+  padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface-2);
+}
+.lex-count { color: var(--fg-muted); font-weight: 700; font-variant-numeric: tabular-nums; }
+.lex-name { font-weight: 600; }
+.lex-used { grid-column: 2; color: var(--fg-muted); font-size: 0.85rem; }
+.lex-used:empty { display: none; }
+.table-wrap { overflow-x: auto; margin-top: 12px; }
+.lex-table { border-collapse: collapse; min-width: 420px; width: 100%; }
+.lex-table th, .lex-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+.lex-table thead th { color: var(--fg-muted); font-size: 0.85rem; }
+
 @media (max-width: 860px) {
   .topbar-inner { flex-wrap: wrap; }
   .brand { flex: 1; min-width: 0; }

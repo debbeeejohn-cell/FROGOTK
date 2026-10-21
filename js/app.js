@@ -19,6 +19,8 @@ const quizFeedback = $('quizFeedback');
 const quizProgress = $('quizProgress');
 const quizActions = $('quizActions');
 const dashboardBody = $('dashboardBody');
+const lexiconBody = $('lexiconBody');
+const lexiconSearch = $('lexiconSearch');
 
 const esc = (value) => String(value).replace(/[&<>"']/g, (c) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
@@ -55,6 +57,7 @@ function setView(viewName) {
 
   if (viewName === 'quiz') initializeQuiz();
   if (viewName === 'dashboard') renderDashboard();
+  if (viewName === 'lexicon') loadLexicon();
   history.replaceState(null, '', `#${viewName}`);
 }
 
@@ -353,6 +356,73 @@ function renderDashboard() {
     <div class="family-progress">${bars}</div>`;
 }
 
+/* ---------- Lexikon ---------- */
+
+let lexicon = null;
+const SECTIONS = [['main', 'Main Deck'], ['extra', 'Extra Deck'], ['side', 'Side Deck']];
+const TABLE_HEAD = ['Level', 'Beelze oder Des', 'Nur Des', 'Nur Beelze', 'Keins von beiden'];
+
+async function loadLexicon() {
+  if (!lexicon) {
+    lexiconBody.textContent = 'Lade …';
+    try {
+      const [decks, materials] = await Promise.all(
+        ['decks', 'materials'].map((name) => fetch(`./data/${name}.json`).then((res) => {
+          if (!res.ok) throw new Error(`${name}.json: HTTP ${res.status}`);
+          return res.json();
+        }))
+      );
+      lexicon = { deck: decks.frogOtk, materials };
+    } catch (error) {
+      lexiconBody.innerHTML = `<p class="notice notice-error">Lexikon konnte nicht geladen werden (${esc(error.message)}).</p>`;
+      return;
+    }
+  }
+  renderLexicon();
+}
+
+// ponytail: substring match on line text; "Treeborn" won't match "Treeborn Frog" style shorthand, add aliases.json if needed
+function linesUsing(card) {
+  const needle = card.toLowerCase();
+  return lines.filter((line) => [line.materials, ...line.steps, ...(line.endBoard || [])]
+    .some((text) => text.toLowerCase().includes(needle)));
+}
+
+function renderLexicon() {
+  const query = lexiconSearch.value.trim().toLowerCase();
+
+  const sections = SECTIONS.map(([key, label]) => {
+    const cards = (lexicon.deck[key] || []).filter((c) => c.card.toLowerCase().includes(query));
+    if (!cards.length) return '';
+    const items = cards.map(({ card, count }) => {
+      const used = linesUsing(card);
+      return `
+        <li class="lex-card">
+          <span class="lex-count" aria-label="${count} Kopie${count > 1 ? 'n' : ''}">${count}×</span>
+          <span class="lex-name">${esc(card)}</span>
+          <span class="lex-used">${used.length ? `in ${used.map((l) => esc(l.title)).join(', ')}` : ''}</span>
+        </li>`;
+    }).join('');
+    return `<section class="lex-section"><h3>${label}</h3><ul class="lex-list">${items}</ul></section>`;
+  }).join('');
+
+  const { intro, table } = lexicon.materials;
+  const rows = table.map((r) => `<tr><th scope="row">${r.level}</th><td>${r.beelzeOrDes}</td><td>${r.justDes}</td><td>${r.justBeelze}</td><td>${r.neither}</td></tr>`).join('');
+  const rules = query ? '' : `
+    <section class="lex-section">
+      <h3>Material-Regeln</h3>
+      <p class="meta-block">${esc(intro.materials.general)}</p>
+      <div class="table-wrap">
+        <table class="lex-table">
+          <thead><tr>${TABLE_HEAD.map((h) => `<th scope="col">${h}</th>`).join('')}</tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </section>`;
+
+  lexiconBody.innerHTML = (sections || '<p class="empty-state">Keine Karte gefunden.</p>') + rules;
+}
+
 /* ---------- Init ---------- */
 
 function initSettings() {
@@ -378,6 +448,7 @@ function bindEvents() {
   nextLineBtn.addEventListener('click', () => cycleLine(1));
   revealStepBtn.addEventListener('click', revealNextStep);
   markMemorizedBtn.addEventListener('click', toggleLearned);
+  lexiconSearch.addEventListener('input', () => lexicon && renderLexicon());
   navButtons.forEach((button) => button.addEventListener('click', () => setView(button.dataset.view)));
   familyList.addEventListener('click', (event) => {
     const button = event.target.closest('.family-button');
