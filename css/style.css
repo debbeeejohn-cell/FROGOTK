@@ -240,6 +240,25 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .family-progress { display: grid; gap: 14px; }
 .family-progress h3 { font-size: 1rem; margin-bottom: 8px; }
 
+/* Deck switch + calculator import */
+.deck-switch { display: inline-flex; align-items: center; gap: 8px; justify-self: start; margin-bottom: 6px; font-size: 0.85rem; font-weight: 600; color: var(--fg-muted); }
+.deck-switch select { min-height: 36px; }
+.calc-deck { margin-bottom: 20px; display: grid; gap: 8px; }
+.calc-deckline { font-size: 1.05rem; }
+.calc-import { border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); }
+.calc-import summary { cursor: pointer; padding: 10px 14px; font-weight: 600; min-height: var(--tap); display: flex; align-items: center; }
+.calc-import-body { display: grid; gap: 12px; padding: 4px 14px 14px; }
+.calc-import textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--fg); font: inherit; font-weight: 400; resize: vertical; }
+.calc-import input[type="file"] { min-height: var(--tap); padding: 8px 12px; }
+.calc-import-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.calc-msg { min-height: 1.4em; color: var(--fg-muted); font-size: 0.92rem; }
+.calc-msg:empty { display: none; }
+.calc-msg-error { color: var(--error); font-weight: 600; }
+.lex-table.calc-table.calc-cards { max-width: none; min-width: 0; }
+.calc-cards td { white-space: nowrap; }
+.calc-cards th[scope="row"] { font-weight: 600; }
+.calc-add-card { min-height: 36px; padding: 0 10px; font-size: 0.85rem; }
+
 /* Sandbox */
 .sb-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; }
 .sb-controls [aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
@@ -310,7 +329,7 @@ details > .lex-sum:hover { background: var(--accent-soft); }
 .ban-1 { color: var(--accent); border-color: var(--accent); }
 .lex-used { grid-column: 2; color: var(--fg-muted); font-size: 0.85rem; }
 .lex-used:empty { display: none; }
-.table-wrap { overflow-x: auto; margin-top: 12px; }
+.table-wrap { position: relative; overflow-x: auto; margin-top: 12px; }
 .lex-table { border-collapse: collapse; min-width: 420px; width: 100%; }
 .lex-table th, .lex-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
 .lex-table thead th { color: var(--fg-muted); font-size: 0.85rem; }
@@ -326,6 +345,8 @@ details > .lex-sum:hover { background: var(--accent-soft); }
   .family-button { width: auto; flex: none; }
   .panel { padding: 16px; }
   .spacer { display: none; }
+  .calc-cards th, .calc-cards td { padding: 8px 6px; }
+  .calc-add-card { padding: 0 6px; }
   .sb-board { padding: 10px; }
   .sb-zones { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .sb-hand .sb-slot { width: calc(50% - 4px); }

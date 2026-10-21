@@ -45,7 +45,9 @@ function neededNames() {
   const names = new Set();
   const decks = readJson(path.join(DATA_DIR, 'decks.json'), {});
   for (const deck of Object.values(decks)) {
-    for (const section of Object.values(deck)) section.forEach((item) => item?.card && names.add(item.card));
+    for (const section of Object.values(deck)) {
+      if (Array.isArray(section)) section.forEach((item) => item?.card && names.add(item.card));
+    }
   }
   const catalog = readJson(path.join(DATA_DIR, 'line-catalog.json'), { lines: [] });
   for (const line of catalog.lines) (line.endBoard || []).forEach((name) => names.add(name));
