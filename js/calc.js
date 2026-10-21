@@ -44,17 +44,6 @@ export function chance(deckSize, draws, groups) {
   return ratio(favourable, choose(N, n));
 }
 
-/** P(exactly x copies of one group) for x = 0..min(draws, copies). */
-export function distribution(deckSize, draws, copies) {
-  const total = choose(BigInt(deckSize), BigInt(draws));
-  const rows = [];
-  for (let x = 0; x <= Math.min(draws, copies); x += 1) {
-    const ways = choose(BigInt(copies), BigInt(x)) * choose(BigInt(deckSize - copies), BigInt(draws - x));
-    rows.push({ x, p: ratio(ways, total) });
-  }
-  return rows;
-}
-
 /** Returns an error message or null. */
 export function validate(deckSize, draws, groups) {
   if (!Number.isInteger(deckSize) || deckSize < 1 || deckSize > MAX_DECK) return `Deckgröße muss zwischen 1 und ${MAX_DECK} liegen.`;
@@ -235,18 +224,10 @@ export async function initCalc(root) {
     const total = chance(state.deckSize, state.draws, groups);
     const parts = groups.map((g, i) => `<li>${label(g, i)}: mindestens ${g.min}× → <strong>${pct(chance(state.deckSize, state.draws, [g]))}</strong></li>`).join('');
 
-    let table = '';
-    if (groups.length === 1) {
-      const rows = distribution(state.deckSize, state.draws, groups[0].copies)
-        .map(({ x, p }) => `<tr><th scope="row">${x}×</th><td>${pct(p)}</td></tr>`).join('');
-      table = `<table class="lex-table calc-table"><thead><tr><th scope="col">Genau</th><th scope="col">Wahrscheinlichkeit</th></tr></thead><tbody>${rows}</tbody></table>`;
-    }
-
     box.innerHTML = `
       <p class="calc-big">${pct(total)}</p>
       <p class="calc-sub">${groups.length > 1 ? 'Alle gesuchten Karten zusammen' : 'Wahrscheinlichkeit'} in ${state.draws} gezogenen Karten aus ${state.deckSize}</p>
       ${groups.length > 1 ? `<ul class="calc-parts">${parts}</ul>` : ''}
-      ${table}
       <p class="calc-note">Annahme: Die gesuchten Karten sind verschiedene Karten, alle übrigen zählen als Blanks. Ohne Mulligan, ohne Karten wie Pot of Avarice.</p>`;
   };
 

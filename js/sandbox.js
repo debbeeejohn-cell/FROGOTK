@@ -83,13 +83,9 @@ export async function initSandbox(root, catalog) {
   let deckSize = 40;
   let extraSize = 15;
   let loadToken = 0;
-  const files = new Map(); // line file -> parsed JSON, fetched once
 
   const loadLines = async (deckId) => {
-    const jsons = await Promise.all((LINE_FILES[deckId] ?? []).map(async (name) => {
-      if (!files.has(name)) files.set(name, await getJson(`./data/${name}.json`));
-      return files.get(name);
-    }));
+    const jsons = await Promise.all((LINE_FILES[deckId] ?? []).map((name) => getJson(`./data/${name}.json`)));
     return jsons.flatMap((f) => f.lines).filter((l) => l.actions?.length && l.startHand?.length);
   };
 

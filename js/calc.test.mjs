@@ -1,6 +1,6 @@
 // Run: node js/calc.test.mjs  (brute-force cross-check of the exact math)
 import assert from 'node:assert/strict';
-import { chance, distribution, validate } from './calc.js';
+import { chance, validate } from './calc.js';
 
 const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-8, `${a} !~ ${b}`);
 
@@ -30,8 +30,7 @@ for (const [N, n, groups] of [
   [9, 3, [{ copies: 9, min: 3 }]]
 ]) close(chance(N, n, groups), brute(N, n, groups));
 
-// Distribution sums to 1; edge cases
-close(distribution(40, 5, 3).reduce((s, r) => s + r.p, 0), 1);
+// Edge cases
 assert.equal(chance(40, 5, [{ copies: 3, min: 3 }, { copies: 3, min: 3 }]), 0); // needs 6 cards, draws 5
 assert.equal(chance(40, 40, [{ copies: 3, min: 3 }]), 1);
 

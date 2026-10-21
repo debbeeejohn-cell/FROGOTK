@@ -5,7 +5,7 @@
 //   node scripts/fetch-cards.mjs
 //
 // Writes data/cards.json (all cards up to the Edison cut-off set) and
-// assets/cards-small/<id>.jpg for the cards used in decks.json / line-catalog.json.
+// assets/cards-small/<id>.jpg for the cards used in decks.json.
 // YGOPRODECK_API / YGOPRODECK_IMAGES override the hosts (used for offline tests).
 
 import fs from 'node:fs';
@@ -40,7 +40,7 @@ function readJson(file, fallback) {
   }
 }
 
-/** Names the app actually shows: every deck card plus every line end board card. */
+/** Names the app actually shows: every card of every deck (line end boards are deck cards too). */
 function neededNames() {
   const names = new Set();
   const decks = readJson(path.join(DATA_DIR, 'decks.json'), {});
@@ -49,8 +49,6 @@ function neededNames() {
       if (Array.isArray(section)) section.forEach((item) => item?.card && names.add(item.card));
     }
   }
-  const catalog = readJson(path.join(DATA_DIR, 'line-catalog.json'), { lines: [] });
-  for (const line of catalog.lines) (line.endBoard || []).forEach((name) => names.add(name));
   return names;
 }
 

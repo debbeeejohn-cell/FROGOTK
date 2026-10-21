@@ -1,0 +1,13 @@
+{
+  "empty": { "name": "Leeres Board", "monsters": [], "spellTraps": [] },
+  "backrow": {
+    "name": "Backrow (Mirror Force, Torrential Tribute, Solemn Judgment)",
+    "monsters": [],
+    "spellTraps": ["Mirror Force", "Torrential Tribute", "Solemn Judgment"]
+  },
+  "blocker": {
+    "name": "Blocker + Backrow (Cyber Dragon, Dark Armed Dragon)",
+    "monsters": ["Cyber Dragon", "Dark Armed Dragon"],
+    "spellTraps": ["Mirror Force", "Magic Cylinder"]
+  }
+}

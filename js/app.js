@@ -2,6 +2,7 @@ import { getDefaultSettings, getStoredSettings, saveSettings } from './store.js'
 import { initCalc } from './calc.js';
 import { buildYdk } from './ydk.js';
 import { initSandbox } from './sandbox.js';
+import { initDuel } from './duel.js';
 import { esc } from './util.js';
 import { loadDecks, loadCards, deckOptions, pickDeck, rememberDeck } from './decks.js';
 
@@ -39,6 +40,7 @@ function shuffle(list) {
 
 let calcApi = null;
 let sandboxApi = null;
+let duelApi = null;
 let currentView = 'learn';
 let decks = null;
 let activeDeck = null;
@@ -75,6 +77,10 @@ function setView(viewName) {
   if (viewName === 'sandbox') {
     sandboxApi ??= initSandbox($('sandboxRoot'), allLines);
     sandboxApi.then((api) => api.setDeck(activeDeck, decks[activeDeck]));
+  }
+  if (viewName === 'duel') {
+    duelApi ??= initDuel($('duelRoot'));
+    duelApi.then((api) => api.setDeck(activeDeck));
   }
   history.replaceState(null, '', `#${viewName}`);
 }
