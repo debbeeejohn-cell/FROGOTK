@@ -436,6 +436,14 @@ details > .lex-sum:hover { background: var(--accent-soft); }
 .dl-pilegrid .dl-slot { aspect-ratio: auto; }
 .dl-pilegrid .dl-card { aspect-ratio: 59 / 86; height: auto; }
 .dl-pilegrid small { display: block; font-size: 0.65rem; color: var(--fg-muted); overflow-wrap: anywhere; }
+.ts-mat { max-width: 620px; }
+.ts-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.ts-grid .dl-pile { aspect-ratio: 59 / 86; min-width: 0; overflow-wrap: anywhere; text-align: center; }
+.ts-target { cursor: pointer; border-color: var(--gold); color: var(--ink); font: inherit; font-size: 0.65rem; }
+.ts-target:hover, .ts-target:focus-visible { background: var(--line); }
+.ts-draw { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
+.ts-draw label { display: grid; gap: 4px; font-weight: 600; }
+.ts-draw input { width: 6em; min-height: var(--tap); padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--fg); }
 
 @media (max-width: 860px) {
   .topbar-inner { flex-wrap: wrap; }
