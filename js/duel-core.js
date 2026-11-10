@@ -52,12 +52,30 @@ export function cardTable(json) {
   return { data, name, text };
 }
 
+/** mulberry32 seeded from the duel seed: small deterministic PRNG, only used to shuffle the decks. */
+function seededRandom(seed) {
+  let a = Number((seed[0] ^ seed[1] ^ seed[2] ^ seed[3]) & 0xffffffffn) || 1;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function shuffle(list, rand) {
+  for (let i = list.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rand() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+  return list;
+}
+
 const randomSeed = () => Array.from(crypto.getRandomValues(new BigUint64Array(4)), (n) => n || 1n);
 
 /**
  * opts: { lib, table, scripts, me: {main, extra}, bot: {main, extra} (passcode lists),
  *         preset: {monsters, spellTraps} (passcodes), hand (my fixed opening hand, passcodes),
- *         second, seed, askAllChains }
+ *         second, seed, askAllChains, botPlays (bot summons, sets traps and attacks) }
  */
 export function newGame(opts) {
   const { lib, table, scripts, me, bot, preset = {}, hand = [], second = false } = opts;
@@ -87,8 +105,10 @@ export function newGame(opts) {
   hand.slice(0, 5).forEach((code, i) => { take(myMain, code); add(ME, code, L.HAND, i, P.FACEDOWN); });
   (preset.monsters || []).slice(0, 5).forEach((code, i) => { take(botMain, code); add(BOT, code, L.MZONE, i, P.FACEUP_ATTACK); });
   (preset.spellTraps || []).slice(0, 5).forEach((code, i) => { take(botMain, code); add(BOT, code, L.SZONE, i, P.FACEDOWN); });
+  // The engine does not shuffle: decks must arrive shuffled. Seeded, so a replay (undo) deals the same cards.
+  const rand = seededRandom(opts.seed);
   for (const [owner, deck] of [[ME, { main: myMain, extra: me.extra }], [BOT, { main: botMain, extra: bot.extra }]]) {
-    deck.main.forEach((code) => add(owner, code, L.DECK));
+    shuffle(deck.main, rand).forEach((code) => add(owner, code, L.DECK));
     deck.extra.forEach((code) => add(owner, code, L.EXTRA));
   }
 
@@ -106,7 +126,8 @@ export function newGame(opts) {
       case M.SPSUMMONING: say(`${who(m.controller)}: Spezialbeschwörung ${named(m.code)}`); break;
       case M.FLIPSUMMONING: say(`${who(m.controller)}: Flippbeschwörung ${named(m.code)}`); break;
       case M.SET: say(`${who(m.controller)}: setzt ${m.code && m.controller === ME ? named(m.code) : 'eine Karte'}`); break;
-      case M.CHAINING: say(`${who(m.controller)}: aktiviert ${named(m.code)}${m.chain_size > 1 ? ` (Kettenglied ${m.chain_size})` : ''}`); break;
+      case M.CHAINING: g.chainBy = m.controller; say(`${who(m.controller)}: aktiviert ${named(m.code)}${m.chain_size > 1 ? ` (Kettenglied ${m.chain_size})` : ''}`); break;
+      case M.CHAIN_END: g.chainBy = null; break;
       case M.CHAIN_NEGATED: case M.CHAIN_DISABLED: say(`Kettenglied ${m.chain_size} wird annulliert`); break;
       case M.MOVE:
         if ([L.GRAVE, L.REMOVED].includes(m.to.location) || (m.to.location === L.HAND && m.from.location !== L.DECK)
@@ -114,7 +135,7 @@ export function newGame(opts) {
           say(`${named(m.card)}: ${PLACE[m.from.location] ?? '?'} → ${PLACE[m.to.location] ?? '?'}`);
         }
         break;
-      case M.ATTACK: say(`Angriff${m.target ? '' : ' (direkt)'}`); break;
+      case M.ATTACK: say(`${who(m.card.controller)}: ${named(g.view()[m.card.controller].mz[m.card.sequence]?.code)} greift an${m.target ? '' : ' (direkt)'}`); break;
       case M.DAMAGE: g.lp[m.player] = Math.max(0, g.lp[m.player] - m.amount); say(`${who(m.player)}: −${m.amount} LP (${g.lp[m.player]})`); break;
       case M.PAY_LPCOST: g.lp[m.player] = Math.max(0, g.lp[m.player] - m.amount); say(`${who(m.player)} zahlt ${m.amount} LP (${g.lp[m.player]})`); break;
       case M.RECOVER: g.lp[m.player] += m.amount; say(`${who(m.player)}: +${m.amount} LP (${g.lp[m.player]})`); break;
@@ -147,7 +168,7 @@ export function newGame(opts) {
       if (status !== OcgProcessResult.WAITING) continue;
       if (last.player === BOT) {
         if (retries > MAX_BOT_RETRIES) throw new Error(`Bot hängt bei Engine-Nachricht ${last.type}`);
-        lib.duelSetResponse(h, botAnswer(last, table));
+        lib.duelSetResponse(h, (opts.botPlays && botPlay(last, table, g)) || botAnswer(last, table, g));
         continue;
       }
       const auto = last.type === M.SELECT_CHAIN && !wantsChain(last) ? { type: R.SELECT_CHAIN, index: null } : autoAnswer(last);
@@ -216,14 +237,54 @@ const bits = (mask, count) => {
   return out;
 };
 
+const FACEDOWN_GUESS = 1500; // the bot must not peek at my face-down monsters
+const TYPE_TRAP = 4;
+const MAX_BACKROW = 3; // do not overcommit into Heavy Storm
+
+/**
+ * Simple active bot (rules of thumb, no look-ahead). Returns undefined when it has nothing to do,
+ * then botAnswer passes. Its turn: Normal Summon the strongest Level 4 or lower monster, set traps,
+ * attack. Attack order is always lowest ATK first, so an opposing Gorz gets the smallest token
+ * and the stronger monsters attack after its effect is known.
+ * ponytail: base rules only (no spells, no tribute summons, no effects of its own); add per-deck plans when needed.
+ */
+export function botPlay(m, table, g) {
+  const mine = g.view()[g.bot]; const foes = g.view()[g.me].mz.filter(Boolean);
+  if (m.type === M.SELECT_IDLECMD) {
+    const level4 = m.summons.map((c, index) => ({ index, d: table.data.get(c.code) })).filter((x) => x.d && x.d.level <= 4);
+    if (level4.length) {
+      const best = level4.reduce((a, b) => (b.d.attack > a.d.attack ? b : a));
+      return { type: R.SELECT_IDLECMD, action: IDLE.SELECT_SUMMON, index: best.index };
+    }
+    const trap = m.spell_sets.findIndex((c) => table.data.get(c.code)?.type & TYPE_TRAP);
+    if (trap >= 0 && mine.st.filter(Boolean).length < MAX_BACKROW) return { type: R.SELECT_IDLECMD, action: IDLE.SELECT_SPELL_SET, index: trap };
+    if (m.to_bp) return { type: R.SELECT_IDLECMD, action: IDLE.TO_BP, index: null };
+  }
+  const value = (c) => (c.position & P.FACEDOWN ? FACEDOWN_GUESS : c.position & P.DEFENSE ? c.defense : c.attack);
+  if (m.type === M.SELECT_BATTLECMD) {
+    const weakest = Math.min(...foes.map(value));
+    const next = m.attacks.map((c, index) => ({ index, atk: mine.mz[c.sequence]?.attack ?? 0, direct: c.can_direct }))
+      .filter((a) => a.direct || a.atk > weakest).sort((a, b) => a.atk - b.atk)[0];
+    if (next) { g.botAtk = next.atk; return { type: R.SELECT_BATTLECMD, action: BATTLE.SELECT_BATTLE, index: next.index }; }
+  }
+  // Attack target: the strongest monster this attacker still beats.
+  if (m.type === M.SELECT_CARD && g.botAtk != null && m.selects.every((c) => c.controller === g.me && c.location === L.MZONE)) {
+    const atk = g.botAtk; g.botAtk = null;
+    const beat = m.selects.map((c, index) => ({ index, v: value(g.view()[g.me].mz[c.sequence]) })).filter((t) => t.v < atk).sort((a, b) => b.v - a.v)[0];
+    if (beat) return { type: R.SELECT_CARD, indicies: [beat.index] };
+  }
+  return undefined;
+}
+
 /** Passive bot: never starts anything in its own turn, but always uses what the engine offers it. */
-export function botAnswer(m, table) {
+export function botAnswer(m, table, g) {
   const auto = autoAnswer(m);
   if (auto) return auto;
   switch (m.type) {
     case M.SELECT_IDLECMD: return { type: R.SELECT_IDLECMD, action: m.to_ep ? IDLE.TO_EP : IDLE.TO_BP, index: null };
     case M.SELECT_BATTLECMD: return { type: R.SELECT_BATTLECMD, action: m.to_ep ? BATTLE.TO_EP : BATTLE.TO_M2, index: null };
-    case M.SELECT_CHAIN: return { type: R.SELECT_CHAIN, index: 0 };
+    // Uses whatever the engine offers, but never chains to its own card (e.g. Solemn Judgment on its own trap).
+    case M.SELECT_CHAIN: return { type: R.SELECT_CHAIN, index: !m.forced && g?.chainBy === g?.bot ? null : 0 };
     case M.SELECT_EFFECTYN: return { type: R.SELECT_EFFECTYN, yes: true };
     case M.SELECT_YESNO: return { type: R.SELECT_YESNO, yes: true };
     case M.SELECT_OPTION: return { type: R.SELECT_OPTION, index: 0 };

@@ -41,7 +41,7 @@ export async function initDuel(root) {
 
   let myId; let g = null; let opts = null; let answers = [];
   let sel = null; let picked = new Set(); let status = '';
-  let setup = { opp: null, preset: 'backrow', first: '1', askAll: '', hand: [] };
+  let setup = { opp: null, preset: 'backrow', bot: 'aktiv', first: '1', askAll: '', hand: [] };
   const readSetup = (form) => { const fd = new FormData(form); return { askAll: '', ...Object.fromEntries(fd), hand: fd.getAll('hand') }; };
 
   const name = (code) => table.name(code);
@@ -223,6 +223,7 @@ export async function initDuel(root) {
       <p>Dein Deck: <strong>${esc(decks[myId]?.name ?? '')}</strong> <span class="dl-meta">(oben über „Deck“ wählbar)</span></p>
       <label>Gegner-Deck <select name="opp">${sOpt(options.map((o) => [o.id, o.name]), opp)}</select></label>
       <label>Board des Bots <select name="preset">${sOpt(Object.entries(presets).map(([id, p]) => [id, p.name]), setup.preset)}</select></label>
+      <label>Verhalten des Bots <select name="bot">${sOpt([['aktiv', 'Aktiv: beschwört, setzt Fallen, greift an'], ['passiv', 'Passiv: zieht und passt (reines Combo-Training)']], setup.bot)}</select></label>
       <label>Reihenfolge <select name="first">${sOpt([['1', 'Ich beginne'], ['0', 'Der Bot beginnt']], setup.first)}</select></label>
       <fieldset class="dl-handpick"><legend>Starthand (optional)</legend>
         ${[0, 1, 2, 3, 4].map((i) => `<select name="hand" aria-label="Handkarte ${i + 1}">${sOpt([['', 'Zufällig'], ...mine.map((n) => [n, n])], mine.includes(setup.hand[i]) ? setup.hand[i] : '')}</select>`).join('')}
@@ -230,7 +231,7 @@ export async function initDuel(root) {
       <label class="dl-check"><input type="checkbox" name="askAll" value="1"${setup.askAll ? ' checked' : ''} /> Bei jeder Gelegenheit nach Ketten fragen</label>
       <button class="primary-button" type="submit">Duell starten</button>
       ${status ? `<p class="dl-status">${esc(status)}</p>` : ''}
-      <p class="dl-hint">Regeln wie 2010 (Master Rule 1): Der Startspieler zieht, greift im ersten Zug aber nicht an. Effekte laufen über die EDOPro-Engine mit den offiziellen Kartenskripten. Der Bot spielt nicht selbst, aktiviert aber gesetzte Fallen und Effekte, sobald die Engine sie anbietet.</p>
+      <p class="dl-hint">Regeln wie 2010 (Master Rule 1): Der Startspieler zieht, greift im ersten Zug aber nicht an. Effekte laufen über die EDOPro-Engine mit den offiziellen Kartenskripten. Der aktive Bot spielt nach einfachen Faustregeln (stärkstes Monster bis Stufe 4, Fallen setzen, Angriff mit der kleinsten ATK zuerst) und aktiviert Fallen und Effekte, sobald die Engine sie anbietet.</p>
     </form>`;
   }
 
@@ -259,7 +260,7 @@ export async function initDuel(root) {
     opts = {
       lib, table, scripts, me: deckCodes(decks[myId]), bot: deckCodes(decks[setup.opp] ?? decks[myId]),
       preset: { monsters: codes(preset.monsters || []), spellTraps: codes(preset.spellTraps || []) },
-      hand: codes(hand), second: setup.first === '0', askAllChains: !!setup.askAll
+      hand: codes(hand), second: setup.first === '0', askAllChains: !!setup.askAll, botPlays: setup.bot !== 'passiv'
     };
     answers = []; sel = null; status = '';
     try { g = newGame(opts); } catch (error) { g = null; status = error.message; }

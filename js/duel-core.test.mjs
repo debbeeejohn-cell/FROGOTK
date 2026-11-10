@@ -68,6 +68,20 @@ g.respond({ type: R.SELECT_IDLECMD, action: IDLE.SELECT_ACTIVATE, index: g.promp
 assert.deepEqual(g.view()[g.me].mz.map((c) => c && name(c)), Array(4).fill('Sheep Token').concat(null));
 assert.deepEqual(g.errors, []);
 
+// active bot: attacks with the lowest ATK first (Gorz rule), then the stronger monster
+g = start({ botPlays: true, hand: Array(3).fill(id.get('Reckless Greed')), preset: { monsters: [id.get('Dark Armed Dragon'), id.get('Cyber Dragon')] } });
+g.respond({ type: R.SELECT_IDLECMD, action: IDLE.TO_EP, index: null });
+for (let i = 0; i < 20 && g.turn < 3 && g.prompt; i += 1) { // decline everything until my next turn
+  const t = g.prompt.type;
+  g.respond(t === M.SELECT_CHAIN ? { type: R.SELECT_CHAIN, index: null } : t === M.SELECT_EFFECTYN ? { type: R.SELECT_EFFECTYN, yes: false } : { type: R.SELECT_YESNO, yes: false });
+}
+const atkOf = new Map(json('cards.json').cards.map((c) => [c.name, c.atk]));
+const attacks = g.log.filter((l) => l.includes('greift an')).reverse().map((l) => atkOf.get(l.slice(5, l.indexOf(' greift an'))));
+assert.ok(attacks.length >= 2 && attacks.includes(2100) && attacks.includes(2800), `bot attacked with ${attacks}`);
+assert.deepEqual(attacks, [...attacks].sort((x, y) => x - y), 'lowest ATK attacks first');
+assert.ok(g.lp[g.me] <= 8000 - attacks.reduce((sum, n) => sum + n, 0)); // hand effects like Kalut can add damage
+assert.deepEqual(g.errors, []);
+
 // same seed + same answers = same duel (this is how undo works)
 const a = start(); const b = start();
 for (const x of [a, b]) x.respond({ type: R.SELECT_IDLECMD, action: IDLE.TO_EP, index: null });
