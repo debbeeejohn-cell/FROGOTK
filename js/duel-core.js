@@ -23,6 +23,7 @@ const ZONES = 5;
 const NO_EFFECT = 'local s,id=GetID()\nfunction s.initial_effect(c) end';
 const MAX_BOT_RETRIES = 5;
 export const PLACE = { 1: 'Deck', 2: 'Hand', 4: 'Monsterzone', 8: 'Zauber-/Fallenzone', 16: 'Friedhof', 32: 'Verbannt', 64: 'Extra Deck', 128: 'Material', 256: 'Feldzone' };
+export const ZONE = { 1: 'deck', 2: 'hand', 4: 'mz', 8: 'st', 16: 'gy', 32: 'banished', 64: 'extra' };
 export const PHASE = { 1: 'Draw Phase', 2: 'Standby Phase', 4: 'Main Phase 1', 8: 'Battle Phase', 16: 'Battle Phase', 32: 'Damage Step', 64: 'Damage Step', 128: 'Battle Phase', 256: 'Main Phase 2', 512: 'End Phase' };
 
 const setcodes = (v) => {
@@ -84,7 +85,7 @@ export function newGame(opts) {
   const ME = second ? 1 : 0; const BOT = 1 - ME;
   const g = {
     me: ME, bot: BOT, lp: [8000, 8000], turn: 0, active: null, phase: 0, winner: null,
-    log: [], errors: [], prompt: null, hint: '', error: ''
+    log: [], events: [], errors: [], prompt: null, hint: '', error: ''
   };
   const team = (p) => ({ drawCountPerTurn: 1, startingDrawCount: p === ME ? Math.max(0, 5 - hand.length) : 5, startingLP: 8000 });
   const h = lib.createDuel({
@@ -144,7 +145,28 @@ export function newGame(opts) {
       case M.WIN: g.winner = m.player; say(m.player === ME ? 'Du gewinnst!' : m.player === BOT ? 'Der Bot gewinnt.' : 'Unentschieden.'); break;
       default:
     }
+    const event = EVENT[m.type]?.(m);
+    if (event) g.events.push(event);
   }
+
+  // The same stream as the log, as data: for a presentation layer that animates it (Godot director).
+  const side = (p) => (p === ME ? 'me' : 'bot');
+  const at = (c) => ({ side: side(c.controller), zone: ZONE[c.location] ?? 'other', index: c.sequence });
+  const summonEvent = (kind) => (m) => ({ type: 'summon', kind, name: named(m.code), ...at(m) });
+  const lpEvent = (type) => (m) => ({ type, side: side(m.player), amount: m.amount, lp: g.lp[m.player] });
+  const EVENT = {
+    [M.NEW_TURN]: (m) => ({ type: 'turn', side: side(m.player), turn: g.turn }),
+    [M.NEW_PHASE]: (m) => ({ type: 'phase', phase: PHASE[m.phase] }),
+    [M.DRAW]: (m) => ({ type: 'draw', side: side(m.player), count: m.drawn.length }),
+    [M.SUMMONING]: summonEvent('normal'), [M.SPSUMMONING]: summonEvent('special'), [M.FLIPSUMMONING]: summonEvent('flip'),
+    [M.SET]: (m) => ({ type: 'set', ...at(m) }),
+    [M.CHAINING]: (m) => ({ type: 'chain', name: named(m.code), link: m.chain_size, ...at(m) }),
+    [M.CHAIN_NEGATED]: (m) => ({ type: 'negate', link: m.chain_size }),
+    [M.MOVE]: (m) => ({ type: 'move', name: named(m.card), from: at(m.from), to: at(m.to) }),
+    [M.ATTACK]: (m) => ({ type: 'attack', from: at(m.card), to: m.target ? at(m.target) : null }),
+    [M.DAMAGE]: lpEvent('damage'), [M.PAY_LPCOST]: lpEvent('pay'), [M.RECOVER]: lpEvent('heal'),
+    [M.WIN]: (m) => ({ type: 'win', side: m.player === ME ? 'me' : m.player === BOT ? 'bot' : 'draw' })
+  };
 
   // Like Dueling Nexus: only stop for an optional chain when something just happened (summon, attack,
   // an open chain), for simultaneous triggers, or in the bot's End Phase. In my own open Main Phase the

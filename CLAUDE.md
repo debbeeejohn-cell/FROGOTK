@@ -15,7 +15,7 @@ python -m http.server 8130      # dann http://localhost:8130/ öffnen
 ## Tests
 
 ```
-node --no-warnings js/duel-core.test.mjs    # Bot Duel auf der echten Engine (Node >= 22.5)
+node --no-warnings js/duel-core.test.mjs    # Bot Duel auf der echten Engine
 node js/calc.test.mjs && node js/decklist.test.mjs && node js/sandbox.test.mjs && node js/ydk.test.mjs
 ```
 
@@ -41,6 +41,20 @@ Kein Test-Framework: jede Datei ist ein `assert`-Skript und endet mit „all che
   `data/edison-banlist.json`.
 - `scripts/fetch-cards.mjs`, `scripts/fetch-core.mjs`: laden die Daten neu. Nötig nach Änderungen an
   `data/decks.json` (neue Karten brauchen Kartendaten und Lua-Skript). Workflow „Karten laden“ macht beides.
+
+## Godot-Brücke
+
+`scripts/duel-server.mjs` stellt den Duell-Kern lokal als JSON über HTTP bereit (nur 127.0.0.1, Port 8131),
+damit ein Godot-Projekt nur die Darstellung bauen muss. Routen und Zustandsformat stehen im Dateikopf.
+
+```
+node --no-warnings scripts/duel-server.mjs        # Brücke starten
+node --no-warnings scripts/duel-server.test.mjs   # Test
+```
+
+`godot/bridge/` in ein Godot-4.3-Projekt kopieren (als `res://bridge/`) und `bridge_demo.tscn` starten:
+ein komplettes Duell mit Text und Knöpfen. `state.events` ist der Ereignisstrom für einen Director.
+Der Godot-Teil wurde ohne Godot geschrieben und ist dort ungetestet.
 
 ## Regeln für Änderungen
 
