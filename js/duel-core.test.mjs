@@ -82,6 +82,20 @@ assert.deepEqual(attacks, [...attacks].sort((x, y) => x - y), 'lowest ATK attack
 assert.ok(g.lp[g.me] <= 8000 - attacks.reduce((sum, n) => sum + n, 0)); // hand effects like Kalut can add damage
 assert.deepEqual(g.errors, []);
 
+// Blackwing bot follows the deck plan: free Special Summons and a Synchro, then wins against a player who only passes
+g = start({ botPlays: true, hand: [], seed: [3n, 1n, 4n, 1n] });
+for (let i = 0; i < 200 && g.prompt; i += 1) {
+  const p = g.prompt;
+  g.respond(p.type === M.SELECT_IDLECMD ? { type: R.SELECT_IDLECMD, action: IDLE.TO_EP, index: null }
+    : p.type === M.SELECT_CHAIN ? { type: R.SELECT_CHAIN, index: p.forced ? 0 : null }
+      : p.type === M.SELECT_CARD ? { type: R.SELECT_CARD, indicies: [0] }
+        : p.type === M.SELECT_EFFECTYN ? { type: R.SELECT_EFFECTYN, yes: false } : { type: R.SELECT_YESNO, yes: false });
+}
+assert.equal(g.winner, g.bot);
+assert.ok(g.log.includes('Bot: Spezialbeschwörung Blackwing - Bora the Spear'));
+assert.ok(g.log.includes('Bot: Spezialbeschwörung Blackwing Armed Wing'), 'bot Synchro Summons');
+assert.deepEqual(g.errors, []);
+
 // same seed + same answers = same duel (this is how undo works)
 const a = start(); const b = start();
 for (const x of [a, b]) x.respond({ type: R.SELECT_IDLECMD, action: IDLE.TO_EP, index: null });

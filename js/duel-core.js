@@ -19,6 +19,7 @@ const SELECT_TYPES = new Set([
   M.ANNOUNCE_CARD, M.ANNOUNCE_NUMBER, M.ROCK_PAPER_SCISSORS
 ]);
 const HINT_SELECTMSG = 3;
+const ZONES = 5;
 const NO_EFFECT = 'local s,id=GetID()\nfunction s.initial_effect(c) end';
 const MAX_BOT_RETRIES = 5;
 export const PLACE = { 1: 'Deck', 2: 'Hand', 4: 'Monsterzone', 8: 'Zauber-/Fallenzone', 16: 'Friedhof', 32: 'Verbannt', 64: 'Extra Deck', 128: 'Material', 256: 'Feldzone' };
@@ -119,7 +120,7 @@ export function newGame(opts) {
   function onMessage(m) {
     switch (m.type) {
       case M.HINT: if (m.hint_type === HINT_SELECTMSG && m.player === ME) g.hint = table.text(m.hint); break;
-      case M.NEW_TURN: g.turn += 1; g.active = m.player; say(`— Zug ${g.turn}: ${who(m.player)} —`); break;
+      case M.NEW_TURN: g.botActs = 0; g.turn += 1; g.active = m.player; say(`— Zug ${g.turn}: ${who(m.player)} —`); break;
       case M.NEW_PHASE: g.phase = m.phase; break;
       case M.DRAW: say(m.player === ME ? `Du ziehst ${m.drawn.map((c) => named(c.code)).join(', ')}` : `Bot zieht ${m.drawn.length} Karte(n)`); break;
       case M.SUMMONING: say(`${who(m.controller)}: Normalbeschwörung ${named(m.code)}`); break;
@@ -238,27 +239,50 @@ const bits = (mask, count) => {
 };
 
 const FACEDOWN_GUESS = 1500; // the bot must not peek at my face-down monsters
-const TYPE_TRAP = 4;
+const TYPE_SPELL = 2; const TYPE_TRAP = 4; const TYPE_CONTINUOUS = 0x20000; const TYPE_FIELD = 0x80000;
 const MAX_BACKROW = 3; // do not overcommit into Heavy Storm
+const MAX_BOARD_INTO_BACKROW = 3; // ... or into Mirror Force / Torrential Tribute when I have 2+ set cards
+const MAX_ACTIONS_PER_TURN = 15; // stops effect loops (e.g. Swap Frog bouncing itself forever)
+// Normal Spells the bot may play from its hand, each with the board it needs (foe = my side as seen by the bot).
+const SPELL_WHEN = {
+  'Allure of Darkness': () => true,
+  'Pot of Avarice': () => true,
+  'Mystical Space Typhoon': (own, foe) => foe.backrow > 0,
+  'Heavy Storm': (own, foe) => foe.backrow >= 2 && foe.backrow > own.backrow,
+  'Giant Trunade': (own, foe) => foe.backrow >= 2 && own.backrow === 0,
+  'Brain Control': (own, foe) => foe.faceUp > 0
+};
 
 /**
  * Simple active bot (rules of thumb, no look-ahead). Returns undefined when it has nothing to do,
- * then botAnswer passes. Its turn: Normal Summon the strongest Level 4 or lower monster, set traps,
- * attack. Attack order is always lowest ATK first, so an opposing Gorz gets the smallest token
- * and the stronger monsters attack after its effect is known.
- * ponytail: base rules only (no spells, no tribute summons, no effects of its own); add per-deck plans when needed.
+ * then botAnswer passes. Its Main Phase, in this order (Blackwing-style tempo, works for any deck):
+ *   1. activate Continuous/Field Spells and the Normal Spells in SPELL_WHEN (Black Whirlwind first),
+ *   2. Normal Summon the strongest Level 4 or lower monster (triggers Whirlwind),
+ *   3. Special Summon whatever the engine offers (Bora, Gale, Dark Armed Dragon, Synchros),
+ *   4. use monster effects on the field (Gale, Dark Armed Dragon), 5. set traps, 6. attack.
+ * Attack order is always lowest ATK first, so an opposing Gorz gets the smallest token.
+ * ponytail: no tribute summons and no per-deck combo plans; add a plan table per deck when needed.
  */
 export function botPlay(m, table, g) {
-  const mine = g.view()[g.bot]; const foes = g.view()[g.me].mz.filter(Boolean);
-  if (m.type === M.SELECT_IDLECMD) {
-    const level4 = m.summons.map((c, index) => ({ index, d: table.data.get(c.code) })).filter((x) => x.d && x.d.level <= 4);
-    if (level4.length) {
-      const best = level4.reduce((a, b) => (b.d.attack > a.d.attack ? b : a));
-      return { type: R.SELECT_IDLECMD, action: IDLE.SELECT_SUMMON, index: best.index };
-    }
-    const trap = m.spell_sets.findIndex((c) => table.data.get(c.code)?.type & TYPE_TRAP);
-    if (trap >= 0 && mine.st.filter(Boolean).length < MAX_BACKROW) return { type: R.SELECT_IDLECMD, action: IDLE.SELECT_SPELL_SET, index: trap };
-    if (m.to_bp) return { type: R.SELECT_IDLECMD, action: IDLE.TO_BP, index: null };
+  const view = g.view(); const mine = view[g.bot]; const theirs = view[g.me];
+  const foes = theirs.mz.filter(Boolean);
+  const data = (c) => table.data.get(c.code);
+  if (m.type === M.SELECT_IDLECMD && (g.botActs = (g.botActs ?? 0) + 1) <= MAX_ACTIONS_PER_TURN) {
+    const act = (action, index) => ({ type: R.SELECT_IDLECMD, action, index });
+    const side = (v) => ({ backrow: v.st.filter(Boolean).length, faceUp: v.mz.filter((c) => c && !(c.position & P.FACEDOWN)).length });
+    const own = side(mine); const foe = side(theirs);
+    const spell = m.activates.findIndex((c) => c.location === L.HAND && data(c)?.type & TYPE_SPELL
+      && (data(c).type & (TYPE_CONTINUOUS | TYPE_FIELD) || SPELL_WHEN[table.name(c.code)]?.(own, foe)));
+    if (spell >= 0) return act(IDLE.SELECT_ACTIVATE, spell);
+    const level4 = m.summons.map((c, index) => ({ index, d: data(c) })).filter((x) => x.d && x.d.level <= 4);
+    if (level4.length) return act(IDLE.SELECT_SUMMON, level4.reduce((a, b) => (b.d.attack > a.d.attack ? b : a)).index);
+    const board = mine.mz.filter(Boolean).length;
+    if (m.special_summons.length && board < (foe.backrow >= 2 ? MAX_BOARD_INTO_BACKROW : ZONES)) return act(IDLE.SELECT_SPECIAL_SUMMON, 0);
+    const effect = m.activates.findIndex((c) => c.location === L.MZONE);
+    if (effect >= 0) return act(IDLE.SELECT_ACTIVATE, effect);
+    const trap = m.spell_sets.findIndex((c) => data(c)?.type & TYPE_TRAP);
+    if (trap >= 0 && own.backrow < MAX_BACKROW) return act(IDLE.SELECT_SPELL_SET, trap);
+    if (m.to_bp) return act(IDLE.TO_BP, null);
   }
   const value = (c) => (c.position & P.FACEDOWN ? FACEDOWN_GUESS : c.position & P.DEFENSE ? c.defense : c.attack);
   if (m.type === M.SELECT_BATTLECMD) {
@@ -267,11 +291,20 @@ export function botPlay(m, table, g) {
       .filter((a) => a.direct || a.atk > weakest).sort((a, b) => a.atk - b.atk)[0];
     if (next) { g.botAtk = next.atk; return { type: R.SELECT_BATTLECMD, action: BATTLE.SELECT_BATTLE, index: next.index }; }
   }
-  // Attack target: the strongest monster this attacker still beats.
-  if (m.type === M.SELECT_CARD && g.botAtk != null && m.selects.every((c) => c.controller === g.me && c.location === L.MZONE)) {
-    const atk = g.botAtk; g.botAtk = null;
-    const beat = m.selects.map((c, index) => ({ index, v: value(g.view()[g.me].mz[c.sequence]) })).filter((t) => t.v < atk).sort((a, b) => b.v - a.v)[0];
-    if (beat) return { type: R.SELECT_CARD, indicies: [beat.index] };
+  if (m.type === M.SELECT_CARD) {
+    const count = Math.min(Math.max(m.min, 1), m.selects.length);
+    // Attack target: the strongest monster this attacker still beats.
+    if (g.botAtk != null && m.selects.every((c) => c.controller === g.me && c.location === L.MZONE)) {
+      const atk = g.botAtk; g.botAtk = null;
+      const beat = m.selects.map((c, index) => ({ index, v: value(theirs.mz[c.sequence]) })).filter((t) => t.v < atk).sort((a, b) => b.v - a.v)[0];
+      if (beat) return { type: R.SELECT_CARD, indicies: [beat.index] };
+    }
+    // A choice across both fields is removal (Icarus Attack, Dark Armed Dragon): hit my cards, not its own.
+    const sides = new Set(m.selects.map((c) => c.controller));
+    if (sides.size === 2) {
+      const order = m.selects.map((c, index) => ({ index, own: c.controller === g.bot })).sort((a, b) => a.own - b.own);
+      return { type: R.SELECT_CARD, indicies: order.slice(0, count).map((x) => x.index).sort((a, b) => a - b) };
+    }
   }
   return undefined;
 }
@@ -292,9 +325,15 @@ export function botAnswer(m, table, g) {
     case M.SELECT_TRIBUTE: return { type: R.SELECT_TRIBUTE, indicies: firstN(Math.min(Math.max(m.min, 1), m.selects.length)) };
     case M.SELECT_UNSELECT_CARD: return { type: R.SELECT_UNSELECT_CARD, index: m.can_finish || !m.select_cards.length ? null : 0 };
     case M.SELECT_SUM: {
-      let sum = m.selects_must.reduce((s, c) => s + (c.amount & 0xffff), 0); const picked = [];
-      for (let i = 0; i < m.selects.length && sum < m.amount; i += 1) { picked.push(i); sum += m.selects[i].amount & 0xffff; }
-      return { type: R.SELECT_SUM, indicies: picked };
+      // First subset the engine accepts: exact sum, or (select_max) at least the sum with every card needed.
+      const lvl = (c) => c.amount & 0xffff; const target = m.amount & 0xffff;
+      const base = m.selects_must.reduce((t, c) => t + lvl(c), 0);
+      for (let mask = 1; mask < 1 << Math.min(m.selects.length, 12); mask += 1) {
+        const picked = m.selects.map((_, k) => k).filter((k) => mask & (1 << k));
+        const total = base + picked.reduce((t, k) => t + lvl(m.selects[k]), 0);
+        if (m.select_max ? total >= target && picked.every((k) => total - lvl(m.selects[k]) < target) : total === target) return { type: R.SELECT_SUM, indicies: picked };
+      }
+      return { type: R.SELECT_SUM, indicies: firstN(m.selects.length) };
     }
     case M.SELECT_POSITION: return { type: R.SELECT_POSITION, position: Number(bits(m.positions, 1)[0]) };
     case M.ANNOUNCE_RACE: return { type: R.ANNOUNCE_RACE, races: bits(m.available, m.count) };
