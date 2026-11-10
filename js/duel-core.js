@@ -75,7 +75,7 @@ const randomSeed = () => Array.from(crypto.getRandomValues(new BigUint64Array(4)
 
 /**
  * opts: { lib, table, scripts, me: {main, extra}, bot: {main, extra} (passcode lists),
- *         preset: {monsters, spellTraps} (passcodes), hand (my fixed opening hand, passcodes),
+ *         preset: {monsters, spellTraps} (passcodes; the bot's starting board, only used by the tests), hand (my fixed opening hand, passcodes),
  *         second, seed, askAllChains, botPlays (bot summons, sets traps and attacks) }
  */
 export function newGame(opts) {

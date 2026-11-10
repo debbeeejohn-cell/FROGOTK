@@ -6,7 +6,7 @@
 //   node scripts/fetch-core.mjs
 //
 // Writes data/core-cards.json (card stats, effect strings, system prompt strings) and data/core-scripts.json (Lua sources)
-// for every card in decks.json and bot-presets.json. Node >= 22.5 (node:sqlite).
+// for every card in decks.json. Node >= 22.5 (node:sqlite).
 
 import fs from 'node:fs';
 import os from 'node:os';
@@ -30,7 +30,6 @@ function deckCodes() {
   for (const deck of Object.values(readJson('decks.json'))) {
     for (const section of ['main', 'extra', 'side']) (deck[section] || []).forEach((c) => names.add(c.card));
   }
-  for (const preset of Object.values(readJson('bot-presets.json'))) [...preset.monsters, ...preset.spellTraps].forEach((n) => names.add(n));
   const missing = [...names].filter((n) => !ids.has(n));
   if (missing.length) throw new Error(`Not in data/cards.json: ${missing.join(', ')}`);
   return [...names].map((n) => ids.get(n));

@@ -22,8 +22,8 @@ const bitList = (mask) => { const out = []; for (let b = 1n; b <= BigInt(mask); 
 
 export async function initDuel(root) {
   root.innerHTML = '<p class="dl-hint">Lade Duell-Engine …</p>';
-  const [decks, cardDb, presets, coreCards, { scripts }, lib] = await Promise.all([
-    loadDecks(), loadCards(), getJson('bot-presets.json'), getJson('core-cards.json'), getJson('core-scripts.json'), loadCore()
+  const [decks, cardDb, coreCards, { scripts }, lib] = await Promise.all([
+    loadDecks(), loadCards(), getJson('core-cards.json'), getJson('core-scripts.json'), loadCore()
   ]);
   if (!cardDb) {
     root.innerHTML = '<p class="dl-hint">Für das Bot Duel fehlt die Kartendatenbank (Workflow „Karten laden“).</p>';
@@ -47,7 +47,7 @@ export async function initDuel(root) {
   let myId; let g = null; let opts = null; let answers = [];
   let sel = null; let picked = new Set(); let status = '';
   let duelDeck = null; let duelSetup = null; let openHand = []; let replay = null; // replay: { name, all: recorded answers, marks: answer counts before each shown step } while a saved combo is shown
-  let setup = { opp: null, preset: 'backrow', bot: 'aktiv', first: '1', askAll: '', hand: [] };
+  let setup = { opp: null, bot: 'aktiv', first: '1', askAll: '', hand: [] };
   const readSetup = (form) => { const fd = new FormData(form); return { askAll: '', ...Object.fromEntries(fd), hand: fd.getAll('hand') }; };
 
   const name = (code) => table.name(code);
@@ -241,7 +241,6 @@ export async function initDuel(root) {
     return `<form class="dl-setup" data-setup>
       <p>Dein Deck: <strong>${esc(decks[myId]?.name ?? '')}</strong> <span class="dl-meta">(oben über „Deck“ wählbar)</span></p>
       <label>Gegner-Deck <select name="opp">${sOpt(options.map((o) => [o.id, o.name]), opp)}</select></label>
-      <label>Board des Bots <select name="preset">${sOpt(Object.entries(presets).map(([id, p]) => [id, p.name]), setup.preset)}</select></label>
       <label>Verhalten des Bots <select name="bot">${sOpt([['aktiv', 'Aktiv: beschwört, setzt Fallen, greift an'], ['passiv', 'Passiv: zieht und passt (reines Combo-Training)']], setup.bot)}</select></label>
       <label>Reihenfolge <select name="first">${sOpt([['1', 'Ich beginne'], ['0', 'Der Bot beginnt']], setup.first)}</select></label>
       <fieldset class="dl-handpick"><legend>Starthand (optional)</legend>
@@ -274,13 +273,11 @@ export async function initDuel(root) {
 
   function begin(deckId, chosen, seed) {
     const deck = decks[deckId];
-    const preset = presets[chosen.preset] ?? {};
     // Fixed opening hand: never more copies than the deck has; the rest is drawn at random.
     const left = new Map(deck.main.map((c) => [c.card, c.count]));
     const hand = (chosen.hand ?? []).filter((n) => left.get(n) > 0 && left.set(n, left.get(n) - 1));
     opts = {
       lib, table, scripts, me: deckCodes(deck), bot: deckCodes(decks[chosen.opp] ?? deck),
-      preset: { monsters: codes(preset.monsters || []), spellTraps: codes(preset.spellTraps || []) },
       hand: codes(hand), second: chosen.first === '0', askAllChains: !!chosen.askAll, botPlays: chosen.bot !== 'passiv', seed
     };
     duelDeck = deckId; duelSetup = chosen; answers = []; sel = null; status = '';
