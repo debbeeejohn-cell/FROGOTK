@@ -8,8 +8,9 @@
 //   POST /new    { deck, opp, hand: [names], first: true, bot: "aktiv"|"passiv", askAll: false }
 //   POST /answer { choice: id } | { pick: [ids] } | { name: "Card Name" }
 //   POST /undo
-//   GET  /state
-// Every duel call answers with the state: { turn, active, phase, lp, winner, field, prompt, events, log, review }.
+//   GET  /state                 (also resends all card facts, for a client that reconnects)
+// Every duel call answers with the state: { turn, active, phase, lp, winner, field, prompt, events, log, review, cards }.
+// cards = facts (frame, atk, def, level, text) for every card name this client has not been told about yet.
 // prompt.choices carry an id; a front end never builds engine responses itself.
 // ponytail: one duel at a time and no persistence; the labels mirror js/duel.js (the DOM front end).
 
@@ -22,7 +23,9 @@ const json = (file) => JSON.parse(fs.readFileSync(new URL(`../data/${file}`, imp
 const decks = json('decks.json');
 const cardDb = json('cards.json').cards;
 const byName = new Map(cardDb.map((c) => [c.name, c]));
-const table = cardTable(json('core-cards.json'));
+const coreCards = json('core-cards.json');
+const table = cardTable(coreCards);
+const coreRow = new Map(coreCards.cards.map((row) => [row[9], row])); // name -> [code, alias, setcode, type, level, attribute, race, atk, def, name]
 const { scripts } = json('core-scripts.json');
 const lib = await loadCore();
 
@@ -34,7 +37,24 @@ const deckCodes = (deck) => ({
 const POSITION = { 1: 'Offene Angriffsposition', 2: 'Verdeckte Angriffsposition', 4: 'Offene Verteidigungsposition', 8: 'Verdeckte Verteidigungsposition' };
 const bitList = (mask) => { const out = []; for (let b = 1n; b <= BigInt(mask); b <<= 1n) if (BigInt(mask) & b) out.push(b); return out; };
 
-let s = null; // { g, opts, answers, sent (events already delivered), pending (current prompt) }
+// Card frame from the engine's type bits, first match wins (a Ritual Spell is a spell, a Synchro is not just "effect").
+const FRAME = [[16384, 'token'], [2, 'spell'], [4, 'trap'], [8192, 'synchro'], [64, 'fusion'], [128, 'ritual'], [32, 'effect']];
+function cardInfo(name) {
+  const row = coreRow.get(name); const c = byName.get(name);
+  const type = row[3];
+  return {
+    frame: FRAME.find(([bit]) => type & bit)?.[1] ?? 'normal', monster: !!(type & 1), atk: row[7], def: row[8], level: row[4] & 0xff,
+    attribute: c?.attribute ?? '', race: c?.race ?? '', type: c?.type ?? '', desc: c?.desc ?? ''
+  };
+}
+/** Every card name anywhere in a value (field, prompt, events). */
+function cardNames(value, found = new Set()) {
+  if (typeof value === 'string') { if (coreRow.has(value)) found.add(value); }
+  else if (value && typeof value === 'object') Object.values(value).forEach((v) => cardNames(v, found));
+  return found;
+}
+
+let s = null; // { g, opts, answers, sent (events already delivered), pending (current prompt), known (card names already described) }
 
 const side = (p) => (p === s.g.me ? 'me' : 'bot');
 const ref = (c) => ({ side: side(c.controller), zone: c.location === L.SZONE && c.sequence === 5 ? 'field' : ZONE[c.location] ?? 'other', index: c.sequence, name: table.name(c.code) });
@@ -133,12 +153,17 @@ function state() {
   s.pending = g.prompt ? describe(g.prompt) : null;
   const events = g.events.slice(s.sent); s.sent = g.events.length;
   const { answer: _answer, ...prompt } = s.pending ?? {};
-  return {
+  const out = {
     ok: true, duel: true, turn: g.turn, active: g.active === null ? null : side(g.active), phase: PHASE[g.phase] ?? '',
     lp: { me: g.lp[g.me], bot: g.lp[g.bot] }, winner: g.winner === null ? null : g.winner === g.me ? 'me' : g.winner === g.bot ? 'bot' : 'draw',
     field: { me: half(g.me, false), bot: half(g.bot, true) }, prompt: s.pending ? prompt : null,
     events, log: g.log.slice(0, 30), review: g.review ?? null, error: g.error || (g.errors.at(-1) ?? '')
   };
+  out.cards = {};
+  for (const name of cardNames([out.field, out.prompt, out.events])) {
+    if (!s.known.has(name)) { s.known.add(name); out.cards[name] = cardInfo(name); }
+  }
+  return out;
 }
 
 const fail = (message) => ({ ok: false, error: message });
@@ -150,7 +175,7 @@ function start(body) {
   const hand = (Array.isArray(body.hand) ? body.hand : []).filter((n) => left.get(n) > 0 && left.set(n, left.get(n) - 1));
   s?.g.close();
   const opts = { lib, table, scripts, me: deckCodes(deck), bot: deckCodes(opp), hand: codes(hand), second: body.first === false, askAllChains: !!body.askAll, botPlays: body.bot !== 'passiv' };
-  s = { g: newGame(opts), opts, answers: [], sent: 0, pending: null };
+  s = { g: newGame(opts), opts, answers: [], sent: 0, pending: null, known: new Set() };
   return state();
 }
 
@@ -180,7 +205,8 @@ const routes = {
     const c = byName.get(url.searchParams.get('name') ?? '');
     return c ? { ok: true, name: c.name, type: c.type, desc: c.desc, atk: c.atk, def: c.def, level: c.level, attribute: c.attribute, race: c.race } : fail('Karte nicht gefunden.');
   },
-  'GET /state': state, 'POST /new': start, 'POST /answer': answer, 'POST /undo': undo
+  'GET /state': () => { s?.known.clear(); return state(); }, // a (re)connecting client gets every card again
+  'POST /new': start, 'POST /answer': answer, 'POST /undo': undo
 };
 
 export const server = http.createServer((req, res) => {

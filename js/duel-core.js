@@ -151,18 +151,27 @@ export function newGame(opts) {
 
   // The same stream as the log, as data: for a presentation layer that animates it (Godot director).
   const side = (p) => (p === ME ? 'me' : 'bot');
-  const at = (c) => ({ side: side(c.controller), zone: ZONE[c.location] ?? 'other', index: c.sequence });
-  const summonEvent = (kind) => (m) => ({ type: 'summon', kind, name: named(m.code), ...at(m) });
+  const at = (c) => ({
+    side: side(c.controller), zone: c.location === L.SZONE && c.sequence === 5 ? 'field' : ZONE[c.location] ?? 'other', index: c.sequence,
+    ...(c.position === undefined ? {} : { down: !!(c.position & P.FACEDOWN), pos: c.position & P.DEFENSE ? 'def' : 'atk' })
+  });
+  // A moving card's name is only told when I may know it: public (graveyard, banished, face-up on the
+  // field) at either end, or my own hand/field/Extra Deck. The bot's set cards and draws stay unnamed.
+  const isPublic = (c) => c.location & (L.GRAVE | L.REMOVED) || (c.location & L.ONFIELD && !(c.position & P.FACEDOWN));
+  const isMine = (c) => c.controller === ME && c.location & (L.HAND | L.ONFIELD | L.EXTRA);
+  const known = (m) => [m.from, m.to].some((c) => isPublic(c) || isMine(c));
+  const stats = (code) => ({ atk: table.data.get(code)?.attack ?? 0, def: table.data.get(code)?.defense ?? 0 });
+  const summonEvent = (kind) => (m) => ({ type: 'summon', kind, name: named(m.code), ...stats(m.code), ...at(m) });
   const lpEvent = (type) => (m) => ({ type, side: side(m.player), amount: m.amount, lp: g.lp[m.player] });
   const EVENT = {
     [M.NEW_TURN]: (m) => ({ type: 'turn', side: side(m.player), turn: g.turn }),
     [M.NEW_PHASE]: (m) => ({ type: 'phase', phase: PHASE[m.phase] }),
     [M.DRAW]: (m) => ({ type: 'draw', side: side(m.player), count: m.drawn.length }),
     [M.SUMMONING]: summonEvent('normal'), [M.SPSUMMONING]: summonEvent('special'), [M.FLIPSUMMONING]: summonEvent('flip'),
-    [M.SET]: (m) => ({ type: 'set', ...at(m) }),
+    [M.SET]: (m) => ({ type: 'set', name: m.controller === ME && m.code ? named(m.code) : null, ...at(m) }),
     [M.CHAINING]: (m) => ({ type: 'chain', name: named(m.code), link: m.chain_size, ...at(m) }),
     [M.CHAIN_NEGATED]: (m) => ({ type: 'negate', link: m.chain_size }),
-    [M.MOVE]: (m) => ({ type: 'move', name: named(m.card), from: at(m.from), to: at(m.to) }),
+    [M.MOVE]: (m) => ({ type: 'move', name: known(m) ? named(m.card) : null, from: at(m.from), to: at(m.to) }),
     [M.ATTACK]: (m) => ({ type: 'attack', from: at(m.card), to: m.target ? at(m.target) : null }),
     [M.DAMAGE]: lpEvent('damage'), [M.PAY_LPCOST]: lpEvent('pay'), [M.RECOVER]: lpEvent('heal'),
     [M.WIN]: (m) => ({ type: 'win', side: m.player === ME ? 'me' : m.player === BOT ? 'bot' : 'draw' })
