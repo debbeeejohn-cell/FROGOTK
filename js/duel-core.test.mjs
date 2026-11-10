@@ -1,7 +1,7 @@
 // Run: node --no-warnings js/duel-core.test.mjs  (Bot Duel on the real engine, needs data/core-*.json)
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { loadCore, cardTable, newGame, M, R, IDLE, BATTLE } from './duel-core.js';
+import { loadCore, cardTable, newGame, traceOf, compareCombo, M, R, IDLE, BATTLE } from './duel-core.js';
 
 const json = (f) => JSON.parse(fs.readFileSync(new URL(`../data/${f}`, import.meta.url)));
 const table = cardTable(json('core-cards.json'));
@@ -140,6 +140,17 @@ g.lp[g.bot] = 1000; // Swap Frog (1000 ATK) is exactly lethal
 g.respond({ type: R.SELECT_IDLECMD, action: IDLE.TO_BP, index: null });
 g.respond({ type: R.SELECT_BATTLECMD, action: BATTLE.TO_EP, index: null });
 assert.ok(g.review.notes.some((n) => n.startsWith('Tödlicher Schaden lag auf dem Feld: 1000')));
+
+// Teacher: compare my plays with a saved combo that fits my opening hand
+g = start();
+summonSwapFrog(g);
+const combo = { name: 'Swap Start', hand: ['Swap Frog'], trace: traceOf(g.log) };
+assert.deepEqual(combo.trace, ['Normalbeschwörung Swap Frog', 'aktiviert Swap Frog']);
+assert.match(compareCombo(combo, ['Swap Frog', 'Scapegoat'], combo.trace), /vollständig gespielt \(2 Schritte\)/);
+assert.match(compareCombo(combo, ['Swap Frog'], ['Normalbeschwörung Swap Frog']), /Schritt 2 von 2: erwartet „aktiviert Swap Frog“, du hast nichts mehr gespielt/);
+assert.match(compareCombo(combo, ['Swap Frog'], ['setzt Scapegoat']), /Schritt 1 von 2: .*du hast „setzt Scapegoat“ gespielt/);
+assert.equal(compareCombo(combo, ['Scapegoat'], []), null, 'combo needs Swap Frog in the opening hand');
+assert.equal(compareCombo({ ...combo, hand: ['Swap Frog', 'Swap Frog'] }, ['Swap Frog'], []), null, 'needs two copies');
 
 // same seed + same answers = same duel (this is how undo works)
 const a = start(); const b = start();

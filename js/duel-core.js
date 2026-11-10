@@ -241,6 +241,27 @@ function teach(g, p, response, table) {
   }
 }
 
+/** My own plays in order, taken from the log: the comparable "steps" of a combo. */
+export const traceOf = (log) => log.filter((l) => /^Du: (Normalbeschwörung|Spezialbeschwörung|Flippbeschwörung|aktiviert|setzt) /.test(l))
+  .reverse().map((l) => l.slice(4));
+
+/**
+ * Teacher, part 2: compare my plays with a saved combo. line = { name, hand (cards it needs in the
+ * opening hand), trace }. Returns a note, or null when the combo does not fit my opening hand.
+ */
+export function compareCombo(line, openHand, myTrace) {
+  const left = [...openHand];
+  for (const card of line.hand) {
+    const at = left.indexOf(card);
+    if (at < 0) return null;
+    left.splice(at, 1);
+  }
+  const at = line.trace.findIndex((step, i) => myTrace[i] !== step);
+  if (at < 0) return `Combo „${line.name}“ vollständig gespielt (${line.trace.length} Schritte).`;
+  return `Combo „${line.name}“ war mit deiner Starthand möglich. Abweichung bei Schritt ${at + 1} von ${line.trace.length}: `
+    + `erwartet „${line.trace[at]}“, ${myTrace[at] ? `du hast „${myTrace[at]}“ gespielt` : 'du hast nichts mehr gespielt'}.`;
+}
+
 /** Zones the engine offers (field_mask bit set = blocked), own side first. */
 function places(m) {
   const out = [];

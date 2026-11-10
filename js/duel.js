@@ -1,7 +1,7 @@
 // Bot Duel: practice duel against a passive bot on the real rules engine (duel-core.js, ygopro-core).
 // The engine decides what is legal and asks the questions (activate? which cards? which position?);
 // this module only draws the board and turns clicks into engine responses, like Dueling Nexus.
-import { loadCore, cardTable, newGame, L, P, M, R, IDLE, BATTLE, PLACE, PHASE } from './duel-core.js';
+import { loadCore, cardTable, newGame, traceOf, compareCombo, L, P, M, R, IDLE, BATTLE, PLACE, PHASE } from './duel-core.js';
 import { loadDecks, loadCards, deckOptions } from './decks.js';
 import { ocgRaceString, ocgAttributeString } from '../vendor/ocgcore/index.js';
 import { esc } from './util.js';
@@ -46,7 +46,7 @@ export async function initDuel(root) {
 
   let myId; let g = null; let opts = null; let answers = [];
   let sel = null; let picked = new Set(); let status = '';
-  let duelDeck = null; let duelSetup = null; let replay = null; // replay: { name, all: recorded answers, marks: answer counts before each shown step } while a saved combo is shown
+  let duelDeck = null; let duelSetup = null; let openHand = []; let replay = null; // replay: { name, all: recorded answers, marks: answer counts before each shown step } while a saved combo is shown
   let setup = { opp: null, preset: 'backrow', bot: 'aktiv', first: '1', askAll: '', hand: [] };
   const readSetup = (form) => { const fd = new FormData(form); return { askAll: '', ...Object.fromEntries(fd), hand: fd.getAll('hand') }; };
 
@@ -124,6 +124,14 @@ export async function initDuel(root) {
       + `${info?.desc ? `<p class="dl-desc">${esc(info.desc)}</p>` : ''}${acts ? `<div class="dl-actions">${acts}</div>` : ''}`;
   }
 
+  /** Rule checks from the engine plus a comparison with my saved combos for this deck. */
+  function teacherNotes() {
+    const mine = traceOf(g.log);
+    const combos = replay ? [] : savedLines().filter((l) => l.deck === duelDeck && l.trace?.length)
+      .map((l) => compareCombo(l, openHand, mine)).filter(Boolean);
+    return [...g.review.notes, ...combos];
+  }
+
   function duelHtml() {
     const v = g.view(); const me = v[g.me]; const bot = v[g.bot];
     const actions = replay ? new Map() : actionsByCard(g.prompt);
@@ -146,8 +154,8 @@ export async function initDuel(root) {
     ? `<button type="button" class="secondary-button" data-op="undo" ${answers.length ? '' : 'disabled'}>Zurück</button><button type="button" class="primary-button" data-op="step" ${answers.length < replay.all.length ? '' : 'disabled'}>Weiter</button><button type="button" class="secondary-button" data-op="takeover">Ab hier selbst spielen</button>`
     : `${phases}<button type="button" class="secondary-button" data-op="undo" ${answers.length ? '' : 'disabled'}>Rückgängig</button><button type="button" class="secondary-button" data-op="save" ${answers.length ? '' : 'disabled'}>Combo speichern</button>`}</div>
         <p class="dl-status" role="status">${esc(status || g.error || waiting)}</p>
-        ${g.review ? `<section class="dl-teacher" aria-label="Lehrer"><h3>Lehrer zu Zug ${g.review.turn}</h3>${g.review.notes.length
-    ? `<ul>${g.review.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : '<p>Nichts auszusetzen.</p>'}</section>` : ''}
+        ${g.review ? `<section class="dl-teacher" aria-label="Lehrer"><h3>Lehrer zu Zug ${g.review.turn}</h3>${teacherNotes().length
+    ? `<ul>${teacherNotes().map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : '<p>Nichts auszusetzen.</p>'}</section>` : ''}
         <section class="dl-detail" aria-label="Kartendetails">${detail(actions)}</section>
         ${g.errors.length ? `<p class="dl-hint">Skriptfehler: ${esc(g.errors.at(-1))}</p>` : ''}
         <ol class="dl-log" aria-label="Verlauf">${g.log.slice(0, 30).map((l) => `<li>${esc(l)}</li>`).join('')}</ol>
@@ -277,6 +285,7 @@ export async function initDuel(root) {
     };
     duelDeck = deckId; duelSetup = chosen; answers = []; sel = null; status = '';
     try { g = newGame(opts); } catch (error) { g = null; status = error.message; }
+    openHand = g ? g.view()[g.me].hand.map((c) => name(c.code)) : [];
   }
 
   function start(form) {
@@ -290,7 +299,10 @@ export async function initDuel(root) {
   function saveLine() {
     const name = window.prompt('Name der Combo', `${decks[duelDeck].name}, ${answers.length} Schritte`)?.trim();
     if (!name) return;
-    saveSettings({ duelLines: [...savedLines(), { name: name.slice(0, 60), deck: duelDeck, steps: answers.length, data: toJson({ setup: duelSetup, seed: opts.seed, answers }) }] });
+    // For the teacher: the plays in order, and the opening-hand cards those plays use.
+    const trace = traceOf(g.log);
+    const hand = openHand.filter((card) => trace.some((step) => step.endsWith(card)));
+    saveSettings({ duelLines: [...savedLines(), { name: name.slice(0, 60), deck: duelDeck, steps: answers.length, hand, trace, data: toJson({ setup: duelSetup, seed: opts.seed, answers }) }] });
     status = 'Combo gespeichert. Du findest sie nach „Duell beenden“ im Startbildschirm.';
     render();
   }
