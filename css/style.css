@@ -330,6 +330,11 @@ details > .lex-sum:hover { background: var(--accent-soft); }
 .lex-used { grid-column: 2; color: var(--fg-muted); font-size: 0.85rem; }
 .lex-used:empty { display: none; }
 .table-wrap { position: relative; overflow-x: auto; margin-top: 12px; }
+.lex-rules { margin-bottom: 12px; padding: 0 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); }
+.lex-rules summary { min-height: var(--tap); display: flex; align-items: center; cursor: pointer; font-weight: 700; }
+.lex-rules[open] { padding-bottom: 12px; }
+.lex-rules .lex-table { min-width: 0; }
+.lex-rules .lex-table th, .lex-rules .lex-table td { padding: 8px 6px; vertical-align: top; hyphens: auto; }
 .lex-table { border-collapse: collapse; min-width: 420px; width: 100%; }
 .lex-table th, .lex-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
 .lex-table thead th { color: var(--fg-muted); font-size: 0.85rem; }

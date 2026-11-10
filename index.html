@@ -146,6 +146,38 @@
             <p class="eyebrow">Nachschlagen</p>
             <h2 id="h-lexicon">Karten &amp; Begriffe</h2>
           </header>
+          <details class="lex-rules">
+            <summary>Regelwissen: Damage Step in 7 Schritten</summary>
+            <p>In jedem Schritt dürfen andere Karten aktiviert werden. Das Bot Duel hält diese Reihenfolge automatisch ein.</p>
+            <div class="table-wrap"><table class="lex-table">
+              <thead><tr><th>Schritt</th><th>Was passiert</th><th>Typische Karten</th></tr></thead>
+              <tbody>
+                <tr><td>1. Start</td><td>Der Angriff tritt in den Damage Step ein. Ein verdecktes Ziel bleibt noch verdeckt.</td><td>Ally of Justice Catastor</td></tr>
+                <tr><td>2. Aufdecken</td><td>Das verdeckte Ziel wird aufgedeckt. Sein Flip-Effekt kommt erst in Schritt 6.</td><td>–</td></tr>
+                <tr><td>3. Vor der Rechnung</td><td>Vor der Schadensberechnung: letzter Zeitpunkt für Zauber und Fallen, die ATK oder DEF ändern.</td><td>Shrink, Forbidden Chalice, Enemy Controller</td></tr>
+                <tr><td>4. Rechnung</td><td>Schadensberechnung: ATK und DEF werden verglichen. Nur ausdrücklich erlaubte Monstereffekte.</td><td>Kalut, Honest, Injection Fairy Lily</td></tr>
+                <tr><td>5. Nach der Rechnung</td><td>Nach der Schadensberechnung: Schaden zählt. Im Kampf zerstörte Monster liegen noch auf dem Feld.</td><td>Don Zaloog</td></tr>
+                <tr><td>6. Effekte</td><td>Flip-Effekte der in Schritt 2 aufgedeckten Monster.</td><td>Ryko, Lightsworn Hunter</td></tr>
+                <tr><td>7. Ende</td><td>Zerstörte Monster gehen auf den Friedhof. Trigger durch Kampfzerstörung.</td><td>Mystic Tomato, Goyo Guardian, Gladiator-Beast-Tag-Out</td></tr>
+              </tbody>
+            </table></div>
+            <p><strong>Merke:</strong> Shrink spätestens in Schritt 3. Kalut und Honest in Schritt 4. Flip-Effekte erst in Schritt 6.</p>
+          </details>
+          <details class="lex-rules">
+            <summary>Regelwissen: Timing verpassen (Dupe Frog)</summary>
+            <p>Ein optionaler Effekt mit „When …: You can …“ geht nur, wenn sein Auslöser das <strong>letzte</strong> Ereignis war. „If … you can“ und Pflicht-Effekte verpassen ihr Timing so nicht.</p>
+            <div class="table-wrap"><table class="lex-table">
+              <thead><tr><th>Dupe Frog wird …</th><th>Sucheffekt?</th><th>Warum</th></tr></thead>
+              <tbody>
+                <tr><td>im Kampf zerstört</td><td>Ja</td><td>Das Senden auf den Friedhof ist das letzte Ereignis.</td></tr>
+                <tr><td>von Torrential Tribute zerstört (letztes Kettenglied)</td><td>Ja</td><td>Die Zerstörung ist das letzte Ereignis.</td></tr>
+                <tr><td>für Substitoad tributiert</td><td>Nein</td><td>Tribut ist nur Kosten. Danach beschwört Substitoad noch einen Frog.</td></tr>
+                <tr><td>als Synchromaterial benutzt</td><td>Nein</td><td>Die Synchrobeschwörung ist das letzte Ereignis.</td></tr>
+                <tr><td>von Ryko zerstört</td><td>Nein</td><td>Ryko millt danach noch 3 Karten.</td></tr>
+              </tbody>
+            </table></div>
+            <p><strong>Faustregel:</strong> War der Auslöser auch das letzte Ereignis? Wenn nein, ist das Timing verpasst.</p>
+          </details>
           <label class="visually-hidden" for="lexiconSearch">Karte suchen</label>
           <input id="lexiconSearch" class="search-input" type="search" placeholder="Karte suchen, z. B. Des Frog" autocomplete="off" />
           <div id="lexiconBody"></div>

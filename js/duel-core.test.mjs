@@ -96,6 +96,31 @@ assert.ok(g.log.includes('Bot: Spezialbeschwörung Blackwing - Bora the Spear'))
 assert.ok(g.log.includes('Bot: Spezialbeschwörung Blackwing Armed Wing'), 'bot Synchro Summons');
 assert.deepEqual(g.errors, []);
 
+// Missing the timing: Dupe Frog ("When ... you can") tributed as Substitoad's cost gets no search,
+// because the Special Summon is the last thing to happen. Destroyed by battle, it does trigger.
+const pickIdle = (list, action, card) => ({ type: R.SELECT_IDLECMD, action, index: g.prompt[list].findIndex((c) => name(c) === card) });
+g = start({ hand: [id.get('Dupe Frog'), id.get('Substitoad')] });
+g.respond(pickIdle('summons', IDLE.SELECT_SUMMON, 'Dupe Frog'));
+g.respond({ type: R.SELECT_IDLECMD, action: IDLE.TO_EP, index: null });
+g.respond(pickIdle('summons', IDLE.SELECT_SUMMON, 'Substitoad'));
+if (g.prompt.type === M.SELECT_CHAIN) g.respond({ type: R.SELECT_CHAIN, index: null }); // 2010 ignition priority window
+g.respond(pickIdle('activates', IDLE.SELECT_ACTIVATE, 'Substitoad'));
+const asked = [];
+for (let i = 0; i < 8 && g.prompt.type !== M.SELECT_IDLECMD; i += 1) {
+  const p = g.prompt; asked.push(p.type);
+  g.respond(p.type === M.SELECT_UNSELECT_CARD ? { type: R.SELECT_UNSELECT_CARD, index: p.select_cards.length ? p.select_cards.findIndex((c) => name(c) === 'Dupe Frog') : null }
+    : p.type === M.SELECT_CARD ? { type: R.SELECT_CARD, indicies: [0] } : { type: R.SELECT_POSITION, position: 1 });
+}
+assert.ok(g.view()[g.me].gy.some((c) => name(c) === 'Dupe Frog'));
+assert.ok(!asked.includes(M.SELECT_EFFECTYN), 'tributed for cost: timing missed, no search offered');
+
+g = start({ botPlays: true, hand: [id.get('Dupe Frog')], preset: { monsters: [id.get('Cyber Dragon')] } });
+g.respond(pickIdle('summons', IDLE.SELECT_SUMMON, 'Dupe Frog'));
+g.respond({ type: R.SELECT_IDLECMD, action: IDLE.TO_EP, index: null });
+while (g.prompt?.type === M.SELECT_CHAIN) g.respond({ type: R.SELECT_CHAIN, index: null });
+assert.equal(g.prompt.type, M.SELECT_EFFECTYN, 'destroyed by battle: search is offered');
+assert.equal(table.name(g.prompt.code), 'Dupe Frog');
+
 // same seed + same answers = same duel (this is how undo works)
 const a = start(); const b = start();
 for (const x of [a, b]) x.respond({ type: R.SELECT_IDLECMD, action: IDLE.TO_EP, index: null });
