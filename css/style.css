@@ -408,7 +408,7 @@ details > .lex-sum:hover { background: var(--accent-soft); }
 .dl-detail { padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
 .dl-detail h3 { margin: 0 0 4px; font-size: 1rem; }
 .dl-detail-head { display: flex; gap: 12px; }
-.dl-detail-img { flex: none; border-radius: 4px; }
+.dl-detail-head img { flex: none; width: 84px; height: auto; align-self: flex-start; border-radius: 4px; }
 .dl-desc { max-height: 9em; overflow-y: auto; margin: 8px 0; font-size: 0.85rem; white-space: pre-line; }
 .dl-log { margin: 0; padding-left: 18px; max-height: 12em; overflow-y: auto; color: var(--fg-muted); font-size: 0.8rem; }
 .dl-win { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 12px; padding: 12px 16px; border-radius: var(--radius-sm); background: var(--success-soft); border: 1px solid var(--success); font-weight: 700; }
