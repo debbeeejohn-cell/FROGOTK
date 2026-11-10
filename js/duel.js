@@ -41,7 +41,8 @@ export async function initDuel(root) {
 
   let myId; let g = null; let opts = null; let answers = [];
   let sel = null; let picked = new Set(); let status = '';
-  let setup = { opp: null, preset: 'backrow', first: '1', askAll: '' };
+  let setup = { opp: null, preset: 'backrow', first: '1', askAll: '', hand: [] };
+  const readSetup = (form) => { const fd = new FormData(form); return { askAll: '', ...Object.fromEntries(fd), hand: fd.getAll('hand') }; };
 
   const name = (code) => table.name(code);
   const img = (code) => (byId.get(code)?.img ? `<img src="assets/cards-small/${Number(code)}.jpg" alt="" loading="lazy" />` : '');
@@ -75,7 +76,7 @@ export async function initDuel(root) {
   // ---------- board ----------
   function cardBtn(c, p, loc, i, actions) {
     const k = `${p}:${loc}:${i}`;
-    const down = c.position & P.FACEDOWN;
+    const down = loc !== L.HAND && c.position & P.FACEDOWN; // hand cards are "face-down" for the engine
     const hidden = p === g.bot && (loc === L.HAND || down);
     const cls = ['dl-card', down && 'down', c.position & P.DEFENSE && loc === L.MZONE && 'def', down && !hidden && 'peek',
       actions.has(k) && 'can', sel === k && 'sel'].filter(Boolean).join(' ');
@@ -217,11 +218,15 @@ export async function initDuel(root) {
     const options = deckOptions(decks);
     const opp = setup.opp ?? options.find((o) => o.id !== myId)?.id ?? options[0].id;
     const sOpt = (list, cur) => list.map(([id, label]) => `<option value="${esc(id)}"${id === cur ? ' selected' : ''}>${esc(label)}</option>`).join('');
+    const mine = (decks[myId]?.main ?? []).map((c) => c.card).sort();
     return `<form class="dl-setup" data-setup>
       <p>Dein Deck: <strong>${esc(decks[myId]?.name ?? '')}</strong> <span class="dl-meta">(oben über „Deck“ wählbar)</span></p>
       <label>Gegner-Deck <select name="opp">${sOpt(options.map((o) => [o.id, o.name]), opp)}</select></label>
       <label>Board des Bots <select name="preset">${sOpt(Object.entries(presets).map(([id, p]) => [id, p.name]), setup.preset)}</select></label>
       <label>Reihenfolge <select name="first">${sOpt([['1', 'Ich beginne'], ['0', 'Der Bot beginnt']], setup.first)}</select></label>
+      <fieldset class="dl-handpick"><legend>Starthand (optional)</legend>
+        ${[0, 1, 2, 3, 4].map((i) => `<select name="hand" aria-label="Handkarte ${i + 1}">${sOpt([['', 'Zufällig'], ...mine.map((n) => [n, n])], mine.includes(setup.hand[i]) ? setup.hand[i] : '')}</select>`).join('')}
+      </fieldset>
       <label class="dl-check"><input type="checkbox" name="askAll" value="1"${setup.askAll ? ' checked' : ''} /> Bei jeder Gelegenheit nach Ketten fragen</label>
       <button class="primary-button" type="submit">Duell starten</button>
       ${status ? `<p class="dl-status">${esc(status)}</p>` : ''}
@@ -246,12 +251,15 @@ export async function initDuel(root) {
   }
 
   function start(form) {
-    setup = { askAll: '', ...Object.fromEntries(new FormData(form)) };
+    setup = readSetup(form);
     const preset = presets[setup.preset] ?? {};
+    // Fixed opening hand: never more copies than the deck has; the rest is drawn at random.
+    const left = new Map(decks[myId].main.map((c) => [c.card, c.count]));
+    const hand = setup.hand.filter((n) => left.get(n) > 0 && left.set(n, left.get(n) - 1));
     opts = {
       lib, table, scripts, me: deckCodes(decks[myId]), bot: deckCodes(decks[setup.opp] ?? decks[myId]),
       preset: { monsters: codes(preset.monsters || []), spellTraps: codes(preset.spellTraps || []) },
-      second: setup.first === '0', askAllChains: !!setup.askAll
+      hand: codes(hand), second: setup.first === '0', askAllChains: !!setup.askAll
     };
     answers = []; sel = null; status = '';
     try { g = newGame(opts); } catch (error) { g = null; status = error.message; }
@@ -317,7 +325,7 @@ export async function initDuel(root) {
   });
 
   root.addEventListener('input', (ev) => {
-    if (ev.target.closest('[data-setup]')) setup = { askAll: '', ...Object.fromEntries(new FormData(ev.target.form)) };
+    if (ev.target.closest('[data-setup]')) setup = readSetup(ev.target.form);
   });
   root.addEventListener('submit', (ev) => {
     if (!ev.target.matches('[data-setup]')) return;

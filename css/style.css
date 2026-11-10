@@ -380,6 +380,8 @@ details > .lex-sum:hover { background: var(--accent-soft); }
 .dl-card.down.peek { background: #223329; }
 .dl-stat { position: absolute; left: 0; right: 0; bottom: 0; padding: 1px 0; background: rgba(0, 0, 0, 0.75); color: #fff; font-size: 0.6rem; text-align: center; }
 .dl-pile.can { border: 2px solid #4ade80; }
+.dl-handpick { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 0; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.dl-handpick legend { padding: 0 6px; font-weight: 600; }
 .dl-check { display: flex !important; align-items: center; gap: 8px; font-weight: 500 !important; min-height: var(--tap); }
 .dl-check input { width: 20px; height: 20px; }
 .dl-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; max-height: 50vh; overflow-y: auto; margin: 8px 0 12px; }
