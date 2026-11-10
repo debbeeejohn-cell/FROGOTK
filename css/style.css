@@ -387,6 +387,12 @@ details > .lex-sum:hover { background: var(--accent-soft); }
 .dl-pile.can { border: 2px solid #4ade80; }
 .dl-handpick { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 0; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
 .dl-handpick legend { padding: 0 6px; font-weight: 600; }
+.dl-lines h3 { margin: 0 0 8px; font-size: 1rem; }
+.dl-lines ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.dl-lines li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); }
+.dl-lines li span { flex: 1 1 160px; display: grid; min-width: 0; overflow-wrap: anywhere; }
+.dl-lines small { color: var(--fg-muted); }
+.dl-replay { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--accent-soft); }
 .dl-check { display: flex !important; align-items: center; gap: 8px; font-weight: 500 !important; min-height: var(--tap); }
 .dl-check input { width: 20px; height: 20px; }
 .dl-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; max-height: 50vh; overflow-y: auto; margin: 8px 0 12px; }

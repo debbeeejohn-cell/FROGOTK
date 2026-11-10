@@ -5,6 +5,7 @@ import { loadCore, cardTable, newGame, L, P, M, R, IDLE, BATTLE, PLACE, PHASE } 
 import { loadDecks, loadCards, deckOptions } from './decks.js';
 import { ocgRaceString, ocgAttributeString } from '../vendor/ocgcore/index.js';
 import { esc } from './util.js';
+import { getStoredSettings, saveSettings } from './store.js';
 
 const getJson = (file) => fetch(`./data/${file}`).then((r) => {
   if (!r.ok) throw new Error(`${file}: HTTP ${r.status}`);
@@ -13,6 +14,10 @@ const getJson = (file) => fetch(`./data/${file}`).then((r) => {
 const POSITION = { 1: 'Offene Angriffsposition', 2: 'Verdeckte Angriffsposition', 4: 'Offene Verteidigungsposition', 8: 'Verdeckte Verteidigungsposition' };
 const PROMPT_TITLE = { [M.SELECT_CARD]: 'Karten wählen', [M.SELECT_TRIBUTE]: 'Als Tribut wählen', [M.SELECT_SUM]: 'Karten wählen', [M.SELECT_UNSELECT_CARD]: 'Karten wählen' };
 const key = (c) => `${c.controller}:${c.location}:${c.sequence}`;
+// Saved combos keep BigInt values (seed, declared Types) as { $big } so they survive JSON.
+const toJson = (v) => JSON.stringify(v, (k, x) => (typeof x === 'bigint' ? { $big: String(x) } : x));
+const fromJson = (text) => JSON.parse(text, (k, x) => (x && x.$big !== undefined ? BigInt(x.$big) : x));
+const savedLines = () => getStoredSettings().duelLines ?? [];
 const bitList = (mask) => { const out = []; for (let b = 1n; b <= BigInt(mask); b <<= 1n) if (BigInt(mask) & b) out.push(b); return out; };
 
 export async function initDuel(root) {
@@ -41,6 +46,7 @@ export async function initDuel(root) {
 
   let myId; let g = null; let opts = null; let answers = [];
   let sel = null; let picked = new Set(); let status = '';
+  let duelDeck = null; let duelSetup = null; let replay = null; // replay: { name, all: recorded answers, marks: answer counts before each shown step } while a saved combo is shown
   let setup = { opp: null, preset: 'backrow', bot: 'aktiv', first: '1', askAll: '', hand: [] };
   const readSetup = (form) => { const fd = new FormData(form); return { askAll: '', ...Object.fromEntries(fd), hand: fd.getAll('hand') }; };
 
@@ -120,9 +126,9 @@ export async function initDuel(root) {
 
   function duelHtml() {
     const v = g.view(); const me = v[g.me]; const bot = v[g.bot];
-    const actions = actionsByCard(g.prompt);
+    const actions = replay ? new Map() : actionsByCard(g.prompt);
     const lp = (p, label) => `<div class="dl-lp ${p === g.me ? 'me' : 'bot'}"><div class="dl-lp-top"><strong>${label}</strong><span>${g.lp[p]}</span></div><div class="dl-bar"><i style="width:${Math.min(100, g.lp[p] / 80)}%"></i></div></div>`;
-    const phases = phaseButtons(g.prompt).map((b, i) => `<button type="button" class="${b.primary ? 'primary-button' : 'secondary-button'}" data-phase="${i}">${b.label}</button>`).join('');
+    const phases = (replay ? [] : phaseButtons(g.prompt)).map((b, i) => `<button type="button" class="${b.primary ? 'primary-button' : 'secondary-button'}" data-phase="${i}">${b.label}</button>`).join('');
     const banner = g.winner !== null ? `<div class="dl-win" role="status">${g.winner === g.me ? 'Du gewinnst!' : g.winner === g.bot ? 'Der Bot gewinnt.' : 'Unentschieden.'} <button type="button" class="primary-button" data-op="new">Neues Duell</button></div>` : '';
     const waiting = g.winner === null && !g.prompt ? 'Engine wartet …' : '';
     return `${banner}<div class="dl-wrap">
@@ -135,7 +141,10 @@ export async function initDuel(root) {
       </div>
       <aside class="dl-side">
         <div class="dl-lps">${lp(g.me, 'Du')}${lp(g.bot, 'Bot')}</div>
-        <div class="dl-bar-btns">${phases}<button type="button" class="secondary-button" data-op="undo" ${answers.length ? '' : 'disabled'}>Rückgängig</button></div>
+        ${replay ? `<div class="dl-replay"><strong>Combo „${esc(replay.name)}“</strong><span>Schritt ${answers.length} von ${replay.all.length}</span></div>` : ''}
+        <div class="dl-bar-btns">${replay
+    ? `<button type="button" class="secondary-button" data-op="undo" ${answers.length ? '' : 'disabled'}>Zurück</button><button type="button" class="primary-button" data-op="step" ${answers.length < replay.all.length ? '' : 'disabled'}>Weiter</button><button type="button" class="secondary-button" data-op="takeover">Ab hier selbst spielen</button>`
+    : `${phases}<button type="button" class="secondary-button" data-op="undo" ${answers.length ? '' : 'disabled'}>Rückgängig</button><button type="button" class="secondary-button" data-op="save" ${answers.length ? '' : 'disabled'}>Combo speichern</button>`}</div>
         <p class="dl-status" role="status">${esc(status || g.error || waiting)}</p>
         <section class="dl-detail" aria-label="Kartendetails">${detail(actions)}</section>
         ${g.errors.length ? `<p class="dl-hint">Skriptfehler: ${esc(g.errors.at(-1))}</p>` : ''}
@@ -208,7 +217,7 @@ export async function initDuel(root) {
 
   function renderPrompt() {
     const p = g?.prompt;
-    if (!p || p.type === M.SELECT_IDLECMD || p.type === M.SELECT_BATTLECMD) { if (promptDlg.open) promptDlg.close(); return; }
+    if (replay || !p || p.type === M.SELECT_IDLECMD || p.type === M.SELECT_BATTLECMD) { if (promptDlg.open) promptDlg.close(); return; }
     const [title, body, buttons] = promptBody(p);
     promptDlg.innerHTML = `<h3 id="dlPromptTitle">${esc(title)}</h3>${body}${g.error ? `<p class="dl-status">${esc(g.error)}</p>` : ''}<div class="dl-actions">${buttons}</div>`;
     if (!promptDlg.open) promptDlg.showModal();
@@ -231,6 +240,8 @@ export async function initDuel(root) {
       <label class="dl-check"><input type="checkbox" name="askAll" value="1"${setup.askAll ? ' checked' : ''} /> Bei jeder Gelegenheit nach Ketten fragen</label>
       <button class="primary-button" type="submit">Duell starten</button>
       ${status ? `<p class="dl-status">${esc(status)}</p>` : ''}
+      ${savedLines().length ? `<section class="dl-lines" aria-label="Gespeicherte Combos"><h3>Gespeicherte Combos</h3><ul>${savedLines().map((l, i) => `<li><span><strong>${esc(l.name)}</strong><small>${esc(decks[l.deck]?.name ?? l.deck)} · ${Number(l.steps)} Schritte</small></span>
+        <button type="button" class="secondary-button" data-line-play="${i}">Abspielen</button><button type="button" class="ghost-button" data-line-del="${i}" aria-label="${esc(l.name)} löschen">Löschen</button></li>`).join('')}</ul></section>` : ''}
       <p class="dl-hint">Regeln wie 2010 (Master Rule 1): Der Startspieler zieht, greift im ersten Zug aber nicht an. Effekte laufen über die EDOPro-Engine mit den offiziellen Kartenskripten. Der aktive Bot spielt nach einfachen Faustregeln (stärkstes Monster bis Stufe 4, Fallen setzen, Angriff mit der kleinsten ATK zuerst) und aktiviert Fallen und Effekte, sobald die Engine sie anbietet.</p>
     </form>`;
   }
@@ -251,25 +262,66 @@ export async function initDuel(root) {
     render();
   }
 
+  function begin(deckId, chosen, seed) {
+    const deck = decks[deckId];
+    const preset = presets[chosen.preset] ?? {};
+    // Fixed opening hand: never more copies than the deck has; the rest is drawn at random.
+    const left = new Map(deck.main.map((c) => [c.card, c.count]));
+    const hand = (chosen.hand ?? []).filter((n) => left.get(n) > 0 && left.set(n, left.get(n) - 1));
+    opts = {
+      lib, table, scripts, me: deckCodes(deck), bot: deckCodes(decks[chosen.opp] ?? deck),
+      preset: { monsters: codes(preset.monsters || []), spellTraps: codes(preset.spellTraps || []) },
+      hand: codes(hand), second: chosen.first === '0', askAllChains: !!chosen.askAll, botPlays: chosen.bot !== 'passiv', seed
+    };
+    duelDeck = deckId; duelSetup = chosen; answers = []; sel = null; status = '';
+    try { g = newGame(opts); } catch (error) { g = null; status = error.message; }
+  }
+
   function start(form) {
     setup = readSetup(form);
-    const preset = presets[setup.preset] ?? {};
-    // Fixed opening hand: never more copies than the deck has; the rest is drawn at random.
-    const left = new Map(decks[myId].main.map((c) => [c.card, c.count]));
-    const hand = setup.hand.filter((n) => left.get(n) > 0 && left.set(n, left.get(n) - 1));
-    opts = {
-      lib, table, scripts, me: deckCodes(decks[myId]), bot: deckCodes(decks[setup.opp] ?? decks[myId]),
-      preset: { monsters: codes(preset.monsters || []), spellTraps: codes(preset.spellTraps || []) },
-      hand: codes(hand), second: setup.first === '0', askAllChains: !!setup.askAll, botPlays: setup.bot !== 'passiv'
-    };
-    answers = []; sel = null; status = '';
-    try { g = newGame(opts); } catch (error) { g = null; status = error.message; }
+    replay = null;
+    begin(myId, setup);
+    render();
+  }
+
+  // ---------- saved combos: a duel is fully described by its setup, seed and answers ----------
+  function saveLine() {
+    const name = window.prompt('Name der Combo', `${decks[duelDeck].name}, ${answers.length} Schritte`)?.trim();
+    if (!name) return;
+    saveSettings({ duelLines: [...savedLines(), { name: name.slice(0, 60), deck: duelDeck, steps: answers.length, data: toJson({ setup: duelSetup, seed: opts.seed, answers }) }] });
+    status = 'Combo gespeichert. Du findest sie nach „Duell beenden“ im Startbildschirm.';
+    render();
+  }
+
+  function playLine(index) {
+    const line = savedLines()[index];
+    if (!line || !decks[line.deck]) { status = 'Das Deck dieser Combo gibt es nicht mehr.'; render(); return; }
+    const data = fromJson(line.data);
+    begin(line.deck, data.setup, data.seed);
+    replay = g ? { name: line.name, all: data.answers, marks: [] } : null;
+    render();
+  }
+
+  /** One visible step: answers until the log changes, so silent clicks (zone, pass) do not need a tap each. */
+  function replayStep() {
+    const before = g.log[0];
+    replay.marks.push(answers.length);
+    try {
+      do { const a = replay.all[answers.length]; answers.push(a); g.respond(a); }
+      while (!g.error && g.log[0] === before && answers.length < replay.all.length);
+      if (g.error) throw new Error('ungültige Antwort');
+    } catch {
+      status = 'Die Aufzeichnung passt nicht mehr zum Duell (Deck oder Kartendaten geändert). Ab hier selbst spielen.';
+      replay = null;
+    }
+    sel = null;
     render();
   }
 
   // Undo = replay the same duel (same seed) with every answer except the last one.
   function undo() {
-    answers.pop();
+    if (replay) answers.length = replay.marks.pop() ?? 0; // back one visible step
+    else answers.pop();
     g.close();
     g = newGame(opts);
     for (const a of answers) g.respond(a);
@@ -291,7 +343,12 @@ export async function initDuel(root) {
     const el = ev.target.closest('button');
     if (!el || !root.contains(el) || el.disabled) return;
     const d = el.dataset; const p = g?.prompt;
-    if (d.op === 'new') { g?.close(); g = null; render(); return; }
+    if (d.op === 'new') { g?.close(); g = null; replay = null; status = ''; render(); return; }
+    if (d.op === 'save') { saveLine(); return; }
+    if (d.op === 'step') { replayStep(); return; }
+    if (d.op === 'takeover') { replay = null; render(); return; }
+    if (d.linePlay) { playLine(Number(d.linePlay)); return; }
+    if (d.lineDel) { saveSettings({ duelLines: savedLines().filter((_, i) => i !== Number(d.lineDel)) }); render(); return; }
     if (d.op === 'undo') { undo(); return; }
     if (d.pile) { const [pl, field] = d.pile.split(':'); openPile(Number(pl), field); return; }
     if (d.key) { if (pileDlg.open) pileDlg.close(); sel = sel === d.key ? null : d.key; render(); return; }
