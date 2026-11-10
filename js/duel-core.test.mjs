@@ -121,6 +121,26 @@ while (g.prompt?.type === M.SELECT_CHAIN) g.respond({ type: R.SELECT_CHAIN, inde
 assert.equal(g.prompt.type, M.SELECT_EFFECTYN, 'destroyed by battle: search is offered');
 assert.equal(table.name(g.prompt.code), 'Dupe Frog');
 
+// Teacher: reviews my turn when it ends
+const endTurn = { type: R.SELECT_IDLECMD, action: IDLE.TO_EP, index: null };
+g = start();
+g.respond(endTurn); // turn 1: Swap Frog in hand, never summoned
+assert.equal(g.review.turn, 1);
+assert.ok(g.review.notes.some((n) => n.startsWith('Normalbeschwörung nicht genutzt') && n.includes('Swap Frog')));
+g = start();
+summonSwapFrog(g);
+g.respond(endTurn);
+assert.deepEqual(g.review.notes, [], 'nothing to criticise: summoned, and no attack is allowed on turn 1');
+g.respond(endTurn); // turn 3: Swap Frog could attack directly
+assert.ok(g.review.notes.some((n) => n.startsWith('Battle Phase übersprungen') && n.includes('Swap Frog')));
+g = start();
+summonSwapFrog(g);
+g.respond(endTurn);
+g.lp[g.bot] = 1000; // Swap Frog (1000 ATK) is exactly lethal
+g.respond({ type: R.SELECT_IDLECMD, action: IDLE.TO_BP, index: null });
+g.respond({ type: R.SELECT_BATTLECMD, action: BATTLE.TO_EP, index: null });
+assert.ok(g.review.notes.some((n) => n.startsWith('Tödlicher Schaden lag auf dem Feld: 1000')));
+
 // same seed + same answers = same duel (this is how undo works)
 const a = start(); const b = start();
 for (const x of [a, b]) x.respond({ type: R.SELECT_IDLECMD, action: IDLE.TO_EP, index: null });

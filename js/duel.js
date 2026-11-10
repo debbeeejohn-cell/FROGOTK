@@ -146,6 +146,8 @@ export async function initDuel(root) {
     ? `<button type="button" class="secondary-button" data-op="undo" ${answers.length ? '' : 'disabled'}>Zurück</button><button type="button" class="primary-button" data-op="step" ${answers.length < replay.all.length ? '' : 'disabled'}>Weiter</button><button type="button" class="secondary-button" data-op="takeover">Ab hier selbst spielen</button>`
     : `${phases}<button type="button" class="secondary-button" data-op="undo" ${answers.length ? '' : 'disabled'}>Rückgängig</button><button type="button" class="secondary-button" data-op="save" ${answers.length ? '' : 'disabled'}>Combo speichern</button>`}</div>
         <p class="dl-status" role="status">${esc(status || g.error || waiting)}</p>
+        ${g.review ? `<section class="dl-teacher" aria-label="Lehrer"><h3>Lehrer zu Zug ${g.review.turn}</h3>${g.review.notes.length
+    ? `<ul>${g.review.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : '<p>Nichts auszusetzen.</p>'}</section>` : ''}
         <section class="dl-detail" aria-label="Kartendetails">${detail(actions)}</section>
         ${g.errors.length ? `<p class="dl-hint">Skriptfehler: ${esc(g.errors.at(-1))}</p>` : ''}
         <ol class="dl-log" aria-label="Verlauf">${g.log.slice(0, 30).map((l) => `<li>${esc(l)}</li>`).join('')}</ol>

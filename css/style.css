@@ -392,6 +392,10 @@ details > .lex-sum:hover { background: var(--accent-soft); }
 .dl-lines li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); }
 .dl-lines li span { flex: 1 1 160px; display: grid; min-width: 0; overflow-wrap: anywhere; }
 .dl-lines small { color: var(--fg-muted); }
+.dl-teacher { padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); }
+.dl-teacher h3 { margin: 0 0 6px; font-size: 1rem; }
+.dl-teacher ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.dl-teacher p { margin: 0; color: var(--success); font-weight: 600; }
 .dl-replay { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--accent-soft); }
 .dl-check { display: flex !important; align-items: center; gap: 8px; font-weight: 500 !important; min-height: var(--tap); }
 .dl-check input { width: 20px; height: 20px; }

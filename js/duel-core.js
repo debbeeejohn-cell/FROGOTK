@@ -180,6 +180,7 @@ export function newGame(opts) {
   }
 
   g.respond = (response) => {
+    teach(g, g.prompt, response, table);
     g.prompt = null; g.error = ''; g.hint = ''; retries = 0; event = false;
     lib.duelSetResponse(h, response);
     run();
@@ -202,6 +203,42 @@ export function newGame(opts) {
   lib.startDuel(h);
   run();
   return g;
+}
+
+/**
+ * Teacher: when I leave the Battle Phase or end my turn, compare what the engine still offered with
+ * what I did. Findings collect in g.pending and are published as g.review when the turn ends.
+ * ponytail: fixed rules of thumb, no search for better lines; add checks here as they come up.
+ */
+function teach(g, p, response, table) {
+  if (!p || p.player !== g.me) return;
+  const leavesBattle = p.type === M.SELECT_BATTLECMD && (response.action === BATTLE.TO_M2 || response.action === BATTLE.TO_EP);
+  const endsTurn = (p.type === M.SELECT_IDLECMD && response.action === IDLE.TO_EP) || (p.type === M.SELECT_BATTLECMD && response.action === BATTLE.TO_EP);
+  if (!leavesBattle && !endsTurn) return;
+  const notes = (g.pending ??= []);
+  const mine = g.view()[g.me]; const foe = g.view()[g.bot];
+  const names = (list) => [...new Set(list.map((c) => table.name(c.code)))].slice(0, 3).join(', ');
+  if (leavesBattle && p.attacks.length) {
+    const direct = p.attacks.filter((c) => c.can_direct).reduce((sum, c) => sum + (mine.mz[c.sequence]?.attack ?? 0), 0);
+    notes.push(direct >= g.lp[g.bot] ? `Tödlicher Schaden lag auf dem Feld: ${direct} direkter Schaden gegen ${g.lp[g.bot]} LP.`
+      : `Noch nicht angegriffen: ${names(p.attacks)}.`);
+  }
+  if (p.type === M.SELECT_IDLECMD) {
+    const attackers = mine.mz.filter((c) => c && c.position === P.FACEUP_ATTACK);
+    if (p.to_bp && attackers.length) {
+      const total = attackers.reduce((sum, c) => sum + c.attack, 0);
+      notes.push(!foe.mz.some(Boolean) && total >= g.lp[g.bot] ? `Tödlicher Schaden lag auf dem Feld: ${total} direkter Schaden gegen ${g.lp[g.bot]} LP, aber keine Battle Phase.`
+        : `Battle Phase übersprungen, obwohl ${names(attackers)} angreifen konnte.`);
+    }
+    if (p.summons.length) notes.push(`Normalbeschwörung nicht genutzt (möglich: ${names(p.summons)}).`);
+  }
+  if (endsTurn) {
+    if (mine.gy.some((c) => table.name(c.code) === 'Treeborn Frog') && (mine.st.some(Boolean) || mine.field)) {
+      notes.push('Treeborn Frog liegt im Friedhof, aber du kontrollierst Zauber-/Fallenkarten: Er kommt in der Standby Phase nicht zurück.');
+    }
+    g.review = { turn: g.turn, notes: g.pending };
+    g.pending = [];
+  }
 }
 
 /** Zones the engine offers (field_mask bit set = blocked), own side first. */
