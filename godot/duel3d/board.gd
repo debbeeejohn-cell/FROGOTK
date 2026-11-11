@@ -342,6 +342,28 @@ func set_texture(card_name: String, tex: Texture2D) -> void:
 			_show_top(pile)
 
 
+# Fliegende Karte für Bewegungen aus Deck, Friedhof, Verbannt, Extra Deck: Kartenbild, bei unbekannter Karte der Rücken.
+# tint färbt sie leicht (Ziel Friedhof, Verbannt). Der Aufrufer gibt sie wieder frei.
+func flying_card(card_name: String, pos: Vector3, tint := Color.BLACK) -> MeshInstance3D:
+	var mesh := PlaneMesh.new()
+	mesh.size = Vector2(CardView.SIZE.x, CardView.SIZE.z)
+	var node := MeshInstance3D.new()
+	node.mesh = mesh
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var tex = cards.get(card_name, {}).get("tex")
+	if tex != null:
+		material.albedo_texture = tex
+	else:
+		material.albedo_color = CardView.BACK
+	if tint != Color.BLACK:
+		material.albedo_color = material.albedo_color.lerp(tint, 0.35)
+	node.material_override = material
+	node.position = pos + Vector3(0.0, 0.5, 0.0)
+	add_child(node)
+	return node
+
+
 # Loser Kartenrücken für Flug-Animationen (Ziehen). Der Aufrufer gibt ihn wieder frei.
 func card_back(pos: Vector3) -> MeshInstance3D:
 	return _box(CardView.SIZE, pos, CardView.BACK)

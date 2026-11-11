@@ -1,6 +1,7 @@
 # Godot-Duell: was für den Anime-Look noch fehlt
 
-Stand: Feld, Hand, LP-Ringe, Schadenszahlen, Einblendung für Zauber und Fallen, Kartenbilder, Friedhof-Ansicht,
+Stand: jede Kartenbewegung fliegt (Hand, Deck, Friedhof, Verbannt, Extra), Gewonnen/Verloren mit „Neues Duell“,
+beschworene Karte oben rechts, Tempo-Taste T. Feld, Hand, LP-Ringe, Schadenszahlen, Einblendung für Zauber und Fallen, Kartenbilder, Friedhof-Ansicht,
 Karten-Detail und Zieh-Animation sind gebaut. Vorbild sind die Szenen aus Yu-Gi-Oh! 5D's (Monster schwebt groß
 über dem Feld, runde ATK/DEF-Plakette, Sternenhimmel bei der Beschwörung, Duellant mit Duel Disk).
 

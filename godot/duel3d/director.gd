@@ -8,6 +8,7 @@ const SummonShow = preload("res://duel3d/summon_show.gd")
 
 signal finished
 signal lp_changed(side: String, lp: int)
+signal card_shown(card_name: String)   # eine Karte wurde offen beschworen: die Oberfläche zeigt sie ganz
 
 const ZOOM_DIST := 9.0
 
@@ -18,6 +19,7 @@ var summon_show: SummonShow   # Beschwörungs-Einblendung (gesetzt von duel3d.gd
 var summon_show_enabled := true
 var trauma := 0.0   # Kamera-Zittern, 0..1
 var shake_enabled := true
+var speed := 1.0   # Faktor auf Pausen und Flüge: 1 normal, 0,5 schnell, 0 aus (Taste T, siehe duel3d.gd)
 var _t := 0.0
 var _home: Transform3D
 var _stop_id := 0
@@ -73,6 +75,7 @@ func _summon(e: Dictionary) -> void:
 	if summon_show != null and summon_show_enabled and not e.get("down", false) and facts.get("frame", "") != "token":
 		await summon_show.show_monster(e.name, facts, int(e.atk), int(e.def), e.get("pos", "atk") == "def")
 	view.flash()
+	card_shown.emit(str(e.name))
 	trauma = minf(trauma + 0.15, 1.0)
 	await _pause(0.35)
 
@@ -131,24 +134,42 @@ func _lp_change(e: Dictionary, sign: String, color: Color, shake: bool) -> void:
 
 
 # Bewegung zwischen Zonen: Karte fliegt vom alten zum neuen Platz.
+const TINT := {"gy": Color(0.45, 0.55, 0.75), "banished": Color(0.65, 0.35, 0.85)}
+
+
+# Jede Kartenbewegung fliegt in einem Bogen vom alten zum neuen Platz. Eine echte Ansicht (Hand, Feld) wird genommen,
+# sonst entsteht eine fliegende Karte mit Bild (oder Rücken, wenn der Name verdeckt ist).
 func _move(e: Dictionary) -> void:
-	var from_view = board.take(e.from.side, e.from.zone, e.from.index)
-	if from_view == null:
+	if speed <= 0.0:
+		board.take(e.from.side, e.from.zone, e.from.index)
 		return
-	var dest_pos: Vector3 = board.zone_pos(e.to.side, e.to.zone, e.to.index)
+	var start: Vector3 = board.zone_pos(e.from.side, e.from.zone, e.from.index)
+	var dest: Vector3 = board.zone_pos(e.to.side, e.to.zone, e.to.index)
+	var node: Node3D = board.take(e.from.side, e.from.zone, e.from.index)
+	if node == null:
+		var card_name: String = e.name if e.name != null else ""
+		node = board.flying_card(card_name, start, TINT.get(e.to.zone, Color.BLACK))
+		start = node.position
+		dest += Vector3(0.0, 0.5, 0.0)
+	else:
+		start = node.position
+	var fly := func(t: float) -> void:
+		node.position = start.lerp(dest, t) + Vector3(0.0, sin(t * PI) * 1.6, 0.0)
 	var tw := create_tween()
-	tw.tween_property(from_view, "position", dest_pos, 0.3).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_method(fly, 0.0, 1.0, 0.25 * speed).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
 	await tw.finished
-	from_view.queue_free()
-	await _pause(0.05)
+	node.queue_free()
+	await _pause(0.04)
 
 
 # Ziehen: je Karte fliegt ein Kartenrücken vom Deck zur Hand. Die Handkarten selbst legt sync() danach aus.
 func _draw_card(e: Dictionary) -> void:
+	if speed <= 0.0:
+		return
 	for i in int(e.count):
 		var card: MeshInstance3D = board.card_back(board.zone_pos(e.side, "deck", 0) + Vector3(0.0, 0.6, 0.0))
 		var tw := create_tween()
-		tw.tween_property(card, "position", board.hand_center(e.side), 0.2).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		tw.tween_property(card, "position", board.hand_center(e.side), 0.2 * speed).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		await tw.finished
 		card.queue_free()
 
@@ -173,4 +194,4 @@ func _hit_stop(duration := 0.08, slow := 0.05) -> void:
 
 
 func _pause(seconds: float) -> void:
-	await get_tree().create_timer(seconds).timeout
+	await get_tree().create_timer(seconds * speed).timeout

@@ -39,6 +39,7 @@ const summon = st.prompt.choices.find((c) => c.label === 'Normalbeschwören' && 
 assert.deepEqual({ side: summon.card.side, zone: summon.card.zone }, { side: 'me', zone: 'hand' });
 st = await post('/answer', { choice: summon.id });
 assert.ok(st.events.some((e) => e.type === 'summon' && e.kind === 'normal' && e.name === 'Swap Frog' && e.zone === 'mz'));
+assert.ok(st.events.some((e) => e.type === 'move' && e.name === 'Swap Frog' && e.from.zone === 'hand' && e.to.zone === 'mz' && e.to.side === 'me'), 'the card flies from hand to field');
 assert.equal(st.prompt.title, 'Swap Frog: Effekt aktivieren?');
 assert.equal(st.prompt.kind, 'question');
 assert.equal(st.cards['Swap Frog'], undefined, 'already described');
@@ -52,6 +53,7 @@ assert.equal((await post('/answer', { choice: 0 })).status, 400);
 assert.equal((await post('/answer', { pick: [999] })).status, 400);
 const sent = st.prompt.choices[0].card.name;
 st = await post('/answer', { pick: [0] });
+assert.ok(st.events.some((e) => e.type === 'move' && e.from.zone === 'deck' && e.to.zone === 'gy' && e.name === sent), 'deck to graveyard is an event too');
 assert.deepEqual(st.field.me.gy, [sent]);
 assert.equal(st.field.me.mz[0].name, 'Swap Frog');
 

@@ -10,7 +10,7 @@ const LpGauge = preload("res://duel3d/lp_gauge.gd")
 const CutIn = preload("res://duel3d/cut_in.gd")
 const SummonShow = preload("res://duel3d/summon_show.gd")
 
-const BUILD := "Stand 5"   # steht oben in der Statuszeile: zeigt auf einem Screenshot, welche Version läuft
+const BUILD := "Stand 6"   # steht oben in der Statuszeile: zeigt auf einem Screenshot, welche Version läuft
 const CAM_HOME := Transform3D(Basis.IDENTITY, Vector3(0.0, 13.0, 13.5))   # mittig über dem Feld: beide Seiten und meine Hand im Bild
 
 var board: Board
@@ -35,6 +35,11 @@ var detail_text: Label
 var pile_view: PanelContainer # Friedhof, Verbannt oder Extra Deck als Liste
 var pile_title: Label
 var pile_list: HFlowContainer
+var result: Label             # „Gewonnen“ / „Verloren“ in der Bildmitte
+var _pinned := ""             # zuletzt beschworene Karte: bleibt oben rechts stehen, bis eine andere dran ist
+const SPEEDS := [1.0, 0.5, 0.0]
+const SPEED_NAMES := ["normal", "schnell", "aus"]
+var _speed_index := 0
 
 
 func _ready() -> void:
@@ -52,6 +57,9 @@ func _ready() -> void:
 	add_child(director)
 	director.setup(board, cam)
 	director.lp_changed.connect(_on_lp)
+	director.card_shown.connect(func(card_name: String) -> void:
+		_pinned = card_name
+		_show_detail(card_name))
 
 	client = DuelClient.new()
 	add_child(client)
@@ -137,6 +145,17 @@ func _build_ui() -> void:
 	detail_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	detail_text.add_theme_font_size_override("font_size", 14)
 	detail_box.add_child(detail_text)
+
+	result = Label.new()
+	result.set_anchors_preset(Control.PRESET_CENTER)
+	result.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	result.grow_vertical = Control.GROW_DIRECTION_BOTH
+	result.add_theme_font_size_override("font_size", 110)
+	result.add_theme_constant_override("outline_size", 18)
+	result.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.05))
+	result.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	result.visible = false
+	ui.add_child(result)
 
 	# Stapel-Ansicht in der Mitte: Friedhof, Verbannt, eigenes Extra Deck.
 	pile_view = PanelContainer.new()
@@ -281,10 +300,21 @@ func _refresh() -> void:
 	focus = ""
 	_show_prompt()
 	if s.winner != null:
-		hint.text = "Du gewinnst!" if s.winner == "me" else "Der Bot gewinnt."
+		result.text = {"me": "Gewonnen", "bot": "Verloren"}.get(s.winner, "Unentschieden")
+		result.add_theme_color_override("font_color", {"me": Color(1.0, 0.85, 0.3), "bot": Color(1.0, 0.35, 0.3)}.get(s.winner, Color(0.8, 0.8, 0.85)))
+		result.visible = true
+		hint.text = ""
+		_button("Neues Duell", _new_duel, false)
+
+
+func _new_duel() -> void:
+	_pinned = ""
+	detail.visible = false
+	client.new_duel("frogOtk", "blackwing", [], true, "aktiv")
 
 
 func _clear_prompt() -> void:
+	result.visible = false
 	prompt = {}
 	picked = []
 	focus = ""
@@ -379,10 +409,17 @@ func _over_ui() -> bool:
 func _input(event: InputEvent) -> void:
 	if _over_ui():
 		return
+	var key_event := event as InputEventKey
+	if key_event != null and key_event.pressed and not key_event.echo and key_event.keycode == KEY_T:
+		_speed_index = (_speed_index + 1) % SPEEDS.size()   # Tempo der Animationen: normal, schnell, aus
+		director.speed = SPEEDS[_speed_index]
+		if hint.text == "" or hint.text.begins_with("Tempo"):
+			hint.text = "Tempo: %s (Taste T)" % SPEED_NAMES[_speed_index]
+		return
 	var motion := event as InputEventMouseMotion
-	if motion != null:   # Karte unter dem Mauszeiger im Detail zeigen
+	if motion != null:   # Karte unter dem Mauszeiger im Detail zeigen, sonst die zuletzt beschworene
 		var over: Dictionary = board.pick(cam, motion.position)
-		_show_detail(str(over.view.data.get("name", "")) if over.has("view") else "")
+		_show_detail(str(over.view.data.get("name", "")) if over.has("view") else _pinned)
 		return
 	var mouse := event as InputEventMouseButton
 	if mouse == null or not mouse.pressed or mouse.button_index != MOUSE_BUTTON_LEFT:
