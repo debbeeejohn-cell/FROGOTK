@@ -4,7 +4,7 @@
 //   node --no-warnings scripts/bot-eval.mjs [games]
 import { server } from './duel-server.mjs';
 
-const PAIRS = [['blackwing', 'frogOtk'], ['frogOtk', 'blackwing'], ['jinzoOtk', 'gigavise']];
+export const PAIRS = [['blackwing', 'frogOtk'], ['frogOtk', 'blackwing'], ['jinzoOtk', 'gigavise']];
 const PASS = /Zug beenden|Battle Phase|Main Phase 2|Nicht aktivieren|Nein/;
 
 // mulberry32: kleiner, fester Zufallsgenerator für meine Züge
@@ -36,9 +36,11 @@ function myChoice(st, rand) {
   return { choice: pool[Math.floor(rand() * pool.length)].id };
 }
 
-async function play(base, deck, opp, seed) {
+/** onState(st): wird nach jedem Zustand aufgerufen (für Auswertungen wie scripts/guess-eval.mjs). */
+export async function play(base, deck, opp, seed, onState = () => {}) {
   const rand = rng(seed);
   let st = await call(base, '/new', { deck, opp, seed: [seed, seed + 1, seed + 2, seed + 3].map(String), bot: 'aktiv' });
+  onState(st);
   let steps = 0;
   while (st.duel && st.winner === null && st.prompt && steps < 600) {
     let next = null;
@@ -47,7 +49,7 @@ async function play(base, deck, opp, seed) {
       if (res.ok) next = res;
     }
     if (!next) break;
-    st = next; steps += 1;
+    st = next; steps += 1; onState(st);
   }
   return { winner: st.winner, turns: st.turn };
 }

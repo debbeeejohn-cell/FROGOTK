@@ -31,4 +31,9 @@ const odds = faceDownOdds(seen);
 close(odds.reduce((sum, x) => sum + x.p, 0), 1);
 assert.ok(odds.every((x, i) => i === 0 || odds[i - 1].p >= x.p));
 
+// Zone filter: a card in the Spell/Trap zone is no monster, so the candidates shrink and still add up to 1
+const backrow = faceDownOdds(full, {}, (card) => card !== 'Swap Frog');
+assert.ok(backrow.every((x) => x.card !== 'Swap Frog'));
+close(backrow.reduce((sum, x) => sum + x.p, 0), 1);
+
 console.log('guess: all checks passed');

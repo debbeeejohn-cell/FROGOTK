@@ -56,6 +56,9 @@ function cardNames(value, found = new Set()) {
 
 let s = null; // { g, opts, answers, sent (events already delivered), pending (current prompt), known (card names already described) }
 
+/** Nur für Auswertungen im selben Prozess (scripts/guess-eval.mjs): das echte Spiel. Keine HTTP-Route gibt das heraus. */
+export const peek = () => s?.g ?? null;
+
 const side = (p) => (p === s.g.me ? 'me' : 'bot');
 const ref = (c) => ({ side: side(c.controller), zone: c.location === L.SZONE && c.sequence === 5 ? 'field' : ZONE[c.location] ?? 'other', index: c.sequence, name: table.name(c.code) });
 const effect = (c) => { const t = table.text(c.description); return t && !t.startsWith('Effekt von') ? `Aktivieren: ${t}` : 'Aktivieren'; };
