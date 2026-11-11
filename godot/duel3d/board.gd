@@ -264,3 +264,21 @@ func _set_bot_hand(count: int) -> void:
 		node.material_override = material
 		node.position.x = (i - (count - 1) / 2.0) * 0.7
 		_bot_hand.add_child(node)
+
+
+# Zahl über dem Duellanten (Schaden, Zahlung, Heilung): steigt auf, wird durchsichtig und verschwindet.
+func popup(side: String, text: String, color: Color) -> void:
+	var label := Label3D.new()
+	label.text = text
+	label.modulate = color
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.font_size = 96
+	label.pixel_size = 0.012
+	label.outline_size = 14
+	label.position = duelist_pos(side) + Vector3(0.0, 3.4, 0.0)
+	add_child(label)
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(label, "position:y", label.position.y + 1.6, 1.0).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(label, "modulate:a", 0.0, 0.5).set_delay(0.6)
+	get_tree().create_timer(1.2).timeout.connect(label.queue_free)

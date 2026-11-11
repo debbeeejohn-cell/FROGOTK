@@ -6,6 +6,7 @@ extends Node3D
 const Board = preload("res://duel3d/board.gd")
 const Director = preload("res://duel3d/director.gd")
 const DuelClient = preload("res://bridge/duel_client.gd")
+const LpGauge = preload("res://duel3d/lp_gauge.gd")
 
 const CAM_HOME := Transform3D(Basis.IDENTITY, Vector3(0.0, 11.5, 14.8))   # Übersicht, siehe Kamerarechnung
 
@@ -22,6 +23,7 @@ var prompt: Dictionary = {}
 var picked: Array = []        # Auswahl-Indizes bei Mehrfachauswahl
 var busy := false
 var _state: Dictionary = {}
+var gauges := {}   # "me" / "bot" -> LpGauge
 
 
 func _ready() -> void:
@@ -39,6 +41,7 @@ func _ready() -> void:
 	add_child(director)
 	director.setup(board, cam)
 	director.finished.connect(_on_played)
+	director.lp_changed.connect(_on_lp)
 
 	client = DuelClient.new()
 	add_child(client)
@@ -79,17 +82,28 @@ func _build_ui() -> void:
 	buttons.add_theme_constant_override("separation", 8)
 	buttons.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root.add_child(buttons)
+	for side in ["me", "bot"]:
+		var gauge: Control = LpGauge.new()
+		gauge.title = "Du" if side == "me" else "Bot"
+		ui.add_child(gauge)
+		gauges[side] = gauge
+	gauges.me.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT, Control.PRESET_MODE_MINSIZE, 16)
+	gauges.bot.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT, Control.PRESET_MODE_MINSIZE, 16)
 
 
 func _on_state(state: Dictionary) -> void:
 	_state = state
-	for name in state.get("cards", {}):
-		board.cards[name] = state.cards[name]
+	for card_name in state.get("cards", {}):
+		board.cards[card_name] = state.cards[card_name]
 	if busy:
 		return
 	busy = true
 	await director.play(state.events, state.field)
 	busy = false
+
+
+func _on_lp(side: String, lp: int) -> void:
+	gauges[side].set_lp(float(lp))
 
 
 func _on_played() -> void:
@@ -101,7 +115,9 @@ func _refresh() -> void:
 	var s := _state
 	if s.is_empty() or not s.get("duel", false):
 		return
-	status.text = "Zug %d · %s · %s        Du %d LP   Bot %d LP" % [int(s.turn), "Du" if s.active == "me" else "Bot", s.phase, int(s.lp.me), int(s.lp.bot)]
+	for side in gauges:
+		gauges[side].set_lp(float(s.lp[side]), true)
+	status.text = "Zug %d · %s · %s" % [int(s.turn), "Du" if s.active == "me" else "Bot", s.phase]
 	var lines: Array = s.log.slice(0, 4)
 	if s.review != null:
 		var notes: Array = s.review.notes

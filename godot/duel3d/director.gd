@@ -4,6 +4,7 @@ extends Node
 # Kennt keine Regeln: sie zeigt nur, was die Engine schon entschieden hat.
 
 signal finished
+signal lp_changed(side: String, lp: int)
 
 const CAM_DIST := 16.0
 const ZOOM_DIST := 9.0
@@ -52,11 +53,13 @@ func _event(e: Dictionary) -> void:
 		"summon": await _summon(e)
 		"set": await _set(e)
 		"attack": await _attack(e)
-		"damage": await _damage(e)
+		"damage": await _lp_change(e, "-", Color(1.0, 0.35, 0.3), true)
+		"pay": await _lp_change(e, "-", Color(1.0, 0.6, 0.2), false)
+		"heal": await _lp_change(e, "+", Color(0.4, 1.0, 0.5), false)
 		"move": await _move(e)
 		"chain": await _chain(e)
 		"win": await _win(e)
-		_: pass   # turn, phase, draw, pay, heal, negate: nur Zustand, keine Animation nötig
+		_: pass   # turn, phase, draw, negate: nur Zustand, keine Animation nötig
 
 
 func _summon(e: Dictionary) -> void:
@@ -90,7 +93,9 @@ func _attack(e: Dictionary) -> void:
 	var home := mover.global_position
 	var target_pos: Vector3 = board.duelist_pos(e.to.side) if e.to == null or e.to.zone != "mz" else board.zone_pos(e.to.side, "mz", e.to.index)
 	if e.to != null and e.to.zone == "mz":
-		target_pos = board.view_at(e.to.side, "mz", e.to.index).global_position if board.view_at(e.to.side, "mz", e.to.index) != null else target_pos
+		var target_view = board.view_at(e.to.side, "mz", e.to.index)
+		if target_view != null:
+			target_pos = target_view.global_position
 	var dir := (target_pos - home).normalized()
 	await _cam_to((home + target_pos) / 2.0 + Vector3(0.0, 2.0, 0.0), ZOOM_DIST, 0.3)
 	var tw := create_tween()
@@ -103,13 +108,16 @@ func _attack(e: Dictionary) -> void:
 	await back.finished
 
 
-# Schaden: Lebenspunkte-Anzeige wird gleich vom Hauptskript aktualisiert; hier nur ein kurzes Zittern.
-func _damage(e: Dictionary) -> void:
-	trauma = minf(trauma + 0.3, 1.0)
-	await _pause(0.2)
+# Lebenspunkte: Zahl steigt über dem Duellanten auf, der Ring fährt auf den neuen Stand (duel3d.gd).
+func _lp_change(e: Dictionary, sign: String, color: Color, shake: bool) -> void:
+	board.popup(e.side, "%s%d" % [sign, int(e.amount)], color)
+	lp_changed.emit(e.side, int(e.lp))
+	if shake:
+		trauma = minf(trauma + 0.3, 1.0)
+	await _pause(0.5)
 
 
-# Bewegung zwischen Zonen: Karte fliegt vom alten zum neuen Platz. Ohne bekannten Namen (verdeckt) nur ein Rahmen.
+# Bewegung zwischen Zonen: Karte fliegt vom alten zum neuen Platz.
 func _move(e: Dictionary) -> void:
 	var from_view = board.take(e.from.side, e.from.zone, e.from.index)
 	if from_view == null:
