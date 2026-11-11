@@ -6,9 +6,9 @@ Karten-Detail und Zieh-Animation sind gebaut. Vorbild sind die Szenen aus Yu-Gi-
 
 Reihenfolge nach Wirkung. Jeder Punkt ist einzeln baubar.
 
-1. **Werte-Plakette wie im Anime.** Runde Scheibe mit Ring, „ATK 2500“ groß, Stufe mit Stern darunter; bei
+1. **(gebaut, in Godot noch zu prüfen) Werte-Plakette wie im Anime.** Runde Scheibe mit Ring, „ATK 2500“ groß, Stufe mit Stern darunter; bei
    Verteidigung „DEF“. Ersetzt den gelben Text neben der Figur. Gezeichnet mit `_draw`, keine Bilddatei.
-2. **Beschwörungs-Einblendung.** Bei jeder Beschwörung kurz: Hintergrund wird zum Sternenhimmel, das Monster steht
+2. **(gebaut, in Godot noch zu prüfen) Beschwörungs-Einblendung** (`duel3d/summon_show.gd`). Bei jeder Beschwörung kurz: Hintergrund wird zum Sternenhimmel, das Monster steht
    groß in der Mitte, Plakette fährt ein. Synchro: Stufen-Sterne und Ringe davor. Dauer unter 1,5 Sekunden, abschaltbar.
 3. **Monster als Hologramm über der Karte.** Solange es keine 3D-Modelle gibt: das Kartenbild als stehende,
    leicht leuchtende Fläche über der Karte statt der Kapsel-Figur. Eigene Modelle ersetzen es (`art/models`).

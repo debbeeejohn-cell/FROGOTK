@@ -41,7 +41,11 @@ var _oval: MeshInstance3D
 var _art: MeshInstance3D
 var _rim: MeshInstance3D   # farbiger Rand unter der Karte: wählbar (grün) oder gewählt (gold)
 var _title: Label3D
-var _stats: Label3D
+var _stats: Label3D        # der Wert in der Plakette
+var _badge: Sprite3D       # runde Plakette neben der Figur: Ring, ATK oder DEF, Wert, Stufe
+var _kind: Label3D
+var _level: Label3D
+static var _rings := {}    # Ringfarbe -> Textur (einmal gezeichnet)
 var _figure: Node3D
 var _figure_name := ""
 
@@ -102,15 +106,43 @@ func _ready() -> void:
 	_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(_title)
 
-	_stats = Label3D.new()
-	_stats.billboard = BaseMaterial3D.BILLBOARD_ENABLED   # dreht sich immer zur Kamera
-	_stats.no_depth_test = true
-	_stats.font_size = 40
-	_stats.pixel_size = 0.0075
-	_stats.outline_size = 12
-	_stats.modulate = Color(1.0, 0.95, 0.6)
-	_stats.visible = false
-	add_child(_stats)
+	_badge = Sprite3D.new()
+	_badge.billboard = BaseMaterial3D.BILLBOARD_ENABLED   # dreht sich immer zur Kamera
+	_badge.no_depth_test = true
+	_badge.pixel_size = 0.011
+	_badge.render_priority = 1
+	_badge.visible = false
+	add_child(_badge)
+	_kind = _badge_label(26, Vector2(0.0, 34.0))
+	_stats = _badge_label(46, Vector2(0.0, -2.0))
+	_level = _badge_label(24, Vector2(0.0, -40.0))
+	_level.modulate = Color(1.0, 0.85, 0.3)
+
+
+func _badge_label(font_size: int, offset: Vector2) -> Label3D:
+	var label := Label3D.new()
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.render_priority = 2   # über dem Ring
+	label.font_size = font_size
+	label.pixel_size = 0.0075
+	label.outline_size = 8
+	label.offset = offset
+	_badge.add_child(label)
+	return label
+
+
+# Dunkle Scheibe mit farbigem Ring, 128 px, einmal je Farbe gezeichnet.
+static func ring_texture(color: Color) -> Texture2D:
+	if not _rings.has(color):
+		var picture := Image.create(128, 128, false, Image.FORMAT_RGBA8)
+		for y in 128:
+			for x in 128:
+				var d := Vector2(x - 63.5, y - 63.5).length()
+				if d <= 62.0:
+					picture.set_pixel(x, y, color if d >= 53.0 else Color(0.04, 0.05, 0.10, 0.92))
+		_rings[color] = ImageTexture.create_from_image(picture)
+	return _rings[color]
 
 
 # card: { name?, atk, def, down, pos } aus dem Zustand der Brücke. facts: Kartenfakten (frame, level, attribute).
@@ -151,9 +183,15 @@ func show_card(card: Dictionary, facts: Dictionary) -> void:
 		_build_figure(card_name)
 	if _figure != null:
 		_figure.visible = standing
-	_stats.visible = standing
+	_badge.visible = standing
 	if standing:
-		_stats.text = "ATK %d\nDEF %d" % [int(card.get("atk", 0)), int(card.get("def", 0))]
+		var defense: bool = card.get("pos", "atk") == "def"
+		var color := Color(0.35, 0.65, 1.0) if defense else Color(1.0, 0.55, 0.15)
+		_badge.texture = ring_texture(color)
+		_kind.text = "DEF" if defense else "ATK"
+		_kind.modulate = color
+		_stats.text = str(int(card.get("def" if defense else "atk", 0)))
+		_level.text = "LV %d" % int(facts.get("level", 0)) if int(facts.get("level", 0)) > 0 else ""
 	_apply_mark()
 
 
@@ -208,7 +246,7 @@ func _build_figure(card_name: String) -> void:
 		var tint: Color = ATTRIBUTE.get(info.get("attribute", ""), Color(0.7, 0.7, 0.75))
 		_figure = placeholder_figure(figure_height, tint)
 	add_child(_figure)
-	_stats.position = Vector3(1.0, figure_height * 0.8, 0.0)
+	_badge.position = Vector3(1.15, figure_height * 0.75, 0.0)
 
 
 # Platzhalter: Körper (Kapsel) und Kopf (Kugel). Auch für die Duellanten benutzt.

@@ -8,6 +8,7 @@ const Director = preload("res://duel3d/director.gd")
 const DuelClient = preload("res://bridge/duel_client.gd")
 const LpGauge = preload("res://duel3d/lp_gauge.gd")
 const CutIn = preload("res://duel3d/cut_in.gd")
+const SummonShow = preload("res://duel3d/summon_show.gd")
 
 const CAM_HOME := Transform3D(Basis.IDENTITY, Vector3(0.0, 13.0, 13.5))   # mittig über dem Feld: beide Seiten und meine Hand im Bild
 
@@ -97,6 +98,9 @@ func _build_ui() -> void:
     var cut: CutIn = CutIn.new()
     ui.add_child(cut)
     director.cut_in = cut
+    var summon: SummonShow = SummonShow.new()
+    ui.add_child(summon)
+    director.summon_show = summon
 
     for side in ["me", "bot"]:
         var gauge: LpGauge = LpGauge.new()

@@ -4,6 +4,7 @@ extends Node
 # Kennt keine Regeln: sie zeigt nur, was die Engine schon entschieden hat.
 const Board = preload("res://duel3d/board.gd")
 const CutIn = preload("res://duel3d/cut_in.gd")
+const SummonShow = preload("res://duel3d/summon_show.gd")
 
 signal finished
 signal lp_changed(side: String, lp: int)
@@ -13,6 +14,8 @@ const ZOOM_DIST := 9.0
 var board: Board
 var cam: Camera3D
 var cut_in: CutIn   # Einblendung für Zauber und Fallen (gesetzt von duel3d.gd)
+var summon_show: SummonShow   # Beschwörungs-Einblendung (gesetzt von duel3d.gd); null oder aus = keine
+var summon_show_enabled := true
 var trauma := 0.0   # Kamera-Zittern, 0..1
 var shake_enabled := true
 var _t := 0.0
@@ -66,6 +69,9 @@ func _summon(e: Dictionary) -> void:
     var view = board.view_at(e.side, e.zone, e.index)
     if view == null:
         view = board.place(e.side, e.zone, e.index, {"name": e.name, "atk": e.atk, "def": e.def, "down": false, "pos": e.pos})
+    var facts: Dictionary = board.cards.get(e.name, {})
+    if summon_show != null and summon_show_enabled and not e.get("down", false) and facts.get("frame", "") != "token":
+        await summon_show.show_monster(e.name, facts, int(e.atk), int(e.def), e.get("pos", "atk") == "def")
     view.flash()
     trauma = minf(trauma + 0.15, 1.0)
     await _pause(0.35)
