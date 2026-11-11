@@ -50,7 +50,7 @@ func play(events: Array, field: Dictionary) -> void:
 func _event(e: Dictionary) -> void:
     match e.type:
         "summon": await _summon(e)
-        "set": await _set(e)
+        "set": await _set_card(e)
         "attack": await _attack(e)
         "damage": await _lp_change(e, "-", Color(1.0, 0.35, 0.3), true)
         "pay": await _lp_change(e, "-", Color(1.0, 0.6, 0.2), false)
@@ -70,7 +70,7 @@ func _summon(e: Dictionary) -> void:
     await _pause(0.35)
 
 
-func _set(e: Dictionary) -> void:
+func _set_card(e: Dictionary) -> void:
     var view = board.place(e.side, e.zone, e.index, {"name": e.name, "down": true, "pos": "def", "atk": 0, "def": 0})
     view.flash()
     await _pause(0.25)
