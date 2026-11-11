@@ -1,0 +1,13 @@
+{
+  "source": "Edison-Kartentexte (Stand Edison-Format 2010), vom Nutzer geprüft. Überschreiben den aktuellen Text aus cards.json.",
+  "texts": {
+    "7391448": {
+      "name": "Goyo Guardian",
+      "desc": "1 Tuner + 1 or more non-Tuners\n① If this card destroys a monster by battle and sends it to the GY:\nYou can Special Summon that monster to your field in Defense Position."
+    },
+    "50321796": {
+      "name": "Brionac, Dragon of the Ice Barrier",
+      "desc": "1 Tuner + 1 or more non-Tuners\n① You can discard any number of cards to the GY, then target that many cards on the field; return them to the hand."
+    }
+  }
+}

@@ -70,6 +70,9 @@ async function main() {
   const { data } = await getJson(`${API}/cardinfo.php?startdate=1999-01-01&enddate=${cutoff.tcg_date}&dateregion=tcg`);
   if (!Array.isArray(data) || data.length === 0) throw new Error('cardinfo.php returned no cards');
 
+  // Edison texts win over the current ones (the current card text has errata the format never had).
+  const edison = readJson(path.join(DATA_DIR, 'edison-texts.json'), { texts: {} }).texts;
+
   const cards = data
     .filter((c) => Number.isInteger(c.id)) // the id becomes a file name, so it must be a plain number
     .map((c) => ({
@@ -81,7 +84,7 @@ async function main() {
       level: c.level ?? null,
       atk: c.atk ?? null,
       def: c.def ?? null,
-      desc: c.desc ?? ''
+      desc: edison[c.id]?.desc ?? c.desc ?? ''
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
