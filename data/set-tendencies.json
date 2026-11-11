@@ -1,0 +1,16 @@
+{
+  "source": "Einschätzung des Nutzers, wie oft eine Karte verdeckt gesetzt wird. 1 = normal, unter 1 = meist offen in ATK, über 1 = oft verdeckt. Nicht gelistete Karten gelten als 1.",
+  "weights": {
+    "Blackwing - Shura the Blue Flame": 0.2,
+    "Blackwing - Bora the Spear": 0.2,
+    "Celestia, Lightsworn Angel": 0.2,
+    "Wulf, Lightsworn Beast": 0.2,
+    "Lyla, Lightsworn Sorceress": 0.2,
+    "Aurkus, Lightsworn Druid": 0.2,
+    "Ehren, Lightsworn Monk": 0.2,
+    "Garoth, Lightsworn Warrior": 0.2,
+    "Jain, Lightsworn Paladin": 0.2,
+    "Lumina, Lightsworn Summoner": 0.2,
+    "Ryko, Lightsworn Hunter": 3
+  }
+}

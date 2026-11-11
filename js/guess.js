@@ -13,9 +13,14 @@ export function unseenPool(section, seen) {
   return { total: left.reduce((sum, [, n]) => sum + n, 0), copies: new Map(left) };
 }
 
-/** Wahrscheinlichkeit je Karte, dass eine verdeckte Karte genau diese ist (gleichverteilt im Restpool). */
-export function faceDownOdds(pool) {
-  return [...pool.copies].map(([card, n]) => ({ card, p: n / pool.total })).sort((a, b) => b.p - a.p);
+/**
+ * Wahrscheinlichkeit je Karte, dass eine verdeckte Karte genau diese ist. Jede Karte zählt mit ihrer Anzahl im
+ * Restpool mal ihrer Setz-Tendenz (weights, siehe data/set-tendencies.json; fehlt sie, gilt 1).
+ */
+export function faceDownOdds(pool, weights = {}) {
+  const score = [...pool.copies].map(([card, n]) => [card, n * (weights[card] ?? 1)]);
+  const sum = score.reduce((total, [, x]) => total + x, 0);
+  return score.map(([card, x]) => ({ card, p: sum > 0 ? x / sum : 0 })).sort((a, b) => b.p - a.p);
 }
 
 /** Wahrscheinlichkeit, dass `card` unter `hand` zufällig gezogenen Karten aus dem Restpool ist. */

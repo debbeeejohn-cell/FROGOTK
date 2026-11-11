@@ -18,6 +18,14 @@ const seen = unseenPool(main, ['Swap Frog']);
 assert.equal(seen.total, 39);
 assert.equal(seen.copies.get('Swap Frog'), 2);
 
+// Set tendencies: a card that is usually kept face-up is less likely to be the face-down one
+const tend = JSON.parse(fs.readFileSync(new URL('../data/set-tendencies.json', import.meta.url))).weights;
+const lightsworn = unseenPool(lists.lightsworn.main, []);
+const plain = faceDownOdds(lightsworn).find((x) => x.card === 'Ryko, Lightsworn Hunter').p;
+const tuned = faceDownOdds(lightsworn, tend).find((x) => x.card === 'Ryko, Lightsworn Hunter').p;
+assert.ok(tuned > plain, 'Ryko is more likely to be set than the plain pool says');
+close(faceDownOdds(lightsworn, tend).reduce((sum, x) => sum + x.p, 0), 1);
+
 // Odds of a face-down card add up to 1 and are sorted, most likely first
 const odds = faceDownOdds(seen);
 close(odds.reduce((sum, x) => sum + x.p, 0), 1);
