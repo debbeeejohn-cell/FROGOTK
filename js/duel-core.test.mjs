@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { loadCore, cardTable, newGame, traceOf, compareCombo, M, R, IDLE, BATTLE } from './duel-core.js';
+import { features } from './decide.js';
 
 const json = (f) => JSON.parse(fs.readFileSync(new URL(`../data/${f}`, import.meta.url)));
 const table = cardTable(json('core-cards.json'));
@@ -151,6 +152,14 @@ assert.match(compareCombo(combo, ['Swap Frog'], ['Normalbeschwörung Swap Frog']
 assert.match(compareCombo(combo, ['Swap Frog'], ['setzt Scapegoat']), /Schritt 1 von 2: .*du hast „setzt Scapegoat“ gespielt/);
 assert.equal(compareCombo(combo, ['Scapegoat'], []), null, 'combo needs Swap Frog in the opening hand');
 assert.equal(compareCombo({ ...combo, hand: ['Swap Frog', 'Swap Frog'] }, ['Swap Frog'], []), null, 'needs two copies');
+
+// Phase 2: features of my own legal actions (summon costs a hand card and adds its ATK to the field)
+g = start({ hand: [id.get('Swap Frog')] });
+const feats = features(g.prompt, table, g, g.me);
+const summonSwap = feats.find((f) => f.kind === 'summons' && f.index === g.prompt.summons.findIndex((c) => name(c) === 'Swap Frog'));
+assert.deepEqual({ boardGain: summonSwap.boardGain, handCost: summonSwap.handCost }, { boardGain: 1000, handCost: 1 });
+assert.equal(g.prompt.summons.length > 0, true);
+assert.equal(features(g.prompt, table, g, g.me).length > 0, true);
 
 // same seed + same answers = same duel (this is how undo works)
 const a = start(); const b = start();

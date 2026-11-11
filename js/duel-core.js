@@ -2,7 +2,7 @@
 // card scripts, so effects, triggers, chains, costs and life points work like on Dueling Nexus/EDOPro.
 // This module turns the engine's message stream into a small game state with ONE pending prompt for
 // the player. The bot and trivial prompts (zone choice, empty chain windows, sorting) are answered here.
-import { botPlay } from './decide.js';
+import { botPlay, features } from './decide.js';
 import createCore, {
   OcgDuelMode, OcgLocation as L, OcgPosition as P, OcgProcessResult, OcgQueryFlags as Q,
   OcgMessageType as M, OcgResponseType as R, SelectIdleCMDAction as IDLE, SelectBattleCMDAction as BATTLE
@@ -201,6 +201,7 @@ export function newGame(opts) {
       if (status !== OcgProcessResult.WAITING) continue;
       if (last.player === BOT) {
         if (retries > MAX_BOT_RETRIES) throw new Error(`Bot hängt bei Engine-Nachricht ${last.type}`);
+        if (opts.botPlays) g.features = features(last, table, g, g.bot); // protokolliert, entscheidet noch nicht
         lib.duelSetResponse(h, (opts.botPlays && botPlay(last, table, g)) || botAnswer(last, table, g));
         continue;
       }

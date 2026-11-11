@@ -74,3 +74,38 @@ export function botPlay(m, table, g) {
   return undefined;
 }
 
+/**
+ * Phase 2: Merkmale jeder legalen Aktion aus Sicht von `side`. Die Funktion verändert den Zustand nicht und
+ * entscheidet nichts. Sie wird protokolliert, damit Phase 3 (Bewertung) später darauf aufbauen kann.
+ * boardGain: ATK, die das Feld dazugewinnt. handCost: Karten, die die Hand verlassen. damage: erwarteter Schaden.
+ * risk: verdeckte Karten des Gegners, die auf die Aktion antworten könnten (nur die Anzahl ist öffentlich).
+ * Gegnerische verdeckte Monster zählen mit FACEDOWN_GUESS, nicht mit ihren echten Werten.
+ */
+export function features(m, table, g, side = g.bot) {
+  const view = g.view();
+  const own = view[side]; const foe = view[1 - side];
+  const data = (c) => table.data.get(c.code);
+  const hand = (c) => (c.location === L.HAND ? 1 : 0);
+  const risk = foe.st.filter((c) => c && c.position & P.FACEDOWN).length;
+  const valueOf = (c) => (c.position & P.FACEDOWN ? FACEDOWN_GUESS : c.position & P.DEFENSE ? c.defense : c.attack);
+  const foeTop = Math.max(0, ...foe.mz.filter(Boolean).map(valueOf));
+  const out = [];
+  const add = (kind, index, f) => out.push({ kind, index, boardGain: 0, handCost: 0, damage: 0, risk: 0, ...f });
+  if (m.type === M.SELECT_IDLECMD) {
+    for (const field of ['summons', 'special_summons']) {
+      m[field].forEach((c, i) => add(field, i, { boardGain: data(c)?.attack ?? 0, handCost: hand(c), risk }));
+    }
+    m.monster_sets.forEach((c, i) => add('monster_sets', i, { boardGain: data(c)?.defense ?? 0, handCost: hand(c) }));
+    m.spell_sets.forEach((c, i) => add('spell_sets', i, { handCost: hand(c) }));
+    m.activates.forEach((c, i) => add('activates', i, { handCost: hand(c), risk }));
+    if (m.to_bp) add('to_bp', null, {});
+    if (m.to_ep) add('to_ep', null, {});
+  } else if (m.type === M.SELECT_BATTLECMD) {
+    m.attacks.forEach((c, i) => {
+      const atk = own.mz[c.sequence]?.attack ?? 0;
+      add('attacks', i, { damage: c.can_direct ? atk : Math.max(0, atk - foeTop), risk });
+    });
+    m.chains.forEach((c, i) => add('chains', i, { handCost: hand(c), risk }));
+  }
+  return out;
+}
