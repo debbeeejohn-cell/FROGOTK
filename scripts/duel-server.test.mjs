@@ -27,6 +27,7 @@ assert.equal(st.field.bot.hand, 5);
 assert.deepEqual(st.lp, { me: 8000, bot: 8000 });
 assert.ok(st.events.some((e) => e.type === 'draw' && e.side === 'me'));
 assert.equal(st.prompt.title, 'Dein Zug');
+assert.equal(st.prompt.kind, 'actions');
 
 // card facts arrive once per card name; the bot's hidden cards are never named
 assert.deepEqual({ frame: st.cards['Swap Frog'].frame, atk: st.cards['Swap Frog'].atk, level: st.cards['Swap Frog'].level }, { frame: 'effect', atk: 1000, level: 2 });
@@ -39,6 +40,7 @@ assert.deepEqual({ side: summon.card.side, zone: summon.card.zone }, { side: 'me
 st = await post('/answer', { choice: summon.id });
 assert.ok(st.events.some((e) => e.type === 'summon' && e.kind === 'normal' && e.name === 'Swap Frog' && e.zone === 'mz'));
 assert.equal(st.prompt.title, 'Swap Frog: Effekt aktivieren?');
+assert.equal(st.prompt.kind, 'question');
 assert.equal(st.cards['Swap Frog'], undefined, 'already described');
 assert.equal((await call('GET', '/state')).cards['Swap Frog'].frame, 'effect', 'GET /state describes everything again');
 assert.deepEqual(st.events.filter((e) => e.type === 'draw'), [], 'events are delivered once');

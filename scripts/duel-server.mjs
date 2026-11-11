@@ -60,12 +60,15 @@ const side = (p) => (p === s.g.me ? 'me' : 'bot');
 const ref = (c) => ({ side: side(c.controller), zone: c.location === L.SZONE && c.sequence === 5 ? 'field' : ZONE[c.location] ?? 'other', index: c.sequence, name: table.name(c.code) });
 const effect = (c) => { const t = table.text(c.description); return t && !t.startsWith('Effekt von') ? `Aktivieren: ${t}` : 'Aktivieren'; };
 
-/** Engine prompt -> { title, hint, multi, min, max, text, choices: [{ id, label, card? }] } plus how to answer it. */
+/**
+ * Engine prompt -> { kind, title, hint, multi, min, max, text, choices: [{ id, label, card? }] } plus how to answer it.
+ * kind "actions" = open game state (a card can have several actions), "question" = everything else.
+ */
 function describe(p) {
   const { g } = s;
   const choices = []; const responses = [];
   const add = (label, response, card) => { choices.push({ id: choices.length, label, ...(card ? { card: ref(card) } : {}) }); responses.push(response); };
-  const out = { title: '', hint: g.hint, multi: false, choices };
+  const out = { kind: p.type === M.SELECT_IDLECMD || p.type === M.SELECT_BATTLECMD ? 'actions' : 'question', title: '', hint: g.hint, multi: false, choices };
   const single = () => ({ ...out, answer: (body) => responses[body.choice] });
   const many = (type, key) => ({ ...out, multi: true, answer: (body) => (Array.isArray(body.pick) && body.pick.every((i) => Number.isInteger(i) && responses[i] !== undefined)
     ? { type, [key]: [...new Set(body.pick)].sort((a, b) => a - b).map((i) => responses[i]) } : undefined) });
