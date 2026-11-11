@@ -2,3 +2,8 @@ assets/cards/
 assets/fonts/
 .data/
 *.log
+
+# Godot: Editor-Cache und vom Editor erzeugte Dateien
+godot/.godot/
+godot/**/*.uid
+godot/**/*.tmp
