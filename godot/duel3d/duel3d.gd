@@ -1,19 +1,19 @@
 extends Node3D
 # Hauptszene: Kamera, Spielfeld, Regie, Bedienung. Verbindet alles mit der Duell-Brücke (duel_client.gd).
-# Klick auf eine Karte = Auswahl; wählbare Karten leuchten grün. Die Leiste unten zeigt die Antworten
-# der Engine (Beschwören, Setzen, Angreifen, Phase weiter …). Ohne Eingabe läuft nichts, während die Regie spielt.
-
+# Klick auf eine Karte = Auswahl; wählbare Karten leuchten grün. Während die Regie spielt, ist nichts
+# klickbar. Eintreffende Zustände warten in einer Schlange und werden der Reihe nach abgespielt.
 const Board = preload("res://duel3d/board.gd")
 const Director = preload("res://duel3d/director.gd")
 const DuelClient = preload("res://bridge/duel_client.gd")
 const LpGauge = preload("res://duel3d/lp_gauge.gd")
+const CutIn = preload("res://duel3d/cut_in.gd")
 
 const CAM_HOME := Transform3D(Basis.IDENTITY, Vector3(0.0, 11.5, 14.8))   # Übersicht, siehe Kamerarechnung
 
-var board: Node3D
-var director: Node
+var board: Board
+var director: Director
 var cam: Camera3D
-var client: Node
+var client: DuelClient
 var ui: CanvasLayer
 var status: Label
 var hint: Label
@@ -22,174 +22,196 @@ var log_label: Label
 var prompt: Dictionary = {}
 var picked: Array = []        # Auswahl-Indizes bei Mehrfachauswahl
 var busy := false
+var gauges := {}              # "me" / "bot" -> LpGauge
 var _state: Dictionary = {}
-var gauges := {}   # "me" / "bot" -> LpGauge
+var _queue: Array = []        # Zustände, die noch abgespielt werden
 
 
 func _ready() -> void:
-	cam = Camera3D.new()
-	cam.fov = 50.0
-	add_child(cam)
-	cam.transform = CAM_HOME
-	cam.look_at(Vector3(3.0, 0.0, 0.5), Vector3.UP)
-	cam.make_current()
+    cam = Camera3D.new()
+    cam.fov = 50.0
+    add_child(cam)
+    cam.transform = CAM_HOME
+    cam.look_at(Vector3(3.0, 0.0, 0.5), Vector3.UP)
+    cam.make_current()
 
-	board = Board.new()
-	add_child(board)
+    board = Board.new()
+    add_child(board)
 
-	director = Director.new()
-	add_child(director)
-	director.setup(board, cam)
-	director.finished.connect(_on_played)
-	director.lp_changed.connect(_on_lp)
+    director = Director.new()
+    add_child(director)
+    director.setup(board, cam)
+    director.lp_changed.connect(_on_lp)
 
-	client = DuelClient.new()
-	add_child(client)
-	client.state_changed.connect(_on_state)
-	client.failed.connect(func(message: String) -> void: hint.text = message)
+    client = DuelClient.new()
+    add_child(client)
+    client.state_changed.connect(_on_state)
+    client.failed.connect(func(message: String) -> void: hint.text = message)
 
-	_build_ui()
-	client.new_duel("frogOtk", "blackwing", [], true, "aktiv")
+    _build_ui()
+    client.new_duel("frogOtk", "blackwing", [], true, "aktiv")
 
 
 func _build_ui() -> void:
-	ui = CanvasLayer.new()
-	add_child(ui)
-	var root := VBoxContainer.new()
-	root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root.add_theme_constant_override("separation", 8)
-	for edge in ["left", "right", "top", "bottom"]:
-		root.add_theme_constant_override("margin_" + edge, 16)
-	ui.add_child(root)
+    ui = CanvasLayer.new()
+    add_child(ui)
+    var root := VBoxContainer.new()
+    root.set_anchors_preset(Control.PRESET_FULL_RECT)
+    root.add_theme_constant_override("separation", 8)
+    for edge in ["left", "right", "top", "bottom"]:
+        root.add_theme_constant_override("margin_" + edge, 16)
+    ui.add_child(root)
 
-	status = Label.new()
-	status.add_theme_font_size_override("font_size", 22)
-	root.add_child(status)
-	log_label = Label.new()
-	log_label.modulate = Color(1, 1, 1, 0.75)
-	log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	root.add_child(log_label)
+    status = Label.new()
+    status.add_theme_font_size_override("font_size", 22)
+    root.add_child(status)
+    log_label = Label.new()
+    log_label.modulate = Color(1, 1, 1, 0.75)
+    log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    root.add_child(log_label)
 
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(spacer)
+    var spacer := Control.new()
+    spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    root.add_child(spacer)
 
-	hint = Label.new()
-	hint.add_theme_font_size_override("font_size", 20)
-	root.add_child(hint)
-	buttons = HBoxContainer.new()
-	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
-	buttons.add_theme_constant_override("separation", 8)
-	buttons.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	root.add_child(buttons)
-	for side in ["me", "bot"]:
-		var gauge: Control = LpGauge.new()
-		gauge.title = "Du" if side == "me" else "Bot"
-		ui.add_child(gauge)
-		gauges[side] = gauge
-	gauges.me.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT, Control.PRESET_MODE_MINSIZE, 16)
-	gauges.bot.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT, Control.PRESET_MODE_MINSIZE, 16)
+    hint = Label.new()
+    hint.add_theme_font_size_override("font_size", 20)
+    root.add_child(hint)
+    buttons = HBoxContainer.new()
+    buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+    buttons.add_theme_constant_override("separation", 8)
+    buttons.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    root.add_child(buttons)
+
+    var cut: CutIn = CutIn.new()
+    ui.add_child(cut)
+    director.cut_in = cut
+
+    for side in ["me", "bot"]:
+        var gauge: LpGauge = LpGauge.new()
+        gauge.title = "Du" if side == "me" else "Bot"
+        ui.add_child(gauge)
+        gauges[side] = gauge
+    gauges.me.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT, Control.PRESET_MODE_MINSIZE, 16)
+    gauges.bot.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT, Control.PRESET_MODE_MINSIZE, 16)
 
 
 func _on_state(state: Dictionary) -> void:
-	_state = state
-	for card_name in state.get("cards", {}):
-		board.cards[card_name] = state.cards[card_name]
-	if busy:
-		return
-	busy = true
-	await director.play(state.events, state.field)
-	busy = false
+    _queue.append(state)
+    if not busy:
+        _drain()
+
+
+# Spielt die wartenden Zustände der Reihe nach ab. Während einer Animation sind keine Knöpfe da.
+func _drain() -> void:
+    busy = true
+    _clear_prompt()
+    while not _queue.is_empty():
+        var s: Dictionary = _queue.pop_front()
+        _state = s
+        for card_name in s.get("cards", {}):
+            board.cards[card_name] = s.cards[card_name]
+        await director.play(s.events, s.field)
+    busy = false
+    _refresh()
 
 
 func _on_lp(side: String, lp: int) -> void:
-	gauges[side].set_lp(float(lp))
+    gauges[side].set_lp(float(lp))
 
 
-func _on_played() -> void:
-	_refresh()
-
-
-# Nach der Animation: Anzeige, Markierung und Knöpfe aus dem Zustand.
+# Nach der Animation: Anzeige, Markierung und Knöpfe aus dem letzten Zustand.
 func _refresh() -> void:
-	var s := _state
-	if s.is_empty() or not s.get("duel", false):
-		return
-	for side in gauges:
-		gauges[side].set_lp(float(s.lp[side]), true)
-	status.text = "Zug %d · %s · %s" % [int(s.turn), "Du" if s.active == "me" else "Bot", s.phase]
-	var lines: Array = s.log.slice(0, 4)
-	if s.review != null:
-		var notes: Array = s.review.notes
-		lines.push_front("Lehrer: " + ("Nichts auszusetzen." if notes.is_empty() else " | ".join(notes)))
-	log_label.text = "\n".join(lines)
-	prompt = s.prompt if s.prompt != null else {}
-	picked = []
-	_show_prompt()
-	if s.winner != null:
-		hint.text = "Du gewinnst!" if s.winner == "me" else "Der Bot gewinnt."
+    var s := _state
+    if s.is_empty() or not s.get("duel", false):
+        return
+    for side in gauges:
+        gauges[side].set_lp(float(s.lp[side]), true)
+    status.text = "Zug %d · %s · %s" % [int(s.turn), "Du" if s.active == "me" else "Bot", s.phase]
+    var lines: Array = s.log.slice(0, 4)
+    if s.review != null:
+        var notes: Array = s.review.notes
+        lines.push_front("Lehrer: " + ("Nichts auszusetzen." if notes.is_empty() else " | ".join(notes)))
+    log_label.text = "\n".join(lines)
+    prompt = s.prompt if s.prompt != null else {}
+    picked = []
+    _show_prompt()
+    if s.winner != null:
+        hint.text = "Du gewinnst!" if s.winner == "me" else "Der Bot gewinnt."
+
+
+func _clear_prompt() -> void:
+    prompt = {}
+    picked = []
+    for child in buttons.get_children():
+        child.queue_free()
+    board.set_marks({})
 
 
 # Wählbare Karten leuchten; jede Auswahl ist eine Knopfliste, Mehrfachauswahl wird bestätigt.
 func _show_prompt() -> void:
-	for child in buttons.get_children():
-		child.queue_free()
-	var marks := {}
-	var multi: bool = prompt.get("multi", false)
-	if prompt.is_empty():
-		hint.text = ""
-		board.set_marks(marks)
-		return
-	hint.text = prompt.title + ("   " + prompt.hint if prompt.get("hint", "") != "" else "")
-	for choice in prompt.choices:
-		if choice.has("card"):
-			var c: Dictionary = choice.card
-			marks["%s:%s:%d" % [c.side, c.zone, int(c.index)]] = "pick"
-		var label: String = choice.label
-		if choice.has("card"):
-			label = "%s: %s" % [choice.card.name, label]
-		_button(label, _on_choice.bind(int(choice.id)), multi)
-	if multi:
-		_button("Bestätigen", _on_confirm, false)
-	board.set_marks(marks)
+    for child in buttons.get_children():
+        child.queue_free()
+    var marks := {}
+    var multi: bool = prompt.get("multi", false)
+    if prompt.is_empty():
+        hint.text = ""
+        board.set_marks(marks)
+        return
+    hint.text = prompt.title + ("   " + prompt.hint if prompt.get("hint", "") != "" else "")
+    for choice in prompt.choices:
+        if choice.has("card"):
+            var c: Dictionary = choice.card
+            marks["%s:%s:%d" % [c.side, c.zone, int(c.index)]] = "pick"
+        var label: String = choice.label
+        if choice.has("card"):
+            label = "%s: %s" % [choice.card.name, label]
+        _button(label, _on_choice.bind(int(choice.id)), multi)
+    if multi:
+        _button("Bestätigen", _on_confirm, false)
+    board.set_marks(marks)
 
 
 func _button(text: String, action: Callable, toggle: bool) -> void:
-	var button := Button.new()
-	button.text = text
-	button.toggle_mode = toggle
-	button.custom_minimum_size = Vector2(0, 44)
-	button.add_theme_font_size_override("font_size", 18)
-	button.pressed.connect(action)
-	buttons.add_child(button)
+    var button := Button.new()
+    button.text = text
+    button.toggle_mode = toggle
+    button.custom_minimum_size = Vector2(0, 44)
+    button.add_theme_font_size_override("font_size", 18)
+    button.pressed.connect(action)
+    buttons.add_child(button)
 
 
 func _on_choice(id: int) -> void:
-	if not prompt.get("multi", false):
-		client.choose(id)
-		return
-	if picked.has(id):
-		picked.erase(id)
-	else:
-		picked.append(id)
+    if busy:
+        return
+    if not prompt.get("multi", false):
+        client.choose(id)
+        return
+    if picked.has(id):
+        picked.erase(id)
+    else:
+        picked.append(id)
 
 
 func _on_confirm() -> void:
-	client.pick(picked)
+    if not busy:
+        client.pick(picked)
 
 
 # Klick aufs Feld: die Karte unter dem Mauszeiger wählt die Brücke aus, wenn sie in der Frage steht.
 func _unhandled_input(event: InputEvent) -> void:
-	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
-		return
-	if busy or prompt.is_empty():
-		return
-	var hit: Dictionary = board.pick(cam, event.position)
-	if not hit.has("view"):
-		return
-	var view = hit.view
-	var key := "%s:%s:%d" % [view.side, view.zone, view.index]
-	for choice in prompt.choices:
-		if choice.has("card") and "%s:%s:%d" % [choice.card.side, choice.card.zone, int(choice.card.index)] == key:
-			_on_choice(int(choice.id))
-			return
+    var mouse := event as InputEventMouseButton
+    if mouse == null or not mouse.pressed or mouse.button_index != MOUSE_BUTTON_LEFT:
+        return
+    if busy or prompt.is_empty():
+        return
+    var hit: Dictionary = board.pick(cam, mouse.position)
+    if not hit.has("view"):
+        return
+    var view = hit.view
+    var key := "%s:%s:%d" % [view.side, view.zone, view.index]
+    for choice in prompt.choices:
+        if choice.has("card") and "%s:%s:%d" % [choice.card.side, choice.card.zone, int(choice.card.index)] == key:
+            _on_choice(int(choice.id))
+            return
