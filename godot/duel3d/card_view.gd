@@ -157,6 +157,8 @@ func pick_box() -> AABB:
 	var width := SIZE.z if sideways else SIZE.x
 	var depth := SIZE.x if sideways else SIZE.z
 	var height := figure_height if _figure != null and _figure.visible else 0.3
+	if zone == "hand":   # geneigte, kleinere Karte: schmaler und höher
+		return AABB(global_position - Vector3(width * 0.4, 0.2, depth * 0.35), Vector3(width * 0.8, 1.4, depth * 0.7))
 	return AABB(global_position - Vector3(width / 2.0, 0.0, depth / 2.0), Vector3(width, height, depth))
 
 

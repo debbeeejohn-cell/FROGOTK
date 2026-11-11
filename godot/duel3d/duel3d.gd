@@ -1,6 +1,7 @@
 extends Node3D
 # Hauptszene: Kamera, Spielfeld, Regie, Bedienung. Verbindet alles mit der Duell-Brücke (duel_client.gd).
-# Klick auf eine Karte = Auswahl; wählbare Karten leuchten grün. Während die Regie spielt, ist nichts
+# Klick auf eine Karte zeigt ihre Aktionen (bei nur einer Aktion wird sie sofort ausgeführt); wählbare Karten leuchten grün.
+# Knöpfe gibt es sonst nur für Aktionen ohne sichtbare Karte (Phasen, Ja/Nein, Karten im Deck). Während die Regie spielt, ist nichts
 # klickbar. Eintreffende Zustände warten in einer Schlange und werden der Reihe nach abgespielt.
 const Board = preload("res://duel3d/board.gd")
 const Director = preload("res://duel3d/director.gd")
@@ -8,7 +9,7 @@ const DuelClient = preload("res://bridge/duel_client.gd")
 const LpGauge = preload("res://duel3d/lp_gauge.gd")
 const CutIn = preload("res://duel3d/cut_in.gd")
 
-const CAM_HOME := Transform3D(Basis.IDENTITY, Vector3(0.0, 11.5, 14.8))   # Übersicht, siehe Kamerarechnung
+const CAM_HOME := Transform3D(Basis.IDENTITY, Vector3(0.0, 13.0, 13.5))   # mittig über dem Feld: beide Seiten und meine Hand im Bild
 
 var board: Board
 var director: Director
@@ -17,10 +18,11 @@ var client: DuelClient
 var ui: CanvasLayer
 var status: Label
 var hint: Label
-var buttons: HBoxContainer
+var buttons: HFlowContainer
 var log_label: Label
 var prompt: Dictionary = {}
 var picked: Array = []        # Auswahl-Indizes bei Mehrfachauswahl
+var focus := ""              # angeklickte Karte ("me:hand:2"), deren Aktionen als Knöpfe erscheinen
 var busy := false
 var gauges := {}              # "me" / "bot" -> LpGauge
 var _state: Dictionary = {}
@@ -29,10 +31,10 @@ var _queue: Array = []        # Zustände, die noch abgespielt werden
 
 func _ready() -> void:
     cam = Camera3D.new()
-    cam.fov = 50.0
+    cam.fov = 55.0
     add_child(cam)
     cam.transform = CAM_HOME
-    cam.look_at(Vector3(3.0, 0.0, 0.5), Vector3.UP)
+    cam.look_at(Vector3(0.0, 0.0, -0.5), Vector3.UP)
     cam.make_current()
 
     board = Board.new()
@@ -77,9 +79,10 @@ func _build_ui() -> void:
     hint = Label.new()
     hint.add_theme_font_size_override("font_size", 20)
     root.add_child(hint)
-    buttons = HBoxContainer.new()
-    buttons.alignment = BoxContainer.ALIGNMENT_CENTER
-    buttons.add_theme_constant_override("separation", 8)
+    buttons = HFlowContainer.new()   # bricht um, statt rechts aus dem Bild zu laufen
+    buttons.alignment = FlowContainer.ALIGNMENT_CENTER
+    buttons.add_theme_constant_override("h_separation", 8)
+    buttons.add_theme_constant_override("v_separation", 8)
     buttons.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     root.add_child(buttons)
 
@@ -90,10 +93,12 @@ func _build_ui() -> void:
     for side in ["me", "bot"]:
         var gauge: LpGauge = LpGauge.new()
         gauge.title = "Du" if side == "me" else "Bot"
+        gauge.radius = 44.0
         ui.add_child(gauge)
         gauges[side] = gauge
     gauges.me.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT, Control.PRESET_MODE_MINSIZE, 16)
     gauges.bot.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT, Control.PRESET_MODE_MINSIZE, 16)
+    gauges.bot.grow_horizontal = Control.GROW_DIRECTION_BEGIN   # wächst nach links, nicht aus dem Bild
 
 
 func _on_state(state: Dictionary) -> void:
@@ -135,6 +140,7 @@ func _refresh() -> void:
     log_label.text = "\n".join(lines)
     prompt = s.prompt if s.prompt != null else {}
     picked = []
+    focus = ""
     _show_prompt()
     if s.winner != null:
         hint.text = "Du gewinnst!" if s.winner == "me" else "Der Bot gewinnt."
@@ -143,6 +149,7 @@ func _refresh() -> void:
 func _clear_prompt() -> void:
     prompt = {}
     picked = []
+    focus = ""
     for child in buttons.get_children():
         child.queue_free()
     board.set_marks({})
@@ -160,19 +167,27 @@ func _show_prompt() -> void:
         return
     hint.text = prompt.title + ("   " + prompt.hint if prompt.get("hint", "") != "" else "")
     for choice in prompt.choices:
-        if choice.has("card"):
-            var c: Dictionary = choice.card
-            marks["%s:%s:%d" % [c.side, c.zone, int(c.index)]] = "pick"
+        var k := _key(choice)
+        var on_board: bool = k != "" and board.views.has(k)
+        if on_board:
+            marks[k] = "selected" if picked.has(int(choice.id)) or k == focus else "pick"
+        if on_board and (multi or (prompt.kind == "actions" and k != focus)):   # Fragen wie Ja/Nein behalten ihre Knöpfe
+            continue   # sichtbare Karte: Klick auf die Karte statt Knopf
         var label: String = choice.label
         if choice.has("card"):
             label = "%s: %s" % [choice.card.name, label]
-        _button(label, _on_choice.bind(int(choice.id)), multi)
+        var button := _button(label, _on_choice.bind(int(choice.id)), multi)
+        button.button_pressed = multi and picked.has(int(choice.id))
     if multi:
         _button("Bestätigen", _on_confirm, false)
     board.set_marks(marks)
 
 
-func _button(text: String, action: Callable, toggle: bool) -> void:
+func _key(choice: Dictionary) -> String:
+    return Board.key(choice.card.side, choice.card.zone, int(choice.card.index)) if choice.has("card") else ""
+
+
+func _button(text: String, action: Callable, toggle: bool) -> Button:
     var button := Button.new()
     button.text = text
     button.toggle_mode = toggle
@@ -180,6 +195,7 @@ func _button(text: String, action: Callable, toggle: bool) -> void:
     button.add_theme_font_size_override("font_size", 18)
     button.pressed.connect(action)
     buttons.add_child(button)
+    return button
 
 
 func _on_choice(id: int) -> void:
@@ -192,6 +208,7 @@ func _on_choice(id: int) -> void:
         picked.erase(id)
     else:
         picked.append(id)
+    _show_prompt()
 
 
 func _on_confirm() -> void:
@@ -210,8 +227,12 @@ func _unhandled_input(event: InputEvent) -> void:
     if not hit.has("view"):
         return
     var view = hit.view
-    var key := "%s:%s:%d" % [view.side, view.zone, view.index]
-    for choice in prompt.choices:
-        if choice.has("card") and "%s:%s:%d" % [choice.card.side, choice.card.zone, int(choice.card.index)] == key:
-            _on_choice(int(choice.id))
-            return
+    var k: String = Board.key(view.side, view.zone, view.index)
+    var mine: Array = prompt.choices.filter(func(choice: Dictionary) -> bool: return _key(choice) == k)
+    if mine.is_empty():
+        return
+    if mine.size() == 1 or prompt.get("multi", false):
+        _on_choice(int(mine[0].id))
+        return
+    focus = "" if focus == k else k   # mehrere Aktionen: als Knöpfe zeigen, zweiter Klick schließt
+    _show_prompt()

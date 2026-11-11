@@ -16,6 +16,7 @@ var cards: Dictionary = {}    # Kartenname -> Fakten; das Hauptskript füllt sie
 var views: Dictionary = {}    # "me:mz:2" -> CardView
 var _piles: Dictionary = {}   # "me:gy" -> { "node": MeshInstance3D, "label": Label3D }
 var _bot_hand: Node3D
+var _hand_count := 0         # meine Handkarten liegen offen als Fächer vor mir
 
 
 func _ready() -> void:
@@ -54,7 +55,10 @@ func zone_pos(side: String, zone: String, index: int) -> Vector3:
 			return Vector3(PILE_X * s, 0.0, ROW_SPELL * s)
 		"extra":
 			return Vector3(-PILE_X * s, 0.0, ROW_SPELL * s)
-	return Vector3(0.0, 1.5, 8.0 * s)   # Hand: Start und Ziel für Flug-Animationen
+	if side == "me":   # meine Hand: eine Reihe vor mir, rückt bei vielen Karten zusammen
+		var gap := minf(1.6, 11.0 / maxf(_hand_count, 1))
+		return Vector3((index - (_hand_count - 1) / 2.0) * gap, 1.0, 7.0)
+	return Vector3(0.0, 2.0, -7.4)   # Hand des Bots: Start und Ziel für Flug-Animationen
 
 
 func duelist_pos(side: String) -> Vector3:
@@ -74,9 +78,12 @@ func place(side: String, zone: String, index: int, card: Dictionary) -> CardView
 		view.side = side
 		view.zone = zone
 		view.index = index
-		view.position = zone_pos(side, zone, index)
 		add_child(view)
 		views[k] = view
+	view.position = zone_pos(side, zone, index)
+	if zone == "hand":   # kleiner und zur Kamera geneigt
+		view.scale = Vector3.ONE * 0.8
+		view.rotation_degrees.x = 35.0
 	view.show_card(card, cards.get(card.get("name", ""), {}))
 	return view
 
@@ -117,6 +124,13 @@ func sync(field: Dictionary) -> void:
 		_set_pile(side, "extra", extra.size() if extra is Array else int(extra), "Extra")
 		_set_pile(side, "gy", gy.size() + banished.size(), "Friedhof" if banished.is_empty() else "Friedhof %d\nVerbannt %d" % [gy.size(), banished.size()])
 	_set_bot_hand(int(field["bot"]["hand"]))
+	var hand: Array = field["me"]["hand"]
+	for i in range(hand.size(), _hand_count):
+		remove("me", "hand", i)
+	_hand_count = hand.size()
+	for i in hand.size():
+		var facts: Dictionary = cards.get(hand[i], {})
+		place("me", "hand", i, {"name": hand[i], "down": false, "pos": "atk", "atk": facts.get("atk", 0), "def": facts.get("def", 0)})
 
 
 # marks: "me:mz:2" -> "pick" oder "selected". Alle anderen Karten verlieren ihre Markierung.
