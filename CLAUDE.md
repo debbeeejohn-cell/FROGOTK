@@ -39,6 +39,11 @@ Kein Test-Framework: jede Datei ist ein `assert`-Skript und endet mit „all che
 - Daten: `data/decks.json` (7 Decks), `data/cards.json` + `assets/cards-small/` (YGOPRODeck),
   `data/core-cards.json` + `data/core-scripts.json` (BabelCDB + ProjectIgnis CardScripts),
   `data/edison-banlist.json`.
+- `data/edison-texts.json`: Edison-Kartentexte, die die aktuellen Texte überschreiben (nur Anzeige).
+  Wird beim Erzeugen von `cards.json` angewendet (`scripts/fetch-cards.mjs`).
+  Die Engine führt weiter die aktuellen Skripte aus. Bekannte Abweichungen: Brionac erlaubt nur gegnerische
+  Ziele (Edison: beliebige Karten), Goyo Guardian ist optional (Edison: Pflicht). Eigene Edison-Skripte
+  wären der nächste Schritt, falls das Verhalten stimmen soll.
 - `scripts/fetch-cards.mjs`, `scripts/fetch-core.mjs`: laden die Daten neu. Nötig nach Änderungen an
   `data/decks.json` (neue Karten brauchen Kartendaten und Lua-Skript). Workflow „Karten laden“ macht beides.
 
