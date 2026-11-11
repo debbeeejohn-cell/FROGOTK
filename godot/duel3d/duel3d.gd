@@ -10,7 +10,7 @@ const LpGauge = preload("res://duel3d/lp_gauge.gd")
 const CutIn = preload("res://duel3d/cut_in.gd")
 const SummonShow = preload("res://duel3d/summon_show.gd")
 
-const BUILD := "Stand 6"   # steht oben in der Statuszeile: zeigt auf einem Screenshot, welche Version läuft
+const BUILD := "Stand 7"   # steht oben in der Statuszeile: zeigt auf einem Screenshot, welche Version läuft
 const CAM_HOME := Transform3D(Basis.IDENTITY, Vector3(0.0, 13.0, 13.5))   # mittig über dem Feld: beide Seiten und meine Hand im Bild
 
 var board: Board
@@ -36,6 +36,12 @@ var pile_view: PanelContainer # Friedhof, Verbannt oder Extra Deck als Liste
 var pile_title: Label
 var pile_list: HFlowContainer
 var result: Label             # „Gewonnen“ / „Verloren“ in der Bildmitte
+var bubble: PanelContainer    # Sprechblase des Lehrers unten rechts
+var bubble_text: Label
+var bubble_tail: Polygon2D
+var _bubble_id := 0
+var _shown_review := ""       # welches Review die Blase schon gezeigt hat (die Brücke schickt es mit jedem Zustand mit)
+const BUBBLE_SECONDS := 9.0
 var _pinned := ""             # zuletzt beschworene Karte: bleibt oben rechts stehen, bis eine andere dran ist
 const SPEEDS := [1.0, 0.5, 0.0]
 const SPEED_NAMES := ["normal", "schnell", "aus"]
@@ -156,6 +162,40 @@ func _build_ui() -> void:
 	result.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	result.visible = false
 	ui.add_child(result)
+
+	# Sprechblase des Lehrers: unten rechts über der Knopfleiste, Zipfel zeigt nach unten rechts.
+	bubble = PanelContainer.new()
+	bubble.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bubble.custom_minimum_size = Vector2(380, 0)
+	bubble.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE)
+	bubble.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	bubble.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	bubble.offset_right = -24.0
+	bubble.offset_bottom = -150.0
+	var paper := StyleBoxFlat.new()
+	paper.bg_color = Color(0.97, 0.95, 0.87)
+	paper.border_color = Color(0.85, 0.65, 0.15)
+	paper.set_border_width_all(3)
+	paper.set_corner_radius_all(14)
+	paper.content_margin_left = 16.0
+	paper.content_margin_right = 16.0
+	paper.content_margin_top = 12.0
+	paper.content_margin_bottom = 12.0
+	bubble.add_theme_stylebox_override("panel", paper)
+	bubble.visible = false
+	ui.add_child(bubble)
+	bubble_text = Label.new()
+	bubble_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bubble_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	bubble_text.custom_minimum_size = Vector2(348, 0)
+	bubble_text.add_theme_font_size_override("font_size", 18)
+	bubble_text.add_theme_color_override("font_color", Color(0.10, 0.10, 0.16))
+	bubble.add_child(bubble_text)
+	bubble_tail = Polygon2D.new()   # Zipfel der Sprechblase, sitzt am unteren Rand rechts
+	bubble_tail.color = paper.bg_color
+	bubble_tail.polygon = PackedVector2Array([Vector2(0, 0), Vector2(34, 0), Vector2(34, 30)])
+	bubble.add_child(bubble_tail)
+	bubble.resized.connect(func() -> void: bubble_tail.position = Vector2(bubble.size.x - 70.0, bubble.size.y - 3.0))
 
 	# Stapel-Ansicht in der Mitte: Friedhof, Verbannt, eigenes Extra Deck.
 	pile_view = PanelContainer.new()
@@ -290,11 +330,9 @@ func _refresh() -> void:
 	for side in gauges:
 		gauges[side].set_lp(float(s.lp[side]), true)
 	status.text = "Zug %d · %s · %s   (%s)" % [int(s.turn), "Du" if s.active == "me" else "Bot", s.phase, BUILD]
-	var lines: Array = s.log.slice(0, 4)
+	log_label.text = "\n".join(s.log.slice(0, 4))
 	if s.review != null:
-		var notes: Array = s.review.notes
-		lines.push_front("Lehrer: " + ("Nichts auszusetzen." if notes.is_empty() else " | ".join(notes)))
-	log_label.text = "\n".join(lines)
+		_teacher_says(s.review)
 	prompt = s.prompt if s.prompt != null else {}
 	picked = []
 	focus = ""
@@ -307,7 +345,32 @@ func _refresh() -> void:
 		_button("Neues Duell", _new_duel, false)
 
 
+# Lehrer-Kommentar als Sprechblase, nur einmal je Review, blendet nach einigen Sekunden aus.
+func _teacher_says(review: Dictionary) -> void:
+	var notes: Array = review.notes
+	var text := "Lehrer: Nichts auszusetzen." if notes.is_empty() else "Lehrer:\n• " + "\n• ".join(notes)
+	var id := "%d|%s" % [int(review.turn), text]
+	if id == _shown_review:
+		return
+	_shown_review = id
+	_bubble_id += 1
+	var mine := _bubble_id
+	bubble_text.text = text
+	bubble.modulate.a = 1.0
+	bubble.visible = true
+	await get_tree().create_timer(BUBBLE_SECONDS).timeout
+	if mine == _bubble_id:
+		var tw := create_tween()
+		tw.tween_property(bubble, "modulate:a", 0.0, 0.4)
+		await tw.finished
+		if mine == _bubble_id:
+			bubble.visible = false
+
+
 func _new_duel() -> void:
+	_shown_review = ""
+	_bubble_id += 1
+	bubble.visible = false
 	_pinned = ""
 	detail.visible = false
 	client.new_duel("frogOtk", "blackwing", [], true, "aktiv")
