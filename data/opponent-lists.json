@@ -1,0 +1,57 @@
+{
+  "source": "Decklisten vom Nutzer (deutsche Namen), auf englische Namen der Datenbank übersetzt. Gewittermagierin (Lightsworn, Extra) fehlt noch.",
+  "lists": {
+    "frogMonarch": {
+      "name": "Frog Monarch",
+      "main": [
+        {"card": "Battle Fader", "count": 3}, {"card": "Caius the Shadow Monarch", "count": 3}, {"card": "Raiza the Storm Monarch", "count": 3},
+        {"card": "Substitoad", "count": 3}, {"card": "Swap Frog", "count": 3}, {"card": "Thestalos the Firestorm Monarch", "count": 2},
+        {"card": "Dark Dust Spirit", "count": 1}, {"card": "Dupe Frog", "count": 2}, {"card": "Treeborn Frog", "count": 2},
+        {"card": "Gorz the Emissary of Darkness", "count": 1}, {"card": "Tragoedia", "count": 1}, {"card": "Flip Flop Frog", "count": 1},
+        {"card": "Light and Darkness Dragon", "count": 1}, {"card": "Soul Exchange", "count": 3}, {"card": "Upstart Goblin", "count": 3},
+        {"card": "Brain Control", "count": 1}, {"card": "Heavy Storm", "count": 1}, {"card": "Enemy Controller", "count": 3},
+        {"card": "Scapegoat", "count": 1}, {"card": "Nobleman of Extermination", "count": 1}, {"card": "Raigeki Break", "count": 1}
+      ],
+      "extra": [
+        {"card": "Chimeratech Fortress Dragon", "count": 2}, {"card": "Mist Wurm", "count": 1}, {"card": "Colossal Fighter", "count": 1},
+        {"card": "Thought Ruler Archfiend", "count": 1}, {"card": "Dark End Dragon", "count": 1}, {"card": "Stardust Dragon", "count": 1},
+        {"card": "Black Rose Dragon", "count": 1}, {"card": "X-Saber Urbellum", "count": 1}, {"card": "Goyo Guardian", "count": 1},
+        {"card": "Brionac, Dragon of the Ice Barrier", "count": 1}, {"card": "Flamvell Uruquizas", "count": 1}, {"card": "Magical Android", "count": 1},
+        {"card": "Ally of Justice Catastor", "count": 1}, {"card": "Armory Arm", "count": 1}
+      ],
+      "side": [
+        {"card": "D.D. Crow", "count": 1}, {"card": "Vanity's Fiend", "count": 1}, {"card": "Ryko, Lightsworn Hunter", "count": 1},
+        {"card": "Snowman Eater", "count": 1}, {"card": "Raigeki Break", "count": 1}, {"card": "Salvage", "count": 3},
+        {"card": "Dark Dust Spirit", "count": 1}, {"card": "Thestalos the Firestorm Monarch", "count": 1}, {"card": "Junk Synchron", "count": 2},
+        {"card": "Unifrog", "count": 1}
+      ]
+    },
+    "lightsworn": {
+      "name": "Lightsworn",
+      "main": [
+        {"card": "Celestia, Lightsworn Angel", "count": 3}, {"card": "Ryko, Lightsworn Hunter", "count": 3}, {"card": "Wulf, Lightsworn Beast", "count": 3},
+        {"card": "Lyla, Lightsworn Sorceress", "count": 2}, {"card": "Judgment Dragon", "count": 2}, {"card": "Aurkus, Lightsworn Druid", "count": 1},
+        {"card": "Ehren, Lightsworn Monk", "count": 1}, {"card": "Garoth, Lightsworn Warrior", "count": 1}, {"card": "Jain, Lightsworn Paladin", "count": 1},
+        {"card": "Lumina, Lightsworn Summoner", "count": 1}, {"card": "Honest", "count": 2}, {"card": "Gorz the Emissary of Darkness", "count": 1},
+        {"card": "Card Trooper", "count": 1}, {"card": "Plaguespreader Zombie", "count": 1}, {"card": "Necro Gardna", "count": 1},
+        {"card": "Tragoedia", "count": 1}, {"card": "Solar Recharge", "count": 3}, {"card": "Charge of the Light Brigade", "count": 1},
+        {"card": "Pot of Avarice", "count": 3}, {"card": "Card Destruction", "count": 1}, {"card": "Heavy Storm", "count": 1},
+        {"card": "Foolish Burial", "count": 1}, {"card": "Threatening Roar", "count": 3}, {"card": "Trap Dustshoot", "count": 1}, {"card": "Mirror Force", "count": 1}
+      ],
+      "extra": [
+        {"card": "Chimeratech Fortress Dragon", "count": 1}, {"card": "Mist Wurm", "count": 1}, {"card": "Red Dragon Archfiend", "count": 1},
+        {"card": "Colossal Fighter", "count": 1}, {"card": "Thought Ruler Archfiend", "count": 1}, {"card": "Avenging Knight Parshath", "count": 1},
+        {"card": "Stardust Dragon", "count": 1}, {"card": "Black Rose Dragon", "count": 1}, {"card": "X-Saber Urbellum", "count": 1},
+        {"card": "Goyo Guardian", "count": 1}, {"card": "Brionac, Dragon of the Ice Barrier", "count": 1}, {"card": "Magical Android", "count": 1},
+        {"card": "Ally of Justice Catastor", "count": 1}, {"card": "Armory Arm", "count": 1}
+      ],
+      "side": [
+        {"card": "Ehren, Lightsworn Monk", "count": 1}, {"card": "Cyber Dragon", "count": 2}, {"card": "D.D. Crow", "count": 2},
+        {"card": "Lightning Vortex", "count": 1}, {"card": "Mind Control", "count": 1}, {"card": "My Body as a Shield", "count": 2},
+        {"card": "Mystical Space Typhoon", "count": 1}, {"card": "Dust Tornado", "count": 1}, {"card": "Imperial Iron Wall", "count": 2},
+        {"card": "Royal Decree", "count": 2}
+      ]
+    }
+  },
+  "missing": ["Gewittermagierin (Lightsworn, Extra, 1x): englischer Name fehlt"]
+}
