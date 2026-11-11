@@ -160,7 +160,8 @@ function state() {
     ok: true, duel: true, turn: g.turn, active: g.active === null ? null : side(g.active), phase: PHASE[g.phase] ?? '',
     lp: { me: g.lp[g.me], bot: g.lp[g.bot] }, winner: g.winner === null ? null : g.winner === g.me ? 'me' : g.winner === g.bot ? 'bot' : 'draw',
     field: { me: half(g.me, false), bot: half(g.bot, true) }, prompt: s.pending ? prompt : null,
-    events, log: g.log.slice(0, 30), review: g.review ?? null, error: g.error || (g.errors.at(-1) ?? '')
+    events, log: g.log.slice(0, 30), review: g.review ?? null, error: g.error || (g.errors.at(-1) ?? ''),
+    decisions: g.botLog?.splice(0) ?? [] // protokollierte Bot-Entscheidungen seit dem letzten Zustand
   };
   out.cards = {};
   for (const name of cardNames([out.field, out.prompt, out.events])) {

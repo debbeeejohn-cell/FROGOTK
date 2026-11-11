@@ -45,6 +45,10 @@ export function pickSoftmax(scored, temperature, rand = Math.random) {
   return scored[scored.length - 1];
 }
 
+function logBattle(g, entry) {
+  (g.botLog ??= []).push(entry);
+}
+
 const act = (action, index) => ({ type: R.SELECT_IDLECMD, action, index });
 const sideOf = (v) => ({ backrow: v.st.filter(Boolean).length, faceUp: v.mz.filter((c) => c && !(c.position & P.FACEDOWN)).length });
 
@@ -94,8 +98,16 @@ export function botPlay(m, table, g) {
   const value = (c) => (c.position & P.FACEDOWN ? FACEDOWN_GUESS : c.position & P.DEFENSE ? c.defense : c.attack);
   if (m.type === M.SELECT_BATTLECMD) {
     const weakest = Math.min(...foes.map(value));
+    const weakestCard = foes.reduce((x, y) => (value(y) < value(x) ? y : x), foes[0] ?? {});
     const next = m.attacks.map((c, index) => ({ index, atk: mine.mz[c.sequence]?.attack ?? 0, direct: c.can_direct }))
       .filter((a) => a.direct || a.atk > weakest).sort((a, b) => a.atk - b.atk)[0];
+    // Protokoll (ändert nichts): was der Bot hatte, welches Ziel er als schwächstes sah, und was er tat.
+    logBattle(g, {
+      turn: g.turn,
+      attackers: m.attacks.map((c) => ({ atk: mine.mz[c.sequence]?.attack ?? 0, direct: !!c.can_direct })),
+      weakest: foes.length ? { value: weakest, faceDown: !!(weakestCard.position & P.FACEDOWN) } : null,
+      chosen: next ? { atk: next.atk, direct: !!next.direct } : null
+    });
     if (next) { g.botAtk = next.atk; return { type: R.SELECT_BATTLECMD, action: BATTLE.SELECT_BATTLE, index: next.index }; }
   }
   if (m.type === M.SELECT_CARD) {
