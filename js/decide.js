@@ -52,8 +52,8 @@ function logBattle(g, entry) {
 const act = (action, index) => ({ type: R.SELECT_IDLECMD, action, index });
 const sideOf = (v) => ({ backrow: v.st.filter(Boolean).length, faceUp: v.mz.filter((c) => c && !(c.position & P.FACEDOWN)).length });
 
-// Alle Hauptphasen-Aktionen, die die bisherigen Regeln zulassen, mit Score. Bei Gleichstand gewinnt die früher genannte.
-function bestMainAction(m, table, g, mine, theirs) {
+// Alle Hauptphasen-Aktionen, die die bisherigen Regeln zulassen, mit Score, beste zuerst. Bei Gleichstand gewinnt die früher genannte.
+export function mainCandidates(m, table, g, mine = g.view()[g.bot], theirs = g.view()[g.me]) {
   const data = (c) => table.data.get(c.code);
   const own = sideOf(mine); const foe = sideOf(theirs);
   const feats = features(m, table, g, g.bot);
@@ -73,8 +73,7 @@ function bestMainAction(m, table, g, mine, theirs) {
     m.spell_sets.forEach((c, i) => { if (data(c)?.type & TYPE_TRAP) add('set', 'spell_sets', i, act(IDLE.SELECT_SPELL_SET, i)); });
   }
   if (m.to_bp) add('phase', 'to_bp', null, act(IDLE.TO_BP, null));
-  if (!cands.length) return undefined;
-  return cands.reduce((a, b) => (b.score > a.score ? b : a)).response;
+  return cands.map((c, i) => ({ ...c, i })).sort((a, b) => b.score - a.score || a.i - b.i); // beste zuerst
 }
 
 /**
@@ -92,8 +91,8 @@ export function botPlay(m, table, g) {
   const foes = theirs.mz.filter(Boolean);
   const data = (c) => table.data.get(c.code);
   if (m.type === M.SELECT_IDLECMD && (g.botActs = (g.botActs ?? 0) + 1) <= MAX_ACTIONS_PER_TURN) {
-    const best = bestMainAction(m, table, g, mine, theirs);
-    if (best) return best;
+    const best = mainCandidates(m, table, g, mine, theirs)[0];
+    if (best) return best.response;
   }
   const value = (c) => (c.position & P.FACEDOWN ? FACEDOWN_GUESS : c.position & P.DEFENSE ? c.defense : c.attack);
   if (m.type === M.SELECT_BATTLECMD) {

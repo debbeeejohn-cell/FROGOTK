@@ -36,6 +36,13 @@ Kein Test-Framework: jede Datei ist ein `assert`-Skript und endet mit „all che
   - `js/duel.js`: Oberfläche. Zeigt nur Aktionen, die die Engine anbietet; Dialoge für Ketten,
     Kartenwahl, Summen, Position, Ansagen. Rückgängig = Duell mit gleichem Seed neu abspielen.
     Combos (Setup + Seed + Antworten) liegen in localStorage `duelLines`.
+  - `js/decide.js`: Entscheidungen des aktiven Bots (Merkmale, Score, Angriffsregel).
+  - `js/guess.js`: Schätzung verdeckter Karten aus Decklist, offen gesehenen Karten, Zone und Setz-Tendenz
+    (`data/set-tendencies.json`). Messung gegen die Engine: `node --no-warnings scripts/guess-eval.mjs`.
+  - `js/lookahead.js`: Bot rechnet am Zuganfang seine 3 besten Kandidaten in je 4 Probewelten durch (neues Duell
+    aus dem öffentlichen Brett, meine verdeckten Karten aus dem Restpool gezogen). Schalter: `opts.botHook = lookahead(opts)`,
+    in der Brücke `POST /new { lookahead: true }`. Standard aus. Messung: `node --no-warnings scripts/bot-eval.mjs 100 lookahead`.
+    `newGame` kann dafür eine ganze Stellung starten (`opts.start`) und an einem Zug anhalten (`opts.stopTurn`).
 - Daten: `data/decks.json` (7 Decks), `data/cards.json` + `assets/cards-small/` (YGOPRODeck),
   `data/core-cards.json` + `data/core-scripts.json` (BabelCDB + ProjectIgnis CardScripts),
   `data/edison-banlist.json`.

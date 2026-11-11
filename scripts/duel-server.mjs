@@ -5,7 +5,8 @@
 //
 //   GET  /decks                 -> [{ id, name }]
 //   GET  /card?name=Swap%20Frog -> { name, type, desc, atk, def, level, attribute, race }
-//   POST /new    { deck, opp, hand: [names], first: true, bot: "aktiv"|"passiv", askAll: false, seed: [4 numbers as strings] }
+//   POST /new    { deck, opp, hand: [names], first: true, bot: "aktiv"|"passiv", askAll: false, seed: [4 numbers as strings],
+//                  lookahead: false (the active bot tries its best moves in sampled worlds first, js/lookahead.js) }
 //   POST /answer { choice: id } | { pick: [ids] } | { name: "Card Name" }
 //   POST /undo
 //   GET  /state                 (also resends all card facts, for a client that reconnects)
@@ -16,6 +17,7 @@
 
 import fs from 'node:fs';
 import http from 'node:http';
+import { lookahead } from '../js/lookahead.js';
 import { loadCore, cardTable, newGame, L, P, M, R, IDLE, BATTLE, PLACE, PHASE, ZONE } from '../js/duel-core.js';
 
 const MAX_BODY = 64 * 1024;
@@ -28,6 +30,8 @@ const table = cardTable(coreCards);
 const coreRow = new Map(coreCards.cards.map((row) => [row[9], row])); // name -> [code, alias, setcode, type, level, attribute, race, atk, def, name]
 const { scripts } = json('core-scripts.json');
 const lib = await loadCore();
+// Setz-Tendenzen nach Passcode, für die Probewelten des Lookahead
+const setWeights = Object.fromEntries(Object.entries(json('set-tendencies.json').weights).map(([name, w]) => [byName.get(name)?.id, w]));
 
 const codes = (names) => names.map((n) => byName.get(n)?.id).filter((code) => table.data.has(code));
 const deckCodes = (deck) => ({
@@ -183,6 +187,7 @@ function start(body) {
   s?.g.close();
   const seed = Array.isArray(body.seed) ? body.seed.map((x) => BigInt(x)) : undefined; // same seed = same deck order
   const opts = { lib, table, scripts, me: deckCodes(deck), bot: deckCodes(opp), hand: codes(hand), seed, second: body.first === false, askAllChains: !!body.askAll, botPlays: body.bot !== 'passiv' };
+  if (body.lookahead && opts.botPlays) opts.botHook = lookahead(opts, setWeights);
   s = { g: newGame(opts), opts, answers: [], sent: 0, pending: null, known: new Set() };
   return state();
 }

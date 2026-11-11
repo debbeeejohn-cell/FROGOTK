@@ -56,7 +56,7 @@ export function cardTable(json) {
 }
 
 /** mulberry32 seeded from the duel seed: small deterministic PRNG, only used to shuffle the decks. */
-function seededRandom(seed) {
+export function seededRandom(seed) {
   let a = Number((seed[0] ^ seed[1] ^ seed[2] ^ seed[3]) & 0xffffffffn) || 1;
   return () => {
     a = (a + 0x6d2b79f5) | 0;
@@ -78,17 +78,21 @@ const randomSeed = () => Array.from(crypto.getRandomValues(new BigUint64Array(4)
 /**
  * opts: { lib, table, scripts, me: {main, extra}, bot: {main, extra} (passcode lists),
  *         preset: {monsters, spellTraps} (passcodes; the bot's starting board, only used by the tests), hand (my fixed opening hand, passcodes),
- *         second, seed, askAllChains, botPlays (bot summons, sets traps and attacks) }
+ *         second, seed, askAllChains, botPlays (bot summons, sets traps and attacks),
+ *         start: { lp: {me, bot}, cards: [{ side: 'me'|'bot', code, location, sequence, position }] } = a whole position
+ *           instead of fresh decks (deck cards in list order, last one on top; nobody draws an opening hand),
+ *         botHook(m, g) -> response or undefined (asked before the bot's own rules; js/lookahead.js),
+ *         stopTurn: the duel stops when this turn begins }
  */
 export function newGame(opts) {
   const { lib, table, scripts, me, bot, preset = {}, hand = [], second = false } = opts;
   opts.seed ??= randomSeed(); // kept so the same duel can be replayed (undo)
   const ME = second ? 1 : 0; const BOT = 1 - ME;
   const g = {
-    me: ME, bot: BOT, lp: [8000, 8000], turn: 0, active: null, phase: 0, winner: null,
+    me: ME, bot: BOT, lp: [0, 1].map((p) => opts.start?.lp[p === ME ? 'me' : 'bot'] ?? 8000), turn: 0, active: null, phase: 0, winner: null,
     log: [], events: [], errors: [], prompt: null, hint: '', error: ''
   };
-  const team = (p) => ({ drawCountPerTurn: 1, startingDrawCount: p === ME ? Math.max(0, 5 - hand.length) : 5, startingLP: 8000 });
+  const team = (p) => ({ drawCountPerTurn: 1, startingDrawCount: opts.start ? 0 : p === ME ? Math.max(0, 5 - hand.length) : 5, startingLP: g.lp[p] });
   const h = lib.createDuel({
     flags: OcgDuelMode.MODE_MR1, // Master Rule 1 = 2010 rules (Edison): first player draws, no Extra Monster Zones
     seed: opts.seed, team1: team(0), team2: team(1),
@@ -110,7 +114,8 @@ export function newGame(opts) {
   (preset.spellTraps || []).slice(0, 5).forEach((code, i) => { take(botMain, code); add(BOT, code, L.SZONE, i, P.FACEDOWN); });
   // The engine does not shuffle: decks must arrive shuffled. Seeded, so a replay (undo) deals the same cards.
   const rand = seededRandom(opts.seed);
-  for (const [owner, deck] of [[ME, { main: myMain, extra: me.extra }], [BOT, { main: botMain, extra: bot.extra }]]) {
+  if (opts.start) opts.start.cards.forEach((c) => add(c.side === 'me' ? ME : BOT, c.code, c.location, c.sequence, c.position));
+  else for (const [owner, deck] of [[ME, { main: myMain, extra: me.extra }], [BOT, { main: botMain, extra: bot.extra }]]) {
     shuffle(deck.main, rand).forEach((code) => add(owner, code, L.DECK));
     deck.extra.forEach((code) => add(owner, code, L.EXTRA));
   }
@@ -197,12 +202,12 @@ export function newGame(opts) {
         else if (m.type === M.RETRY) { retries += 1; if (last?.player === ME) g.error = 'Ungültige Auswahl, bitte erneut wählen.'; }
         else { if (EVENTS.has(m.type)) event = true; if (m.type === M.CHAIN_END) event = false; onMessage(m); }
       }
-      if (status === OcgProcessResult.END || g.winner !== null) { g.prompt = null; return; }
+      if (status === OcgProcessResult.END || g.winner !== null || g.turn >= (opts.stopTurn ?? Infinity)) { g.prompt = null; return; }
       if (status !== OcgProcessResult.WAITING) continue;
       if (last.player === BOT) {
         if (retries > MAX_BOT_RETRIES) throw new Error(`Bot hängt bei Engine-Nachricht ${last.type}`);
         if (opts.botPlays) g.features = features(last, table, g, g.bot); // protokolliert, entscheidet noch nicht
-        lib.duelSetResponse(h, (opts.botPlays && botPlay(last, table, g)) || botAnswer(last, table, g));
+        lib.duelSetResponse(h, opts.botHook?.(last, g) || (opts.botPlays && botPlay(last, table, g)) || botAnswer(last, table, g));
         continue;
       }
       const auto = last.type === M.SELECT_CHAIN && !wantsChain(last) ? { type: R.SELECT_CHAIN, index: null } : autoAnswer(last);

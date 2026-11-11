@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { loadCore, cardTable, newGame, traceOf, compareCombo, M, R, IDLE, BATTLE } from './duel-core.js';
 import { features, score, pickSoftmax, WEIGHTS } from './decide.js';
+import { snapshot, rollout, lookahead } from './lookahead.js';
+import { L, P, seededRandom } from './duel-core.js';
 
 const json = (f) => JSON.parse(fs.readFileSync(new URL(`../data/${f}`, import.meta.url)));
 const table = cardTable(json('core-cards.json'));
@@ -178,5 +180,70 @@ const a = start(); const b = start();
 for (const x of [a, b]) x.respond({ type: R.SELECT_IDLECMD, action: IDLE.TO_EP, index: null });
 assert.deepEqual(a.view(), b.view());
 assert.deepEqual(a.log, b.log);
+
+// A whole starting position: LP, field, hand and deck order are placed, nobody draws an opening hand.
+// The last deck card is on top: the bot draws Kalut in turn 2, Bora pierces with it and Shura finishes.
+{
+  const n = (x) => id.get(x);
+  const cards = [
+    { side: 'bot', code: n('Blackwing - Shura the Blue Flame'), location: L.MZONE, sequence: 0, position: P.FACEUP_ATTACK },
+    { side: 'bot', code: n('Blackwing - Bora the Spear'), location: L.HAND, sequence: 0, position: P.FACEDOWN },
+    { side: 'bot', code: n('Black Whirlwind'), location: L.DECK }, { side: 'bot', code: n('Blackwing - Kalut the Moon Shadow'), location: L.DECK },
+    { side: 'me', code: n('Swap Frog'), location: L.MZONE, sequence: 2, position: P.FACEDOWN_DEFENSE },
+    ...Array(4).fill({ side: 'me', code: n('Des Frog'), location: L.DECK })
+  ];
+  g = newGame({ lib, table, scripts, me: codes(decks.frogOtk), bot: codes(decks.blackwing), start: { lp: { me: 3000, bot: 6000 }, cards }, botPlays: true, stopTurn: 4, seed: [1n, 1n, 1n, 1n] });
+  assert.deepEqual([g.lp[g.me], g.lp[g.bot]], [3000, 6000]);
+  assert.deepEqual(g.view()[g.me].hand.map(name), ['Des Frog'], 'only the turn draw');
+  g.respond({ type: R.SELECT_IDLECMD, action: IDLE.TO_EP, index: null });
+  assert.equal(g.winner, g.bot);
+  assert.ok(g.log.some((l) => l.includes('aktiviert Blackwing - Kalut the Moon Shadow')), 'the top deck card was drawn and used');
+  g.close();
+}
+
+// Lookahead: the bot's sampled world must not depend on my hidden cards, only on public ones.
+{
+  g = start({ botPlays: true, hand: [id.get('Dupe Frog'), id.get('Swap Frog')], seed: [3n, 1n, 4n, 1n] });
+  g.respond({ type: R.SELECT_IDLECMD, action: IDLE.SELECT_MONSTER_SET, index: g.prompt.monster_sets.findIndex((c) => name(c) === 'Dupe Frog') });
+  const view = g.view(); const mine = view[g.me];
+  const at = mine.mz.findIndex(Boolean);
+  assert.ok(mine.mz[at].position & P.FACEDOWN);
+  const info = { bot: g.bot, me: g.me, lp: g.lp, botMain: codes(decks.blackwing).main, meMain: codes(decks.frogOtk).main, table };
+  const world = () => snapshot(view, info, seededRandom([9n, 9n, 9n, 9n]));
+  const before = world();
+  mine.mz[at].code = id.get('Des Frog'); mine.hand.forEach((c) => { c.code = id.get('Unifrog'); }); // other hidden cards, same public board
+  assert.deepEqual(world(), before, 'hidden cards do not leak into the sampled world');
+  const mySide = before.cards.filter((c) => c.side === 'me' && c.location !== L.EXTRA);
+  assert.equal(mySide.length, 40, 'my 40 cards are all somewhere');
+  assert.equal(mySide.filter((c) => c.location === L.MZONE).length, 1);
+  assert.ok(table.data.get(mySide.find((c) => c.location === L.MZONE).code).type & 1, 'a set monster is guessed as a monster');
+  // a sampled world plays to its end without an engine error, and fast enough for a few per turn
+  const t0 = performance.now();
+  const v = rollout({ lib, table, scripts, me: codes(decks.frogOtk), bot: codes(decks.blackwing) }, before, { action: IDLE.TO_BP });
+  console.log(`  eine Probewelt: ${(performance.now() - t0).toFixed(0)} ms`);
+  assert.equal(typeof v, 'number');
+  g.close();
+}
+
+// Lookahead is reproducible: the same duel twice gives the same game (needed for undo and combo replay).
+{
+  const play = () => {
+    const opts = { lib, table, scripts, me: codes(decks.frogOtk), bot: codes(decks.blackwing), hand: [], seed: [3n, 1n, 4n, 1n], botPlays: true };
+    opts.botHook = lookahead(opts);
+    const game = newGame(opts);
+    for (let i = 0; i < 6 && game.prompt; i += 1) {
+      const m = game.prompt;
+      game.respond(m.type === M.SELECT_IDLECMD ? { type: R.SELECT_IDLECMD, action: IDLE.TO_EP, index: null }
+        : m.type === M.SELECT_BATTLECMD ? { type: R.SELECT_BATTLECMD, action: BATTLE.TO_EP, index: null }
+          : m.type === M.SELECT_CHAIN ? { type: R.SELECT_CHAIN, index: null } : { type: R.SELECT_EFFECTYN, yes: false });
+    }
+    const out = { log: [...game.log], look: game.lookLog };
+    game.close();
+    return out;
+  };
+  const a = play();
+  assert.ok(a.look?.length > 0, 'the bot looked ahead at least once');
+  assert.deepEqual(play(), a);
+}
 
 console.log('duel-core: all checks passed');
