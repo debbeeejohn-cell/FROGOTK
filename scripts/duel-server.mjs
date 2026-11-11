@@ -5,7 +5,7 @@
 //
 //   GET  /decks                 -> [{ id, name }]
 //   GET  /card?name=Swap%20Frog -> { name, type, desc, atk, def, level, attribute, race }
-//   POST /new    { deck, opp, hand: [names], first: true, bot: "aktiv"|"passiv", askAll: false }
+//   POST /new    { deck, opp, hand: [names], first: true, bot: "aktiv"|"passiv", askAll: false, seed: [4 numbers as strings] }
 //   POST /answer { choice: id } | { pick: [ids] } | { name: "Card Name" }
 //   POST /undo
 //   GET  /state                 (also resends all card facts, for a client that reconnects)
@@ -177,7 +177,8 @@ function start(body) {
   const left = new Map(deck.main.map((c) => [c.card, c.count]));
   const hand = (Array.isArray(body.hand) ? body.hand : []).filter((n) => left.get(n) > 0 && left.set(n, left.get(n) - 1));
   s?.g.close();
-  const opts = { lib, table, scripts, me: deckCodes(deck), bot: deckCodes(opp), hand: codes(hand), second: body.first === false, askAllChains: !!body.askAll, botPlays: body.bot !== 'passiv' };
+  const seed = Array.isArray(body.seed) ? body.seed.map((x) => BigInt(x)) : undefined; // same seed = same deck order
+  const opts = { lib, table, scripts, me: deckCodes(deck), bot: deckCodes(opp), hand: codes(hand), seed, second: body.first === false, askAllChains: !!body.askAll, botPlays: body.bot !== 'passiv' };
   s = { g: newGame(opts), opts, answers: [], sent: 0, pending: null, known: new Set() };
   return state();
 }
