@@ -10,6 +10,7 @@ const LpGauge = preload("res://duel3d/lp_gauge.gd")
 const CutIn = preload("res://duel3d/cut_in.gd")
 const SummonShow = preload("res://duel3d/summon_show.gd")
 
+const BUILD := "Stand 4"   # steht oben in der Statuszeile: zeigt auf einem Screenshot, welche Version läuft
 const CAM_HOME := Transform3D(Basis.IDENTITY, Vector3(0.0, 13.0, 13.5))   # mittig über dem Feld: beide Seiten und meine Hand im Bild
 
 var board: Board
@@ -254,7 +255,7 @@ func _refresh() -> void:
         return
     for side in gauges:
         gauges[side].set_lp(float(s.lp[side]), true)
-    status.text = "Zug %d · %s · %s" % [int(s.turn), "Du" if s.active == "me" else "Bot", s.phase]
+    status.text = "Zug %d · %s · %s   (%s)" % [int(s.turn), "Du" if s.active == "me" else "Bot", s.phase, BUILD]
     var lines: Array = s.log.slice(0, 4)
     if s.review != null:
         var notes: Array = s.review.notes
@@ -339,7 +340,16 @@ func _on_confirm() -> void:
 
 
 # Klick aufs Feld: die Karte unter dem Mauszeiger wählt die Brücke aus, wenn sie in der Frage steht.
-func _unhandled_input(event: InputEvent) -> void:
+# Liegt die Maus auf einem Knopf oder auf der Stapel-Ansicht? Dann gehört der Klick der Oberfläche, nicht dem Feld.
+func _over_ui() -> bool:
+    var control := get_viewport().gui_get_hovered_control()
+    return control != null and (control is BaseButton or control == pile_view or pile_view.is_ancestor_of(control))
+
+
+# _input statt _unhandled_input: Container der Oberfläche dürfen Klicks aufs Feld nicht verschlucken.
+func _input(event: InputEvent) -> void:
+    if _over_ui():
+        return
     var motion := event as InputEventMouseMotion
     if motion != null:   # Karte unter dem Mauszeiger im Detail zeigen
         var over: Dictionary = board.pick(cam, motion.position)
@@ -355,9 +365,11 @@ func _unhandled_input(event: InputEvent) -> void:
     if busy or prompt.is_empty() or not hit.has("view"):
         return
     var view = hit.view
+    var clicked := str(view.data.get("name", "verdeckte Karte"))
     var k: String = Board.key(view.side, view.zone, view.index)
     var mine: Array = prompt.choices.filter(func(choice: Dictionary) -> bool: return _key(choice) == k)
-    if mine.is_empty():
+    if mine.is_empty():   # Rückmeldung statt Stille
+        hint.text = "%s: gerade keine Aktion möglich." % clicked
         return
     if mine.size() == 1 or prompt.get("multi", false):
         _on_choice(int(mine[0].id))
