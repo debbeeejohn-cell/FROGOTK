@@ -246,4 +246,26 @@ assert.deepEqual(a.log, b.log);
   assert.deepEqual(play(), a);
 }
 
+// Icarus Attack: the bot only chains it when I control at least 2 cards (both targets can be mine).
+{
+  const n = (x) => id.get(x);
+  const play = (extraCards) => {
+    const cards = [
+      { side: 'bot', code: n('Blackwing - Shura the Blue Flame'), location: L.MZONE, sequence: 0, position: P.FACEUP_ATTACK },
+      { side: 'bot', code: n('Icarus Attack'), location: L.SZONE, sequence: 0, position: P.FACEDOWN },
+      ...Array(3).fill({ side: 'bot', code: n('Black Whirlwind'), location: L.DECK }),
+      { side: 'me', code: n('Dupe Frog'), location: L.HAND, sequence: 0, position: P.FACEDOWN },
+      ...Array(4).fill({ side: 'me', code: n('Des Frog'), location: L.DECK }),
+      ...extraCards
+    ];
+    const game = newGame({ lib, table, scripts, me: codes(decks.frogOtk), bot: codes(decks.blackwing), start: { lp: { me: 8000, bot: 8000 }, cards }, botPlays: true, seed: [1n, 1n, 1n, 1n] });
+    game.respond({ type: R.SELECT_IDLECMD, action: IDLE.SELECT_SUMMON, index: game.prompt.summons.findIndex((c) => name(c) === 'Dupe Frog') });
+    const used = game.log.some((l) => l.includes('aktiviert Icarus Attack'));
+    game.close();
+    return used;
+  };
+  assert.equal(play([]), false, 'one card of mine: Icarus Attack stays set');
+  assert.equal(play([{ side: 'me', code: n('Scapegoat'), location: L.SZONE, sequence: 0, position: P.FACEDOWN }]), true, 'two cards of mine: Icarus Attack is used');
+}
+
 console.log('duel-core: all checks passed');

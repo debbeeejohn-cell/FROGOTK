@@ -17,7 +17,11 @@ const SPELL_WHEN = {
   'Giant Trunade': (own, foe) => foe.backrow >= 2 && own.backrow === 0,
   'Brain Control': (own, foe) => foe.faceUp > 0
 };
-
+// Karten, die der Bot nur in einer lohnenden Lage ankettet (foe = meine Seite). Alles andere kettet er wie bisher an.
+// Icarus Attack zerstört 2 Karten: nur, wenn beide Ziele meine Karten sein können.
+const CHAIN_WHEN = {
+  'Icarus Attack': (own, foe) => foe.cards >= 2
+};
 
 // Phase 3: Bewertung der Hauptphase. Die Gewichte sind so gewählt, dass die Kategorie-Reihenfolge der bisherigen
 // Heuristik (Zauber, Beschwörung, Spezialbeschwörung, Effekt, Falle, Battle Phase) gilt. Die Bewertung entscheidet
@@ -50,7 +54,7 @@ function logBattle(g, entry) {
 }
 
 const act = (action, index) => ({ type: R.SELECT_IDLECMD, action, index });
-const sideOf = (v) => ({ backrow: v.st.filter(Boolean).length, faceUp: v.mz.filter((c) => c && !(c.position & P.FACEDOWN)).length });
+const sideOf = (v) => ({ cards: [...v.mz, ...v.st, v.field].filter(Boolean).length, backrow: v.st.filter(Boolean).length, faceUp: v.mz.filter((c) => c && !(c.position & P.FACEDOWN)).length });
 
 // Alle Hauptphasen-Aktionen, die die bisherigen Regeln zulassen, mit Score, beste zuerst. Bei Gleichstand gewinnt die früher genannte.
 export function mainCandidates(m, table, g, mine = g.view()[g.bot], theirs = g.view()[g.me]) {
@@ -93,6 +97,11 @@ export function botPlay(m, table, g) {
   if (m.type === M.SELECT_IDLECMD && (g.botActs = (g.botActs ?? 0) + 1) <= MAX_ACTIONS_PER_TURN) {
     const best = mainCandidates(m, table, g, mine, theirs)[0];
     if (best) return best.response;
+  }
+  if (m.type === M.SELECT_CHAIN && !m.forced) {
+    // Erste Karte, deren Bedingung passt. Passt die vorderste, entscheidet botAnswer wie bisher (nie auf die eigene Kette).
+    const fits = m.selects.findIndex((c) => CHAIN_WHEN[table.name(c.code)]?.(sideOf(mine), sideOf(theirs)) ?? true);
+    if (fits !== 0) return { type: R.SELECT_CHAIN, index: fits > 0 && g.chainBy !== g.bot ? fits : null };
   }
   const value = (c) => (c.position & P.FACEDOWN ? FACEDOWN_GUESS : c.position & P.DEFENSE ? c.defense : c.attack);
   if (m.type === M.SELECT_BATTLECMD) {

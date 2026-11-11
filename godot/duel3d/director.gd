@@ -83,14 +83,14 @@ func _set_card(e: Dictionary) -> void:
 	await _pause(0.25)
 
 
-# Zauber und Fallen zeigen vorher eine große Einblendung; Monstereffekte nur das Aufleuchten.
+# Jede aktivierte Karte (Zauber, Falle, Monstereffekt) leuchtet groß in der Bildmitte auf.
 func _chain(e: Dictionary) -> void:
 	var view = board.view_at(e.side, e.zone, e.index)
 	if view != null:
 		view.flash()
 	var facts: Dictionary = board.cards.get(e.name, {})
-	if cut_in != null and facts.get("frame", "") in ["spell", "trap"]:
-		await cut_in.show_card(e.name, facts.frame, facts.get("tex"))
+	if cut_in != null and not facts.is_empty():
+		await cut_in.show_card(e.name, facts.get("frame", "effect"), facts.get("tex"))
 	await _pause(0.3)
 
 

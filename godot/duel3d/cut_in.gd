@@ -4,7 +4,7 @@ extends Control
 # Klicks gehen durch (MOUSE_FILTER_IGNORE). Die Regie wartet mit await, bis die Einblendung vorbei ist.
 const CardView = preload("res://duel3d/card_view.gd")
 const SIZE := Vector2(340.0, 480.0)
-const HOLD := 1.0
+const HOLD := 0.8
 
 var _panel: ColorRect
 var _picture: TextureRect
@@ -56,8 +56,12 @@ func show_card(card_name: String, frame: String, tex: Texture2D = null) -> void:
 	visible = true
 	modulate.a = 1.0
 	scale = Vector2(0.4, 0.4)
+	_picture.modulate = Color(3.0, 3.0, 3.0)   # Aufleuchten: die Karte erscheint überstrahlt und beruhigt sich
+	_panel.modulate = Color(3.0, 3.0, 3.0)
 	var tw := create_tween()
 	tw.tween_property(self, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(_picture, "modulate", Color.WHITE, 0.4)
+	tw.parallel().tween_property(_panel, "modulate", Color.WHITE, 0.4)
 	tw.tween_interval(HOLD)
 	tw.tween_property(self, "modulate:a", 0.0, 0.25)
 	await get_tree().create_timer(0.25 + HOLD + 0.25).timeout

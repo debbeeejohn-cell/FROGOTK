@@ -67,7 +67,7 @@ st = await post('/answer', { choice: st.prompt.choices.find((c) => c.label === '
 assert.ok(st.review.notes.some((n) => n.startsWith('Normalbeschwörung nicht genutzt')));
 
 // an active bot sets cards: neither the field nor the events may name them
-st = await post('/new', { deck: 'frogOtk', opp: 'blackwing', bot: 'aktiv' });
+st = await post('/new', { deck: 'frogOtk', opp: 'blackwing', bot: 'aktiv', seed: ['3', '1', '4', '1'] }); // fester Seed: sonst setzt der Bot manchmal nichts
 const seen = [];
 for (let i = 0; i < 40 && st.winner === null && st.turn < 6; i += 1) {
   seen.push(st);

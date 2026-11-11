@@ -10,7 +10,7 @@ const LpGauge = preload("res://duel3d/lp_gauge.gd")
 const CutIn = preload("res://duel3d/cut_in.gd")
 const SummonShow = preload("res://duel3d/summon_show.gd")
 
-const BUILD := "Stand 4"   # steht oben in der Statuszeile: zeigt auf einem Screenshot, welche Version läuft
+const BUILD := "Stand 5"   # steht oben in der Statuszeile: zeigt auf einem Screenshot, welche Version läuft
 const CAM_HOME := Transform3D(Basis.IDENTITY, Vector3(0.0, 13.0, 13.5))   # mittig über dem Feld: beide Seiten und meine Hand im Bild
 
 var board: Board
@@ -194,7 +194,9 @@ func _show_pile(pile: String) -> void:
 	var half: Dictionary = _state.get("field", {}).get(side, {})
 	var groups := []
 	if kind == "gy":
-		groups = [["Friedhof", half.get("gy", [])], ["Verbannt", half.get("banished", [])]]
+		groups = [["Friedhof", half.get("gy", [])]]
+	elif kind == "banished":
+		groups = [["Verbannt", half.get("banished", [])]]
 	elif kind == "extra" and half.get("extra") is Array:
 		groups = [["Extra Deck", half["extra"]]]
 	if groups.is_empty():
@@ -205,7 +207,8 @@ func _show_pile(pile: String) -> void:
 	for group in groups:
 		var names: Array = group[1]
 		parts.append("%s %d" % [group[0], names.size()])
-		for card_name in names:
+		for i in names.size():
+			var card_name: String = names[i]
 			var tile := Button.new()   # Knopf: mit Maus und Tastatur erreichbar, zeigt beim Überfahren das Detail
 			tile.custom_minimum_size = Vector2(104, 152)
 			tile.tooltip_text = "%s (%s)" % [card_name, group[0]]
@@ -218,9 +221,21 @@ func _show_pile(pile: String) -> void:
 				tile.clip_text = true
 			tile.mouse_entered.connect(_show_detail.bind(card_name))
 			tile.focus_entered.connect(_show_detail.bind(card_name))
+			if kind == "extra":
+				tile.pressed.connect(_on_extra.bind(i, card_name))
 			pile_list.add_child(tile)
 	pile_title.text = "%s: %s" % ["Du" if side == "me" else "Bot", " · ".join(parts)]
 	pile_view.visible = true
+
+
+# Klick auf ein Monster im eigenen Extra Deck: beschwören, wenn die Engine es gerade erlaubt.
+func _on_extra(index: int, card_name: String) -> void:
+	for choice in prompt.get("choices", []):
+		if choice.has("card") and choice.card.side == "me" and choice.card.zone == "extra" and int(choice.card.index) == index:
+			pile_view.visible = false
+			_on_choice(int(choice.id))
+			return
+	hint.text = "%s: gerade nicht beschwörbar." % card_name
 
 
 func _on_state(state: Dictionary) -> void:
@@ -296,6 +311,8 @@ func _show_prompt() -> void:
 			marks[k] = "selected" if picked.has(int(choice.id)) or k == focus else "pick"
 		if on_board and (multi or (prompt.kind == "actions" and k != focus)):   # Fragen wie Ja/Nein behalten ihre Knöpfe
 			continue   # sichtbare Karte: Klick auf die Karte statt Knopf
+		if prompt.kind == "actions" and choice.has("card") and choice.card.zone == "extra":
+			continue   # kein Vorschlag: Extra-Deck-Monster wählt man selbst im Extra Deck (Klick auf den Stapel)
 		var label: String = choice.label
 		if choice.has("card"):
 			label = "%s: %s" % [choice.card.name, label]
@@ -314,8 +331,20 @@ func _button(text: String, action: Callable, toggle: bool) -> Button:
 	var button := Button.new()
 	button.text = text
 	button.toggle_mode = toggle
-	button.custom_minimum_size = Vector2(0, 44)
-	button.add_theme_font_size_override("font_size", 18)
+	button.custom_minimum_size = Vector2(0, 48)
+	button.add_theme_font_size_override("font_size", 20)
+	button.add_theme_color_override("font_color", Color.WHITE)
+	for state in ["normal", "hover", "pressed", "focus"]:   # dunkle Fläche mit hellem Rand: hebt sich vom Feld ab
+		var box := StyleBoxFlat.new()
+		box.bg_color = {"normal": Color(0.07, 0.10, 0.22, 0.96), "hover": Color(0.14, 0.24, 0.48, 0.98), "pressed": Color(0.85, 0.60, 0.10, 1.0), "focus": Color(0.07, 0.10, 0.22, 0.0)}[state]
+		box.border_color = Color(1.0, 0.85, 0.3) if state == "focus" else Color(0.45, 0.80, 1.0)
+		box.set_border_width_all(2)
+		box.set_corner_radius_all(6)
+		box.content_margin_left = 16.0
+		box.content_margin_right = 16.0
+		box.content_margin_top = 8.0
+		box.content_margin_bottom = 8.0
+		button.add_theme_stylebox_override(state, box)
 	button.pressed.connect(action)
 	buttons.add_child(button)
 	return button

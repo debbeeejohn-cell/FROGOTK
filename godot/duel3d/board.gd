@@ -29,6 +29,7 @@ func _ready() -> void:
 		_pile(side, "deck", CardView.BACK)
 		_pile(side, "extra", CardView.BACK)
 		_pile(side, "gy", Color(0.35, 0.38, 0.45))
+		_pile(side, "banished", Color(0.30, 0.26, 0.40))
 		_duelist(side)
 	_bot_hand = Node3D.new()
 	_bot_hand.position = Vector3(0.0, 2.0, -7.4)
@@ -49,8 +50,10 @@ func zone_pos(side: String, zone: String, index: int) -> Vector3:
 			return Vector3((index - 2) * STEP * s, 0.0, ROW_SPELL * s)
 		"field":
 			return Vector3(-PILE_X * s, 0.0, ROW_MONSTER * s)
-		"gy", "banished":
+		"gy":
 			return Vector3(PILE_X * s, 0.0, ROW_MONSTER * s)
+		"banished":
+			return Vector3((PILE_X + STEP) * s, 0.0, ROW_MONSTER * s)
 		"deck":
 			return Vector3(PILE_X * s, 0.0, ROW_SPELL * s)
 		"extra":
@@ -122,7 +125,9 @@ func sync(field: Dictionary) -> void:
 		var extra = half["extra"]
 		_set_pile(side, "deck", int(half["deck"]), "Deck")
 		_set_pile(side, "extra", extra.size() if extra is Array else int(extra), "Extra")
-		_set_pile(side, "gy", gy.size() + banished.size(), "Friedhof" if banished.is_empty() else "Friedhof %d\nVerbannt %d" % [gy.size(), banished.size()])
+		# Oben liegt offen die zuletzt dorthin gelegte Karte.
+		_set_pile(side, "gy", gy.size(), "Friedhof", gy[-1] if not gy.is_empty() else "")
+		_set_pile(side, "banished", banished.size(), "Verbannt", banished[-1] if not banished.is_empty() else "")
 	_set_bot_hand(int(field["bot"]["hand"]))
 	var hand: Array = field["me"]["hand"]
 	for i in range(hand.size(), _hand_count):
@@ -235,12 +240,20 @@ func _pile(side: String, kind: String, color: Color) -> void:
 	label.outline_size = 10
 	label.position = pos + Vector3(0.0, 1.1, 0.0)
 	add_child(label)
-	_piles["%s:%s" % [side, kind]] = {"node": node, "label": label}
+	var top_mesh := PlaneMesh.new()   # Bild der obersten Karte (Friedhof, Verbannt)
+	top_mesh.size = Vector2(CardView.SIZE.x, CardView.SIZE.z)
+	var top := MeshInstance3D.new()
+	top.mesh = top_mesh
+	top.position = pos
+	top.visible = false
+	add_child(top)
+	_piles["%s:%s" % [side, kind]] = {"node": node, "label": label, "top": top, "top_name": ""}
 	_set_pile(side, kind, 0, "")
 
 
-func _set_pile(side: String, kind: String, count: int, title: String) -> void:
+func _set_pile(side: String, kind: String, count: int, title: String, top_name := "") -> void:
 	var pile: Dictionary = _piles["%s:%s" % [side, kind]]
+	pile["top_name"] = top_name
 	var node: MeshInstance3D = pile["node"]
 	var label: Label3D = pile["label"]
 	node.visible = count > 0
@@ -248,6 +261,24 @@ func _set_pile(side: String, kind: String, count: int, title: String) -> void:
 	node.position.y = node.scale.y / 2.0
 	label.visible = count > 0
 	label.text = title if "\n" in title else "%s %d" % [title, count]
+	_show_top(pile)
+
+
+# Legt das Bild der obersten Karte auf den Stapel; ohne Bild steht ihr Name im Schild.
+func _show_top(pile: Dictionary) -> void:
+	var node: MeshInstance3D = pile["node"]
+	var top: MeshInstance3D = pile["top"]
+	var top_name: String = pile["top_name"]
+	var tex = cards.get(top_name, {}).get("tex")
+	top.visible = node.visible and tex != null
+	if top.visible:
+		var material := StandardMaterial3D.new()
+		material.albedo_texture = tex
+		material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		top.material_override = material
+		top.position.y = node.scale.y + 0.01
+	elif node.visible and top_name != "":
+		(pile["label"] as Label3D).text += "\n" + top_name
 
 
 func _duelist(side: String) -> void:
@@ -306,6 +337,9 @@ func set_texture(card_name: String, tex: Texture2D) -> void:
 	for view in views.values():
 		if (view as CardView).data.get("name", "") == card_name:
 			(view as CardView).show_card(view.data, cards[card_name])
+	for pile in _piles.values():
+		if pile["top_name"] == card_name:
+			_show_top(pile)
 
 
 # Loser Kartenrücken für Flug-Animationen (Ziehen). Der Aufrufer gibt ihn wieder frei.
