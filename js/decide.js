@@ -18,6 +18,61 @@ const SPELL_WHEN = {
   'Brain Control': (own, foe) => foe.faceUp > 0
 };
 
+
+// Phase 3: Bewertung der Hauptphase. Die Gewichte sind so gewählt, dass die Kategorie-Reihenfolge der bisherigen
+// Heuristik (Zauber, Beschwörung, Spezialbeschwörung, Effekt, Falle, Battle Phase) gilt. Die Bewertung entscheidet
+// nur innerhalb einer Kategorie, z. B. welche Spezialbeschwörung. Ein Abstand von 1000 zwischen den Kategorien ist
+// größer als jeder Wert innerhalb einer Kategorie (ATK-Anteil höchstens 0,1 * 2800 = 280).
+export const WEIGHTS = {
+  board: 0.1, damage: 0.1, hand: 10, risk: 10,
+  kind: { spell: 4000, summon: 3000, special: 2000, effect: 1000, set: 500, phase: 0 }
+};
+
+export function score(cat, f, w = WEIGHTS) {
+  return w.kind[cat] + w.board * f.boardGain + w.damage * f.damage - w.hand * f.handCost - w.risk * f.risk;
+}
+
+// Softmax-Auswahl: mit Temperatur 0 ist es immer die beste Aktion. Phase 4 setzt die Temperatur je Profil.
+export function pickSoftmax(scored, temperature, rand = Math.random) {
+  if (temperature <= 0 || scored.length === 1) return scored.reduce((a, b) => (b.score > a.score ? b : a));
+  const top = Math.max(...scored.map((x) => x.score));
+  const weights = scored.map((x) => Math.exp((x.score - top) / temperature));
+  let r = rand() * weights.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < scored.length; i += 1) {
+    r -= weights[i];
+    if (r <= 0) return scored[i];
+  }
+  return scored[scored.length - 1];
+}
+
+const act = (action, index) => ({ type: R.SELECT_IDLECMD, action, index });
+const sideOf = (v) => ({ backrow: v.st.filter(Boolean).length, faceUp: v.mz.filter((c) => c && !(c.position & P.FACEDOWN)).length });
+
+// Alle Hauptphasen-Aktionen, die die bisherigen Regeln zulassen, mit Score. Bei Gleichstand gewinnt die früher genannte.
+function bestMainAction(m, table, g, mine, theirs) {
+  const data = (c) => table.data.get(c.code);
+  const own = sideOf(mine); const foe = sideOf(theirs);
+  const feats = features(m, table, g, g.bot);
+  const f = (kind, index) => feats.find((x) => x.kind === kind && x.index === index) ?? {};
+  const cands = [];
+  const add = (cat, kind, index, response) => cands.push({ response, score: score(cat, f(kind, index)) });
+  m.activates.forEach((c, i) => {
+    const spell = c.location === L.HAND && data(c)?.type & TYPE_SPELL;
+    if (spell && (data(c).type & (TYPE_CONTINUOUS | TYPE_FIELD) || SPELL_WHEN[table.name(c.code)]?.(own, foe))) add('spell', 'activates', i, act(IDLE.SELECT_ACTIVATE, i));
+  });
+  m.summons.forEach((c, i) => { if (data(c)?.level <= 4) add('summon', 'summons', i, act(IDLE.SELECT_SUMMON, i)); });
+  if (mine.mz.filter(Boolean).length < (foe.backrow >= 2 ? MAX_BOARD_INTO_BACKROW : ZONES)) {
+    m.special_summons.forEach((c, i) => add('special', 'special_summons', i, act(IDLE.SELECT_SPECIAL_SUMMON, i)));
+  }
+  m.activates.forEach((c, i) => { if (c.location === L.MZONE) add('effect', 'activates', i, act(IDLE.SELECT_ACTIVATE, i)); });
+  if (own.backrow < MAX_BACKROW) {
+    m.spell_sets.forEach((c, i) => { if (data(c)?.type & TYPE_TRAP) add('set', 'spell_sets', i, act(IDLE.SELECT_SPELL_SET, i)); });
+  }
+  if (m.to_bp) add('phase', 'to_bp', null, act(IDLE.TO_BP, null));
+  if (!cands.length) return undefined;
+  return cands.reduce((a, b) => (b.score > a.score ? b : a)).response;
+}
+
 /**
  * Simple active bot (rules of thumb, no look-ahead). Returns undefined when it has nothing to do,
  * then botAnswer passes. Its Main Phase, in this order (Blackwing-style tempo, works for any deck):
@@ -33,21 +88,8 @@ export function botPlay(m, table, g) {
   const foes = theirs.mz.filter(Boolean);
   const data = (c) => table.data.get(c.code);
   if (m.type === M.SELECT_IDLECMD && (g.botActs = (g.botActs ?? 0) + 1) <= MAX_ACTIONS_PER_TURN) {
-    const act = (action, index) => ({ type: R.SELECT_IDLECMD, action, index });
-    const side = (v) => ({ backrow: v.st.filter(Boolean).length, faceUp: v.mz.filter((c) => c && !(c.position & P.FACEDOWN)).length });
-    const own = side(mine); const foe = side(theirs);
-    const spell = m.activates.findIndex((c) => c.location === L.HAND && data(c)?.type & TYPE_SPELL
-      && (data(c).type & (TYPE_CONTINUOUS | TYPE_FIELD) || SPELL_WHEN[table.name(c.code)]?.(own, foe)));
-    if (spell >= 0) return act(IDLE.SELECT_ACTIVATE, spell);
-    const level4 = m.summons.map((c, index) => ({ index, d: data(c) })).filter((x) => x.d && x.d.level <= 4);
-    if (level4.length) return act(IDLE.SELECT_SUMMON, level4.reduce((a, b) => (b.d.attack > a.d.attack ? b : a)).index);
-    const board = mine.mz.filter(Boolean).length;
-    if (m.special_summons.length && board < (foe.backrow >= 2 ? MAX_BOARD_INTO_BACKROW : ZONES)) return act(IDLE.SELECT_SPECIAL_SUMMON, 0);
-    const effect = m.activates.findIndex((c) => c.location === L.MZONE);
-    if (effect >= 0) return act(IDLE.SELECT_ACTIVATE, effect);
-    const trap = m.spell_sets.findIndex((c) => data(c)?.type & TYPE_TRAP);
-    if (trap >= 0 && own.backrow < MAX_BACKROW) return act(IDLE.SELECT_SPELL_SET, trap);
-    if (m.to_bp) return act(IDLE.TO_BP, null);
+    const best = bestMainAction(m, table, g, mine, theirs);
+    if (best) return best;
   }
   const value = (c) => (c.position & P.FACEDOWN ? FACEDOWN_GUESS : c.position & P.DEFENSE ? c.defense : c.attack);
   if (m.type === M.SELECT_BATTLECMD) {

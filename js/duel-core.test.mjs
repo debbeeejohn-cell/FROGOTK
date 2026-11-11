@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { loadCore, cardTable, newGame, traceOf, compareCombo, M, R, IDLE, BATTLE } from './duel-core.js';
-import { features } from './decide.js';
+import { features, score, pickSoftmax, WEIGHTS } from './decide.js';
 
 const json = (f) => JSON.parse(fs.readFileSync(new URL(`../data/${f}`, import.meta.url)));
 const table = cardTable(json('core-cards.json'));
@@ -160,6 +160,18 @@ const summonSwap = feats.find((f) => f.kind === 'summons' && f.index === g.promp
 assert.deepEqual({ boardGain: summonSwap.boardGain, handCost: summonSwap.handCost }, { boardGain: 1000, handCost: 1 });
 assert.equal(g.prompt.summons.length > 0, true);
 assert.equal(features(g.prompt, table, g, g.me).length > 0, true);
+
+// Phase 3: the category order holds (spell > summon > special > effect > set > phase), softmax at 0 picks the best
+const noRisk = { boardGain: 0, handCost: 0, damage: 0, risk: 0 };
+assert.ok(score('spell', { ...noRisk, handCost: 1 }) > score('summon', { ...noRisk, boardGain: 2800, risk: 3 }));
+assert.ok(score('summon', { ...noRisk, boardGain: 2800 }) > score('special', { ...noRisk, boardGain: 2800 }));
+assert.ok(score('special', { ...noRisk, boardGain: 0 }) > score('effect', { ...noRisk, boardGain: 2800 }));
+assert.ok(score('effect', noRisk) > score('set', { ...noRisk, handCost: 1 }));
+assert.ok(score('set', noRisk) > score('phase', noRisk));
+const scored = [{ id: 'a', score: 10 }, { id: 'b', score: 30 }, { id: 'c', score: 20 }];
+assert.equal(pickSoftmax(scored, 0).id, 'b');
+assert.ok(WEIGHTS.kind.spell > WEIGHTS.kind.summon);
+assert.equal(pickSoftmax(scored, 5, () => 0.999).id !== undefined, true, 'a warm softmax still returns one of the options');
 
 // same seed + same answers = same duel (this is how undo works)
 const a = start(); const b = start();
