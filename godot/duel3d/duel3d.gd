@@ -27,6 +27,12 @@ var busy := false
 var gauges := {}              # "me" / "bot" -> LpGauge
 var _state: Dictionary = {}
 var _queue: Array = []        # Zustände, die noch abgespielt werden
+var detail: PanelContainer    # Karten-Detail: Bild, Werte und Text der Karte unter dem Mauszeiger
+var detail_art: TextureRect
+var detail_text: Label
+var pile_view: PanelContainer # Friedhof, Verbannt oder Extra Deck als Liste
+var pile_title: Label
+var pile_list: HFlowContainer
 
 
 func _ready() -> void:
@@ -62,6 +68,7 @@ func _build_ui() -> void:
     root.add_theme_constant_override("separation", 8)
     for edge in ["left", "right", "top", "bottom"]:
         root.add_theme_constant_override("margin_" + edge, 16)
+    root.mouse_filter = Control.MOUSE_FILTER_IGNORE   # Klicks aufs Feld müssen durchkommen
     ui.add_child(root)
 
     status = Label.new()
@@ -74,6 +81,7 @@ func _build_ui() -> void:
 
     var spacer := Control.new()
     spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
     root.add_child(spacer)
 
     hint = Label.new()
@@ -94,11 +102,120 @@ func _build_ui() -> void:
         var gauge: LpGauge = LpGauge.new()
         gauge.title = "Du" if side == "me" else "Bot"
         gauge.radius = 44.0
+        gauge.mouse_filter = Control.MOUSE_FILTER_IGNORE
         ui.add_child(gauge)
         gauges[side] = gauge
     gauges.me.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT, Control.PRESET_MODE_MINSIZE, 16)
     gauges.bot.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT, Control.PRESET_MODE_MINSIZE, 16)
     gauges.bot.grow_horizontal = Control.GROW_DIRECTION_BEGIN   # wächst nach links, nicht aus dem Bild
+
+
+    # Karten-Detail oben rechts: erscheint, wenn die Maus über einer offenen Karte steht.
+    detail = PanelContainer.new()
+    detail.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    detail.custom_minimum_size = Vector2(300, 0)
+    detail.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 16)
+    detail.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+    detail.visible = false
+    ui.add_child(detail)
+    var detail_box := VBoxContainer.new()
+    detail_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    detail.add_child(detail_box)
+    detail_art = TextureRect.new()
+    detail_art.custom_minimum_size = Vector2(168, 246)
+    detail_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+    detail_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+    detail_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    detail_box.add_child(detail_art)
+    detail_text = Label.new()
+    detail_text.custom_minimum_size = Vector2(284, 0)
+    detail_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    detail_text.add_theme_font_size_override("font_size", 14)
+    detail_box.add_child(detail_text)
+
+    # Stapel-Ansicht in der Mitte: Friedhof, Verbannt, eigenes Extra Deck.
+    pile_view = PanelContainer.new()
+    pile_view.custom_minimum_size = Vector2(720, 0)
+    pile_view.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE)
+    pile_view.grow_horizontal = Control.GROW_DIRECTION_BOTH
+    pile_view.grow_vertical = Control.GROW_DIRECTION_BOTH
+    pile_view.visible = false
+    ui.add_child(pile_view)
+    var pile_box := VBoxContainer.new()
+    pile_box.add_theme_constant_override("separation", 8)
+    pile_view.add_child(pile_box)
+    pile_title = Label.new()
+    pile_title.add_theme_font_size_override("font_size", 20)
+    pile_box.add_child(pile_title)
+    var scroll := ScrollContainer.new()
+    scroll.custom_minimum_size = Vector2(700, 340)
+    pile_box.add_child(scroll)
+    pile_list = HFlowContainer.new()
+    pile_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    pile_list.add_theme_constant_override("h_separation", 8)
+    pile_list.add_theme_constant_override("v_separation", 8)
+    scroll.add_child(pile_list)
+    var close := Button.new()
+    close.text = "Schließen"
+    close.custom_minimum_size = Vector2(0, 44)
+    close.pressed.connect(func() -> void: pile_view.visible = false)
+    pile_box.add_child(close)
+
+
+# Bild einer Karte von der Brücke holen; sobald es da ist, zeigen es alle Karten dieses Namens.
+func _load_image(card_name: String) -> void:
+    var tex: ImageTexture = await client.fetch_image(card_name)
+    if tex != null:
+        board.set_texture(card_name, tex)
+
+
+func _show_detail(card_name: String) -> void:
+    var facts: Dictionary = board.cards.get(card_name, {})
+    detail.visible = card_name != "" and not facts.is_empty()
+    if not detail.visible:
+        return
+    detail_art.texture = facts.get("tex")
+    detail_art.visible = detail_art.texture != null
+    var stats := ""
+    if facts.get("monster", false):
+        stats = "Stufe %d · %s · ATK %d / DEF %d\n" % [int(facts.get("level", 0)), facts.get("attribute", ""), int(facts.get("atk", 0)), int(facts.get("def", 0))]
+    detail_text.text = "%s\n%s%s\n\n%s" % [card_name, stats, facts.get("type", ""), facts.get("desc", "")]
+
+
+# Klick auf einen Stapel: Friedhof und Verbannt beider Seiten, dazu das eigene Extra Deck. Decks bleiben zu.
+func _show_pile(pile: String) -> void:
+    var side: String = pile.get_slice(":", 0)
+    var kind: String = pile.get_slice(":", 1)
+    var half: Dictionary = _state.get("field", {}).get(side, {})
+    var groups := []
+    if kind == "gy":
+        groups = [["Friedhof", half.get("gy", [])], ["Verbannt", half.get("banished", [])]]
+    elif kind == "extra" and half.get("extra") is Array:
+        groups = [["Extra Deck", half["extra"]]]
+    if groups.is_empty():
+        return
+    for child in pile_list.get_children():
+        child.queue_free()
+    var parts := []
+    for group in groups:
+        var names: Array = group[1]
+        parts.append("%s %d" % [group[0], names.size()])
+        for card_name in names:
+            var tile := Button.new()   # Knopf: mit Maus und Tastatur erreichbar, zeigt beim Überfahren das Detail
+            tile.custom_minimum_size = Vector2(104, 152)
+            tile.tooltip_text = "%s (%s)" % [card_name, group[0]]
+            var tex = board.cards.get(card_name, {}).get("tex")
+            if tex != null:
+                tile.icon = tex
+                tile.expand_icon = true
+            else:
+                tile.text = card_name
+                tile.clip_text = true
+            tile.mouse_entered.connect(_show_detail.bind(card_name))
+            tile.focus_entered.connect(_show_detail.bind(card_name))
+            pile_list.add_child(tile)
+    pile_title.text = "%s: %s" % ["Du" if side == "me" else "Bot", " · ".join(parts)]
+    pile_view.visible = true
 
 
 func _on_state(state: Dictionary) -> void:
@@ -116,6 +233,7 @@ func _drain() -> void:
         _state = s
         for card_name in s.get("cards", {}):
             board.cards[card_name] = s.cards[card_name]
+            _load_image(card_name)
         await director.play(s.events, s.field)
     busy = false
     _refresh()
@@ -218,13 +336,19 @@ func _on_confirm() -> void:
 
 # Klick aufs Feld: die Karte unter dem Mauszeiger wählt die Brücke aus, wenn sie in der Frage steht.
 func _unhandled_input(event: InputEvent) -> void:
+    var motion := event as InputEventMouseMotion
+    if motion != null:   # Karte unter dem Mauszeiger im Detail zeigen
+        var over: Dictionary = board.pick(cam, motion.position)
+        _show_detail(str(over.view.data.get("name", "")) if over.has("view") else "")
+        return
     var mouse := event as InputEventMouseButton
     if mouse == null or not mouse.pressed or mouse.button_index != MOUSE_BUTTON_LEFT:
         return
-    if busy or prompt.is_empty():
-        return
     var hit: Dictionary = board.pick(cam, mouse.position)
-    if not hit.has("view"):
+    if hit.has("pile"):   # Stapel ansehen geht immer, auch wenn gerade nichts zu wählen ist
+        _show_pile(hit.pile)
+        return
+    if busy or prompt.is_empty() or not hit.has("view"):
         return
     var view = hit.view
     var k: String = Board.key(view.side, view.zone, view.index)

@@ -45,11 +45,12 @@ func _ready() -> void:
 
 
 # Blendet die Karte ein, hält sie kurz, blendet sie aus. Die Regie wartet auf das Ende.
-func show_card(card_name: String, frame: String) -> void:
+func show_card(card_name: String, frame: String, tex: Texture2D = null) -> void:
 	var art_path := "res://art/cards/%s.png" % CardView.slug(card_name)
-	_picture.visible = ResourceLoader.exists(art_path)
-	if _picture.visible:
-		_picture.texture = load(art_path)
+	if ResourceLoader.exists(art_path):
+		tex = load(art_path)
+	_picture.visible = tex != null
+	_picture.texture = tex
 	_panel.color = CardView.FRAME.get(frame, CardView.FRAME["spell"])
 	_banner.text = card_name
 	visible = true

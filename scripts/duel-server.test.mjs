@@ -80,6 +80,12 @@ assert.ok(botSets.length > 0 && botSets.every((e) => e.name === null), 'bot sets
 assert.ok(seen.flatMap((x) => x.events).filter((e) => e.type === 'move' && e.to.side === 'bot' && e.to.down).every((e) => e.name === null));
 assert.ok(seen.every((x) => x.field.bot.st.every((c) => c === null || !c.down || c.name === undefined)));
 
+// card pictures for other front ends: the web page's own files, nothing else
+const picture = await fetch(`${base}/image?name=Swap%20Frog`);
+assert.equal(picture.headers.get('content-type'), 'image/jpeg');
+assert.ok((await picture.arrayBuffer()).byteLength > 1000);
+assert.equal((await fetch(`${base}/image?name=..%2F..%2Fpackage`)).status, 404);
+
 assert.equal((await call('GET', '/nope')).status, 404);
 assert.equal((await fetch(`${base}/new`, { method: 'POST', body: '{broken' })).status, 400);
 

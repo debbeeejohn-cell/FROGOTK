@@ -57,8 +57,9 @@ func _event(e: Dictionary) -> void:
         "heal": await _lp_change(e, "+", Color(0.4, 1.0, 0.5), false)
         "move": await _move(e)
         "chain": await _chain(e)
+        "draw": await _draw_card(e)
         "win": await _win(e)
-        _: pass   # turn, phase, draw, negate: nur Zustand, keine Animation nötig
+        _: pass   # turn, phase, negate: nur Zustand, keine Animation nötig
 
 
 func _summon(e: Dictionary) -> void:
@@ -83,7 +84,7 @@ func _chain(e: Dictionary) -> void:
         view.flash()
     var facts: Dictionary = board.cards.get(e.name, {})
     if cut_in != null and facts.get("frame", "") in ["spell", "trap"]:
-        await cut_in.show_card(e.name, facts.frame)
+        await cut_in.show_card(e.name, facts.frame, facts.get("tex"))
     await _pause(0.3)
 
 
@@ -134,6 +135,16 @@ func _move(e: Dictionary) -> void:
     await tw.finished
     from_view.queue_free()
     await _pause(0.05)
+
+
+# Ziehen: je Karte fliegt ein Kartenrücken vom Deck zur Hand. Die Handkarten selbst legt sync() danach aus.
+func _draw_card(e: Dictionary) -> void:
+    for i in int(e.count):
+        var card: MeshInstance3D = board.card_back(board.zone_pos(e.side, "deck", 0) + Vector3(0.0, 0.6, 0.0))
+        var tw := create_tween()
+        tw.tween_property(card, "position", board.hand_center(e.side), 0.2).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+        await tw.finished
+        card.queue_free()
 
 
 func _win(_e: Dictionary) -> void:

@@ -296,3 +296,22 @@ func popup(side: String, text: String, color: Color) -> void:
 	tw.tween_property(label, "position:y", label.position.y + 1.6, 1.0).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tw.tween_property(label, "modulate:a", 0.0, 0.5).set_delay(0.6)
 	get_tree().create_timer(1.2).timeout.connect(label.queue_free)
+
+
+# Ein Kartenbild ist angekommen: merken und alle offenen Karten dieses Namens neu zeichnen.
+func set_texture(card_name: String, tex: Texture2D) -> void:
+	if not cards.has(card_name):
+		cards[card_name] = {}
+	cards[card_name]["tex"] = tex
+	for view in views.values():
+		if (view as CardView).data.get("name", "") == card_name:
+			(view as CardView).show_card(view.data, cards[card_name])
+
+
+# Loser Kartenrücken für Flug-Animationen (Ziehen). Der Aufrufer gibt ihn wieder frei.
+func card_back(pos: Vector3) -> MeshInstance3D:
+	return _box(CardView.SIZE, pos, CardView.BACK)
+
+
+func hand_center(side: String) -> Vector3:
+	return Vector3(0.0, 1.0, 7.0) if side == "me" else Vector3(0.0, 2.0, -7.4)

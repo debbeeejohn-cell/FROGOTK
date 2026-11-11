@@ -55,3 +55,21 @@ func _post(path: String, body: Dictionary) -> void:
 		failed.emit(str(data.get("error", "Fehler")))
 	else:
 		state_changed.emit(data)
+
+
+# Kartenbild von der Brücke (dieselben Dateien wie auf der Webseite). null, wenn es keins gibt.
+# Die Bilder werden nur zur Laufzeit geladen und nicht ins Godot-Projekt kopiert.
+func fetch_image(card_name: String) -> ImageTexture:
+	var http := HTTPRequest.new()
+	add_child(http)
+	if http.request(base_url + "/image?name=" + card_name.uri_encode()) != OK:
+		http.queue_free()
+		return null
+	var res: Array = await http.request_completed
+	http.queue_free()
+	if res[0] != HTTPRequest.RESULT_SUCCESS or res[1] != 200:
+		return null
+	var picture := Image.new()
+	if picture.load_jpg_from_buffer(res[3]) != OK:
+		return null
+	return ImageTexture.create_from_image(picture)

@@ -5,6 +5,7 @@
 //
 //   GET  /decks                 -> [{ id, name }]
 //   GET  /card?name=Swap%20Frog -> { name, type, desc, atk, def, level, attribute, race }
+//   GET  /image?name=Swap%20Frog -> image/jpeg (assets/cards-small, the same files the web page shows; 404 without one)
 //   POST /new    { deck, opp, hand: [names], first: true, bot: "aktiv"|"passiv", askAll: false, seed: [4 numbers as strings],
 //                  lookahead: false (the active bot tries its best moves in sampled worlds first, js/lookahead.js) }
 //   POST /answer { choice: id } | { pick: [ids] } | { name: "Card Name" }
@@ -226,6 +227,13 @@ export const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const route = routes[`${req.method} ${url.pathname}`];
   const send = (code, data) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(data)); };
+  if (req.method === 'GET' && url.pathname === '/image') { // file name comes from our own card table, never from the request
+    const id = byName.get(url.searchParams.get('name') ?? '')?.id;
+    const file = new URL(`../assets/cards-small/${Number(id)}.jpg`, import.meta.url);
+    if (!id || !fs.existsSync(file)) return send(404, fail('Kein Bild.'));
+    res.writeHead(200, { 'Content-Type': 'image/jpeg' });
+    return res.end(fs.readFileSync(file));
+  }
   if (!route) return send(404, fail('Unbekannter Pfad.'));
   let raw = '';
   req.on('data', (chunk) => { raw += chunk; if (raw.length > MAX_BODY) req.destroy(); });

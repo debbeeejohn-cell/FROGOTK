@@ -39,6 +39,7 @@ var glow := 0.0:
 var _mat: StandardMaterial3D
 var _oval: MeshInstance3D
 var _art: MeshInstance3D
+var _rim: MeshInstance3D   # farbiger Rand unter der Karte: wählbar (grün) oder gewählt (gold)
 var _title: Label3D
 var _stats: Label3D
 var _figure: Node3D
@@ -56,6 +57,17 @@ func _ready() -> void:
 	_mat.emission_energy_multiplier = 0.0
 	face.material_override = _mat
 	add_child(face)
+
+	var rim_mesh := BoxMesh.new()
+	rim_mesh.size = Vector3(SIZE.x + 0.2, 0.02, SIZE.z + 0.2)
+	_rim = MeshInstance3D.new()
+	_rim.mesh = rim_mesh
+	_rim.position.y = 0.01
+	var rim_mat := StandardMaterial3D.new()
+	rim_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_rim.material_override = rim_mat
+	_rim.visible = false
+	add_child(_rim)
 
 	# Kartenrücken: dunkles Oval auf braunem Grund
 	var disc := CylinderMesh.new()
@@ -111,12 +123,20 @@ func show_card(card: Dictionary, facts: Dictionary) -> void:
 	var frame: Color = FRAME.get(facts.get("frame", "effect"), FRAME["effect"])
 	_mat.albedo_color = BACK if down else frame
 	_oval.visible = down
+	# Bild: eigene Datei in art/cards hat Vorrang, sonst das Bild von der Brücke (facts.tex)
 	var art_path := "res://art/cards/%s.png" % slug(card_name)
-	var has_art := not down and card_name != "" and ResourceLoader.exists(art_path)
+	var tex: Texture2D = null
+	if not down and card_name != "":
+		if ResourceLoader.exists(art_path):
+			tex = load(art_path)
+		elif facts.get("tex") != null:
+			tex = facts["tex"]
+	var has_art := tex != null
 	_art.visible = has_art
 	if has_art:
 		var picture := StandardMaterial3D.new()
-		picture.albedo_texture = load(art_path)
+		picture.albedo_texture = tex
+		picture.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED   # bleibt bei Nacht lesbar
 		_art.material_override = picture
 	_title.visible = not has_art
 	_title.text = ("(verdeckt)\n" if down else "") + card_name
@@ -172,8 +192,10 @@ func _apply_mark() -> void:
 	if _mat == null:
 		return
 	var style: Array = MARK.get(mark, MARK[""])
-	_mat.emission = style[0]
-	glow = style[1]
+	_mat.emission = Color.BLACK
+	glow = 0.0
+	_rim.visible = mark != ""
+	(_rim.material_override as StandardMaterial3D).albedo_color = style[0]
 
 
 func _build_figure(card_name: String) -> void:

@@ -66,7 +66,9 @@ node --no-warnings scripts/duel-server.test.mjs   # Test
 
 `godot/bridge/` in ein Godot-4.3-Projekt kopieren (als `res://bridge/`) und `bridge_demo.tscn` starten:
 ein komplettes Duell mit Text und Knöpfen. `state.events` ist der Ereignisstrom für einen Director.
-Der Godot-Teil wurde ohne Godot geschrieben und ist dort ungetestet.
+Hauptszene ist `godot/duel3d/duel3d.tscn` (3D-Feld, Hand, LP-Ringe, Kartenbilder über `GET /image`, Friedhof per Klick,
+Karten-Detail, Zieh-Animation). Der Nutzer startet sie in Godot; hier lässt sie sich nur mit `gdparse` auf Syntax prüfen.
+Offene Design-Punkte für den Anime-Look: `godot/ROADMAP.md`.
 
 ## Regeln für Änderungen
 
