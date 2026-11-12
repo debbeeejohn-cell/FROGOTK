@@ -128,6 +128,13 @@ func sync(field: Dictionary) -> void:
 		# Oben liegt offen die zuletzt dorthin gelegte Karte.
 		_set_pile(side, "gy", gy.size(), "Friedhof", gy[-1] if not gy.is_empty() else "")
 		_set_pile(side, "banished", banished.size(), "Verbannt", banished[-1] if not banished.is_empty() else "")
+	sync_hand(field)
+	show_hand_from(0)   # nach dem Abgleich ist jede Handkarte sichtbar, auch wenn ein Ziehflug fehlte
+
+
+# Nur die Hände: meine Karten mit Namen, der Bot als Anzahl. Der Director ruft das am Anfang eines Ablaufs auf,
+# damit die Hand während der ganzen Animation zu sehen ist.
+func sync_hand(field: Dictionary) -> void:
 	_set_bot_hand(int(field["bot"]["hand"]))
 	var hand: Array = field["me"]["hand"]
 	for i in range(hand.size(), _hand_count):
@@ -136,6 +143,27 @@ func sync(field: Dictionary) -> void:
 	for i in hand.size():
 		var facts: Dictionary = cards.get(hand[i], {})
 		place("me", "hand", i, {"name": hand[i], "down": false, "pos": "atk", "atk": facts.get("atk", 0), "def": facts.get("def", 0)})
+
+
+# Handkarten ab index sind unsichtbar, bis ihr Ziehflug landet (der Director schaltet sie einzeln sichtbar).
+func hide_hand_from(index: int) -> void:
+	for i in range(maxi(index, 0), _hand_count):
+		var view = views.get(key("me", "hand", i))
+		if view != null:
+			view.visible = false
+
+
+func show_hand_slot(index: int) -> void:
+	var view = views.get(key("me", "hand", index))
+	if view != null:
+		view.visible = true
+
+
+func show_hand_from(index: int) -> void:
+	for i in range(maxi(index, 0), _hand_count):
+		var view = views.get(key("me", "hand", i))
+		if view != null:
+			view.visible = true
 
 
 # marks: "me:mz:2" -> "pick" oder "selected". Alle anderen Karten verlieren ihre Markierung.

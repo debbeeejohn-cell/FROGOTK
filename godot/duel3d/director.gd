@@ -47,7 +47,18 @@ func _exit_tree() -> void:
 
 
 # Spielt eine Ereignisliste ab. Danach stimmt das Feld mit field überein.
+var _draw_next := 0   # Platz meiner Hand, auf den die nächste gezogene Karte fliegt
+
+# Die Hand steht vom ersten Moment an da. Gezogene Karten sind bis zur Landung ausgeblendet und fliegen in ihren Platz.
 func play(events: Array, field: Dictionary) -> void:
+	board.sync_hand(field)
+	if speed > 0.0:
+		var incoming := 0
+		for e in events:
+			if e.type == "draw" and e.side == "me":
+				incoming += int(e.count)
+		_draw_next = int(field.me.hand.size()) - incoming
+		board.hide_hand_from(_draw_next)
 	for e in events:
 		await _event(e)
 	board.sync(field)
@@ -220,15 +231,21 @@ func _move(e: Dictionary) -> void:
 
 
 # Ziehen: je Karte fliegt ein Kartenrücken vom Deck zur Hand. Die Handkarten selbst legt sync() danach aus.
+# Ziehen: je Karte fliegt ein Kartenrücken vom Deck genau in ihren Platz in der Hand. Dort erscheint sie bei der Landung.
 func _draw_card(e: Dictionary) -> void:
 	if speed <= 0.0:
 		return
 	for i in int(e.count):
 		var card: MeshInstance3D = board.card_back(board.zone_pos(e.side, "deck", 0) + Vector3(0.0, 0.6, 0.0))
+		var mine: bool = e.side == "me"
+		var target: Vector3 = board.zone_pos("me", "hand", _draw_next) if mine else board.hand_center(e.side)
 		var tw := create_tween()
-		tw.tween_property(card, "position", board.hand_center(e.side), 0.2 * speed).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		tw.tween_property(card, "position", target, 0.25 * speed).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		await tw.finished
 		card.queue_free()
+		if mine:
+			board.show_hand_slot(_draw_next)
+			_draw_next += 1
 
 
 func _win(_e: Dictionary) -> void:

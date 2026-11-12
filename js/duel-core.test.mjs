@@ -268,4 +268,18 @@ assert.deepEqual(a.log, b.log);
   assert.equal(play([{ side: 'me', code: n('Scapegoat'), location: L.SZONE, sequence: 0, position: P.FACEDOWN }]), true, 'two cards of mine: Icarus Attack is used');
 }
 
+// Goyo Guardian needs an EARTH Tuner (its script): a WATER Tuner plus Des Frog offers no Synchro summon.
+{
+  const n = (x) => id.get(x);
+  const cards = [
+    { side: 'me', code: n('Fishborg Blaster'), location: L.MZONE, sequence: 0, position: P.FACEUP_ATTACK },
+    { side: 'me', code: n('Des Frog'), location: L.MZONE, sequence: 1, position: P.FACEUP_ATTACK },
+    ...Array(3).fill({ side: 'me', code: n('Des Frog'), location: L.DECK })
+  ];
+  g = newGame({ lib, table, scripts, me: codes(decks.frogOtk), bot: codes(decks.blackwing), start: { lp: { me: 8000, bot: 8000 }, cards }, seed: [3n, 1n, 4n, 1n] });
+  assert.equal(g.prompt.type, M.SELECT_IDLECMD);
+  assert.deepEqual(g.prompt.special_summons.map(name), [], 'no Goyo with a WATER Tuner');
+  g.close();
+}
+
 console.log('duel-core: all checks passed');
