@@ -1,0 +1,17 @@
+{
+  "source": "Startwerte des Bewertungssystems (js/advisor/dimensions.js). Das sind Schätzungen, keine Regeln; sie werden nach dem Selfplay-Vergleich angepasst.",
+  "weights": {
+    "raw": 1,
+    "quality": 0.5,
+    "tempo": 0.25,
+    "graveyard": 0.4,
+    "future": 0.6
+  },
+  "quality": {
+    "extraDeck": 0.5,
+    "effect": 0.2,
+    "atkFrom": 1500,
+    "atkPer1000": 0.3,
+    "atkCap": 0.75
+  }
+}
