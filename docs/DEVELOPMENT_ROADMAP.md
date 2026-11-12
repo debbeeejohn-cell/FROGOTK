@@ -46,7 +46,7 @@ Diese Datei ändert keine Spielmechanik.
 | 3 | UI und Bedienbarkeit (LP, Phasen, Handkarten, Karteninfo, Aktionsleiste) | LP-Ring, Phasen-Banner, Karten-Detail, Aktionsleiste (`duel3d.gd`) | 2 | Dauerhafte Phasenanzeige, Handfächer |
 | 4 | Chain-System darstellen (Link-Nummern, Reihenfolge, Modi) | Einzelne Aktivierung (`director.gd`), Ereignisse `chain`/`negate` | 3 | Chain-Übersicht aus `g.events` (kein Regelcode in Godot) |
 | 5 | Duellprotokoll und Replay | `g.events`, `g.log`, Selfplay-Format | 4 | Protokoll in Godot aus den Ereignissen; Replay über Seed und Antworten |
-| 6 | Bot-Entscheidungsmodul (Beobachtung, Bewertung, Profile, Gedächtnis, Log) | `js/decide.js`, `js/guess.js`, `js/lookahead.js`, `botLog` | Schwachstelle 6 | Auftrags-Merkmale ergänzen, Profile als Daten, Entscheidungs-Log |
+| 6 | Bot-Entscheidungsmodul (Beobachtung, Bewertung, Profile, Gedächtnis, Log) | `js/decide.js`, `js/guess.js`, `js/lookahead.js`, `botLog`; neu: `js/advisor/` (Kartenvorteil, Dimensionen, Probewelten, Kettenfenster, Log, siehe `docs/ADVISOR.md`) | Schwachstelle 6 | Profile als Daten, Duell-Gedächtnis, Gegner-Modell; mehr Auslöser in Ketten |
 | 7 | Edison-Regeltests (Gorz/Caius, Battle Fader, Kalut, Ryko/Dupe Frog, …) | Testfälle in `js/duel-core.test.mjs` | Schwachstelle 7 | Jede Interaktion als Testfall, Quelle je Fall |
 | 8 | Atmosphäre, Duellanten, Animationen | Platzhalter-Figuren, Strahlen, Umklappen | 2 | Nach Priorität 2–4 |
 

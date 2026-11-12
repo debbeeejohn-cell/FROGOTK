@@ -43,6 +43,10 @@ Kein Test-Framework: jede Datei ist ein `assert`-Skript und endet mit „all che
     aus dem öffentlichen Brett, meine verdeckten Karten aus dem Restpool gezogen). Schalter: `opts.botHook = lookahead(opts)`,
     in der Brücke `POST /new { lookahead: true }`. Standard aus. Messung: `node --no-warnings scripts/bot-eval.mjs 100 lookahead`.
     `newGame` kann dafür eine ganze Stellung starten (`opts.start`) und an einem Zug anhalten (`opts.stopTurn`).
+  - `js/advisor/`: Bewertungssystem für Kartenvorteil und situative Aktionswahl, als eigene Bot-Variante neben dem bisherigen Bot
+    (Schalter `advisor` in `POST /new`, Standard aus). Die Engine misst jede Aktion in Probewelten, Dimensionen und Grenzen
+    stehen in `docs/ADVISOR.md`, Gewichte in `data/advisor-weights.json`. Vergleich: `scripts/advisor-eval.mjs`; Vergleichsbasis
+    ist der Tag `bot-baseline` (`data/bot-baseline.json`).
 - Daten: `data/decks.json` (7 Decks), `data/cards.json` + `assets/cards-small/` (YGOPRODeck),
   `data/core-cards.json` + `data/core-scripts.json` (BabelCDB + ProjectIgnis CardScripts),
   `data/edison-banlist.json`.
