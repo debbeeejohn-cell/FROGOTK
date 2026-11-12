@@ -7,10 +7,10 @@ const Board = preload("res://duel3d/board.gd")
 const Director = preload("res://duel3d/director.gd")
 const DuelClient = preload("res://bridge/duel_client.gd")
 const LpGauge = preload("res://duel3d/lp_gauge.gd")
-const CutIn = preload("res://duel3d/cut_in.gd")
+const Banner = preload("res://duel3d/banner.gd")
 const SummonShow = preload("res://duel3d/summon_show.gd")
 
-const BUILD := "Stand 7"   # steht oben in der Statuszeile: zeigt auf einem Screenshot, welche Version läuft
+const BUILD := "Stand 8"   # steht oben in der Statuszeile: zeigt auf einem Screenshot, welche Version läuft
 const CAM_HOME := Transform3D(Basis.IDENTITY, Vector3(0.0, 13.0, 13.5))   # mittig über dem Feld: beide Seiten und meine Hand im Bild
 
 var board: Board
@@ -110,9 +110,9 @@ func _build_ui() -> void:
 	buttons.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root.add_child(buttons)
 
-	var cut: CutIn = CutIn.new()
-	ui.add_child(cut)
-	director.cut_in = cut
+	var banner: Banner = Banner.new()
+	ui.add_child(banner)
+	director.banner = banner
 	var summon: SummonShow = SummonShow.new()
 	ui.add_child(summon)
 	director.summon_show = summon
@@ -368,6 +368,7 @@ func _teacher_says(review: Dictionary) -> void:
 
 
 func _new_duel() -> void:
+	director.last_phase = ""
 	_shown_review = ""
 	_bubble_id += 1
 	bubble.visible = false

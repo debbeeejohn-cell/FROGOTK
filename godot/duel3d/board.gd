@@ -371,3 +371,47 @@ func card_back(pos: Vector3) -> MeshInstance3D:
 
 func hand_center(side: String) -> Vector3:
 	return Vector3(0.0, 1.0, 7.0) if side == "me" else Vector3(0.0, 2.0, -7.4)
+
+
+# Die aktivierte Karte steht hochkant über der Mitte des Feldes. Zuerst zeigt sie den Rücken (verdeckt gespielt),
+# die Regie klappt sie um. yaw 0 = Spieler (Vorderseite zu ihm), PI = Bot.
+const HERO := Vector3(0.0, 2.6, 0.0)
+const HERO_SIZE := Vector2(2.4, 3.4)
+
+func hero_card(card_name: String, side: String) -> Node3D:
+	var root := Node3D.new()
+	root.position = HERO
+	var base := 0.0 if side == "me" else PI
+	root.rotation.y = base + PI   # Rücken zum Betrachter, die Regie klappt auf base
+	add_child(root)
+	var facts: Dictionary = cards.get(card_name, {})
+	var front := PlaneMesh.new()
+	front.size = HERO_SIZE
+	var front_node := MeshInstance3D.new()
+	front_node.mesh = front
+	front_node.rotation_degrees.x = 90.0   # Ebene aufrichten, Vorderseite zeigt nach +Z
+	var front_mat := StandardMaterial3D.new()
+	front_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var tex = facts.get("tex")
+	if tex != null:
+		front_mat.albedo_texture = tex
+	else:
+		front_mat.albedo_color = CardView.FRAME.get(facts.get("frame", "effect"), CardView.FRAME["effect"])
+		var name_label := Label3D.new()   # ohne Bild: Name auf die Fläche
+		name_label.text = card_name
+		name_label.font_size = 64
+		name_label.pixel_size = 0.01
+		name_label.outline_size = 12
+		name_label.position = Vector3(0.0, 0.0, 0.02)
+		front_node.add_child(name_label)
+	front_node.material_override = front_mat
+	root.add_child(front_node)
+	var back := MeshInstance3D.new()
+	back.mesh = front
+	back.rotation_degrees = Vector3(90.0, 180.0, 0.0)   # Rückseite
+	var back_mat := StandardMaterial3D.new()
+	back_mat.albedo_color = CardView.BACK
+	back_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	back.material_override = back_mat
+	root.add_child(back)
+	return root

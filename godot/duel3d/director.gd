@@ -3,7 +3,7 @@ extends Node
 # Jedes Ereignis wird mit await abgespielt; danach gleicht sync() das Feld mit dem Zustand ab.
 # Kennt keine Regeln: sie zeigt nur, was die Engine schon entschieden hat.
 const Board = preload("res://duel3d/board.gd")
-const CutIn = preload("res://duel3d/cut_in.gd")
+const Banner = preload("res://duel3d/banner.gd")
 const SummonShow = preload("res://duel3d/summon_show.gd")
 
 signal finished
@@ -14,7 +14,10 @@ const ZOOM_DIST := 9.0
 
 var board: Board
 var cam: Camera3D
-var cut_in: CutIn   # Einblendung für Zauber und Fallen (gesetzt von duel3d.gd)
+var banner: Banner   # Phasen-Banner in der Mitte (gesetzt von duel3d.gd)
+var last_phase := ""  # zuletzt angezeigte Hauptphase; Schlachtschritte und Schaden lösen kein Banner aus
+const PHASE_NAMES := {"Draw Phase": "Draw-Phase", "Standby Phase": "Standby-Phase", "Main Phase 1": "Main-Phase 1", "Battle Phase": "Battle-Phase", "Main Phase 2": "Main-Phase 2", "End Phase": "End-Phase"}
+const CAM_DIST := 5.2   # Abstand der Kamera zur hochstehenden Karte
 var summon_show: SummonShow   # Beschwörungs-Einblendung (gesetzt von duel3d.gd); null oder aus = keine
 var summon_show_enabled := true
 var trauma := 0.0   # Kamera-Zittern, 0..1
@@ -62,6 +65,7 @@ func _event(e: Dictionary) -> void:
 		"heal": await _lp_change(e, "+", Color(0.4, 1.0, 0.5), false)
 		"move": await _move(e)
 		"chain": await _chain(e)
+		"phase": await _phase(e)
 		"draw": await _draw_card(e)
 		"win": await _win(e)
 		_: pass   # turn, phase, negate: nur Zustand, keine Animation nötig
@@ -87,14 +91,37 @@ func _set_card(e: Dictionary) -> void:
 
 
 # Jede aktivierte Karte (Zauber, Falle, Monstereffekt) leuchtet groß in der Bildmitte auf.
+# Jede aktivierte Karte: die Kamera fährt zum Ausführenden, die Karte steht hochkant in der Mitte und klappt auf.
+# Verdeckte Fallen werden so sichtbar umgedreht. Danach geht die Kamera zurück.
 func _chain(e: Dictionary) -> void:
+	card_shown.emit(str(e.name))
 	var view = board.view_at(e.side, e.zone, e.index)
 	if view != null:
 		view.flash()
-	var facts: Dictionary = board.cards.get(e.name, {})
-	if cut_in != null and not facts.is_empty():
-		await cut_in.show_card(e.name, facts.get("frame", "effect"), facts.get("tex"))
-	await _pause(0.3)
+	if speed <= 0.0:
+		return
+	var sign := 1.0 if e.side == "me" else -1.0
+	var origin: Vector3 = Board.HERO + Vector3(0.0, 0.6, sign * CAM_DIST)
+	var near := Transform3D(Basis.looking_at(Board.HERO - origin, Vector3.UP), origin)
+	var base := 0.0 if e.side == "me" else PI
+	var hero: Node3D = board.hero_card(str(e.name), str(e.side))
+	await _cam_to(near, 0.45 * speed)
+	var flip := create_tween()
+	flip.tween_property(hero, "rotation:y", base, 0.4 * speed).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	await flip.finished
+	await _pause(0.9)
+	hero.queue_free()
+	await _cam_to(_home, 0.35 * speed)
+
+
+# Phasen-Banner, nur wenn sich die Hauptphase ändert. Die Regie hält kurz an, damit man reagieren kann.
+func _phase(e: Dictionary) -> void:
+	var text: String = PHASE_NAMES.get(e.phase, "")
+	if text == "" or text == last_phase:
+		return
+	last_phase = text
+	if banner != null and speed > 0.0:
+		await banner.show_text(text, 0.8 * speed)
 
 
 # Angriff: Kamera zoomt auf die Paarung, der Angreifer läuft vor, Treffer mit kurzem Hit-Stop.
