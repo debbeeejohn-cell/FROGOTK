@@ -14,3 +14,7 @@ godot/art/cards/*
 
 # Konami-Kartenbilder: nur lokal, nicht im Repo (siehe godot/HANDOFF.md). Neu laden: node scripts/fetch-cards.mjs
 assets/cards-small/
+
+# eigene Monster-Designs: nur lokal (siehe godot/art/sprites/README.md)
+godot/art/sprites/*
+!godot/art/sprites/README.md

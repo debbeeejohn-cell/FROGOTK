@@ -16,6 +16,7 @@ const ATTRIBUTE := {
 	"FIRE": Color(0.95, 0.35, 0.25), "EARTH": Color(0.60, 0.45, 0.30), "WIND": Color(0.40, 0.80, 0.50),
 	"DIVINE": Color(0.95, 0.80, 0.30),
 }
+const SPRITE_PATH := "res://art/sprites/%s.png"   # eigene Designs, lokal, nicht im Repo (siehe art/sprites/README.md)
 const MARK := {"": [Color.BLACK, 0.0], "pick": [Color(0.3, 1.0, 0.5), 1.4], "selected": [Color(1.0, 0.8, 0.2), 2.2]}
 
 var side := "me"
@@ -46,6 +47,8 @@ var _badge: Sprite3D       # runde Plakette neben der Figur: Ring, ATK oder DEF,
 var _kind: Label3D
 var _level: Label3D
 static var _rings := {}    # Ringfarbe -> Textur (einmal gezeichnet)
+static var _emblems := {}  # Attributfarbe -> Wappen-Textur
+static var _shadow: Texture2D
 var _figure: Node3D
 var _figure_name := ""
 
@@ -242,11 +245,105 @@ func _build_figure(card_name: String) -> void:
 	var model_path := "res://art/models/%s.glb" % slug(card_name)
 	if ResourceLoader.exists(model_path):
 		_figure = (load(model_path) as PackedScene).instantiate() as Node3D
+	if _figure == null and ResourceLoader.exists(SPRITE_PATH % slug(card_name)):
+		_figure = _sprite_figure(load(SPRITE_PATH % slug(card_name)) as Texture2D, figure_height)
 	if _figure == null:
 		var tint: Color = ATTRIBUTE.get(info.get("attribute", ""), Color(0.7, 0.7, 0.75))
-		_figure = placeholder_figure(figure_height, tint)
+		_figure = _emblem_figure(figure_height, tint, int(info.get("level", 0)))
 	add_child(_figure)
+	_figure.scale = Vector3.ONE * 0.6   # Auftritt: kurz klein, federt auf Normalgröße
+	create_tween().tween_property(_figure, "scale", Vector3.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_badge.position = Vector3(1.15, figure_height * 0.75, 0.0)
+
+
+# Dein Design: aufrecht (nur um die Hochachse zur Kamera gedreht), unbeleuchtet, Füße unten auf der Karte, weicher Schatten.
+func _sprite_figure(tex: Texture2D, height: float) -> Node3D:
+	var root := Node3D.new()
+	var sprite := Sprite3D.new()
+	sprite.texture = tex
+	sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+	sprite.shaded = false
+	sprite.pixel_size = height / maxf(float(tex.get_height()), 1.0)
+	sprite.offset = Vector2(0.0, tex.get_height() * 0.5)   # Mittelpunkt nach oben: der untere Rand liegt auf dem Boden
+	sprite.position.y = SIZE.y + 0.03
+	root.add_child(sprite)
+	root.add_child(_shadow_blob(height * 0.55))
+	_float(sprite)
+	return root
+
+
+# Wappen für Monster ohne eigenes Design: Scheibe in der Attributfarbe mit Stufe. Gezeichnet, keine Bilddatei.
+func _emblem_figure(height: float, tint: Color, level: int) -> Node3D:
+	var root := Node3D.new()
+	var disc := Sprite3D.new()
+	disc.texture = emblem_texture(tint)
+	disc.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+	disc.shaded = false
+	disc.pixel_size = (height * 0.62) / 128.0
+	disc.position.y = SIZE.y + 0.03 + height * 0.36
+	root.add_child(disc)
+	if level > 0:
+		var label := Label3D.new()
+		label.text = "LV %d" % level
+		label.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+		label.no_depth_test = true
+		label.font_size = 48
+		label.pixel_size = 0.006
+		label.outline_size = 12
+		label.position.y = disc.position.y
+		root.add_child(label)
+	root.add_child(_shadow_blob(height * 0.45))
+	_float(disc)
+	return root
+
+
+# Sanftes Schweben (nur Anzeige): die Figur hebt und senkt sich um wenige Zentimeter.
+func _float(node: Node3D) -> void:
+	var base := node.position.y
+	var tw := node.create_tween().set_loops()
+	tw.tween_property(node, "position:y", base + 0.06, 1.1).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_property(node, "position:y", base, 1.1).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+# Weicher dunkler Fleck unter der Figur, einmal als Textur gezeichnet.
+func _shadow_blob(width: float) -> MeshInstance3D:
+	if _shadow == null:
+		var gradient := Gradient.new()
+		gradient.colors = PackedColorArray([Color(0.0, 0.0, 0.0, 0.55), Color(0.0, 0.0, 0.0, 0.0)])
+		gradient.offsets = PackedFloat32Array([0.0, 1.0])
+		var tex := GradientTexture2D.new()
+		tex.gradient = gradient
+		tex.fill = GradientTexture2D.FILL_RADIAL
+		tex.fill_from = Vector2(0.5, 0.5)
+		tex.fill_to = Vector2(1.0, 0.5)
+		tex.width = 128
+		tex.height = 128
+		_shadow = tex
+	var mesh := PlaneMesh.new()
+	mesh.size = Vector2(width, width * 0.6)
+	var node := MeshInstance3D.new()
+	node.mesh = mesh
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.albedo_texture = _shadow
+	node.material_override = material
+	node.position.y = SIZE.y + 0.02
+	return node
+
+
+# Scheibe mit dunklem Rand und leichtem Farbverlauf, 128 px, einmal je Farbe gezeichnet.
+static func emblem_texture(color: Color) -> Texture2D:
+	if not _emblems.has(color):
+		var picture := Image.create(128, 128, false, Image.FORMAT_RGBA8)
+		for y in 128:
+			for x in 128:
+				var d := Vector2(x - 63.5, y - 63.5).length()
+				if d <= 62.0:
+					var shade := color.lerp(Color.WHITE, 0.25 * (1.0 - float(y) / 128.0))
+					picture.set_pixel(x, y, color.darkened(0.55) if d >= 54.0 else shade)
+		_emblems[color] = ImageTexture.create_from_image(picture)
+	return _emblems[color]
 
 
 # Platzhalter: Körper (Kapsel) und Kopf (Kugel). Auch für die Duellanten benutzt.

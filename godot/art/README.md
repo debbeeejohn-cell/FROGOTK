@@ -8,3 +8,5 @@ in Kleinbuchstaben, alles außer Buchstaben und Ziffern wird zu `_`:
 - `models/duelist.glb`: Figur für beide Duellanten.
 
 Nur eigene oder frei lizenzierte Grafik verwenden. Kartenbilder und Figuren von Konami sind geschützt.
+
+- `sprites/<name>.png`: eigenes 2D-Design eines Monsters, steht aufrecht über der Karte (lokal, nicht im Repo, Vorgaben in `sprites/README.md`).
