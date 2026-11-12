@@ -422,35 +422,35 @@ func hero_card(card_name: String, side: String, face_down: bool) -> Node3D:
 
 # Leuchten einer hochstehenden Karte (Dauerzauber werden so ausgespielt): Energie hoch, dann wieder runter.
 func light_card(root: Node3D, peak: float, seconds: float) -> void:
-    var front: MeshInstance3D = root.get_child(0)
-    var mat: StandardMaterial3D = front.material_override
-    var tw := create_tween()
-    tw.tween_property(mat, "emission_energy_multiplier", peak, seconds * 0.4)
-    tw.tween_property(mat, "emission_energy_multiplier", 0.0, seconds * 0.6)
-    await tw.finished
+	var front: MeshInstance3D = root.get_child(0)
+	var mat: StandardMaterial3D = front.material_override
+	var tw := create_tween()
+	tw.tween_property(mat, "emission_energy_multiplier", peak, seconds * 0.4)
+	tw.tween_property(mat, "emission_energy_multiplier", 0.0, seconds * 0.6)
+	await tw.finished
 
 
 # Strahlen aus einer Monsterkarte (Effekt auf dem Feld): dünne Balken steigen auf und verblassen.
 func rays(pos: Vector3, seconds: float) -> void:
-    var mat := StandardMaterial3D.new()
-    mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-    mat.albedo_color = Color(0.55, 0.9, 1.0)
-    mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-    var beams := []
-    for i in 10:
-        var mesh := BoxMesh.new()
-        mesh.size = Vector3(0.05, 2.4, 0.05)
-        var node := MeshInstance3D.new()
-        node.mesh = mesh
-        node.material_override = mat
-        var angle := TAU * float(i) / 10.0
-        node.position = pos + Vector3(cos(angle) * 0.7, 0.2, sin(angle) * 0.7)
-        add_child(node)
-        beams.append(node)
-    var tw := create_tween().set_parallel(true)
-    for node in beams:
-        tw.tween_property(node, "position:y", node.position.y + 1.6, seconds).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-    tw.tween_property(mat, "albedo_color:a", 0.0, seconds).set_delay(seconds * 0.4)
-    await tw.finished
-    for node in beams:
-        node.queue_free()
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = Color(0.55, 0.9, 1.0)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var beams := []
+	for i in 10:
+		var mesh := BoxMesh.new()
+		mesh.size = Vector3(0.05, 2.4, 0.05)
+		var node := MeshInstance3D.new()
+		node.mesh = mesh
+		node.material_override = mat
+		var angle := TAU * float(i) / 10.0
+		node.position = pos + Vector3(cos(angle) * 0.7, 0.2, sin(angle) * 0.7)
+		add_child(node)
+		beams.append(node)
+	var tw := create_tween().set_parallel(true)
+	for node in beams:
+		tw.tween_property(node, "position:y", node.position.y + 1.6, seconds).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(mat, "albedo_color:a", 0.0, seconds).set_delay(seconds * 0.4)
+	await tw.finished
+	for node in beams:
+		node.queue_free()
