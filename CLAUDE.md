@@ -51,6 +51,8 @@ Kein Test-Framework: jede Datei ist ein `assert`-Skript und endet mit „all che
   Die Engine führt weiter die aktuellen Skripte aus. Bekannte Abweichungen: Brionac erlaubt nur gegnerische
   Ziele (Edison: beliebige Karten), Goyo Guardian ist optional (Edison: Pflicht). Eigene Edison-Skripte
   wären der nächste Schritt, falls das Verhalten stimmen soll.
+- `data/edison-scripts.json`: eigene Anpassungen an den Engine-Skripten (z. B. Goyo Guardian ohne ERDE-Bedingung, Edison ist generisch).
+  Wird von `scripts/fetch-core.mjs` angewandt; ohne Neu-Laden: `node --no-warnings scripts/apply-edison-overrides.mjs`.
 - `scripts/fetch-cards.mjs`, `scripts/fetch-core.mjs`: laden die Daten neu. Nötig nach Änderungen an
   `data/decks.json` (neue Karten brauchen Kartendaten und Lua-Skript). Workflow „Karten laden“ macht beides.
 

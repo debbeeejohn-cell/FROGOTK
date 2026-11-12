@@ -12,6 +12,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { applyOverrides } from './apply-edison-overrides.mjs';
 
 const RAW = 'https://raw.githubusercontent.com/ProjectIgnis';
 const DATA = path.join(process.cwd(), 'data');
@@ -54,6 +55,8 @@ async function main() {
     scripts[name] = await get(`${RAW}/CardScripts/master/${dir}${name}`);
     for (const [, dep] of scripts[name].matchAll(/LoadScript\("([\w.]+\.lua)"\)/g)) queue.push(dep);
   }
+
+  applyOverrides(scripts, JSON.parse(fs.readFileSync(path.join(DATA, 'edison-scripts.json'), 'utf8'))); // Edison-Anpassungen, siehe data/edison-scripts.json
 
   const cards = {};
   const strings = {};

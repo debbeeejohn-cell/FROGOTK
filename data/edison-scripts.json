@@ -1,0 +1,9 @@
+{
+  "source": "Eigene Edison-Anpassungen an den Engine-Skripten (ProjectIgnis). Wird von scripts/fetch-core.mjs beim Erzeugen angewandt.",
+  "replace": {
+    "c7391448.lua": [
+      ["Synchro.AddProcedure(c,aux.FilterBoolFunctionEx(Card.IsAttribute,ATTRIBUTE_EARTH),1,1,Synchro.NonTuner(nil),1,99)",
+       "Synchro.AddProcedure(c,nil,1,1,Synchro.NonTuner(nil),1,99)"]
+    ]
+  }
+}
