@@ -17,11 +17,15 @@ const SPELL_WHEN = {
   'Giant Trunade': (own, foe) => foe.backrow >= 2 && own.backrow === 0,
   'Brain Control': (own, foe) => foe.faceUp > 0
 };
-// Karten, die der Bot nur in einer lohnenden Lage ankettet (foe = meine Seite). Alles andere kettet er wie bisher an.
-// Icarus Attack zerstört 2 Karten: nur, wenn beide Ziele meine Karten sein können.
-const CHAIN_WHEN = {
-  'Icarus Attack': (own, foe) => foe.cards >= 2
+// Karten, die der Bot nur in einer lohnenden Lage ankettet (foe = meine Seite, g = Spiel). Alles andere kettet er wie bisher an.
+// Icarus Attack ist eine Reaktion, keine Beschwörungsstrafe: Sie zerstört 2 Karten und kommt nur, wenn beide Ziele meine
+// Karten sein können, mindestens eines davon etwas wert ist (offenes Monster ab 1500 ATK oder eine Zauber-/Fallenkarte)
+// und ich gerade etwas aktiviert (Kette) oder angegriffen habe.
+// ponytail: g.attackBy gilt bis zum Ende der Battle Phase, nicht nur im Fenster der Angriffserklärung.
+export const CHAIN_WHEN = {
+  'Icarus Attack': (own, foe, g) => foe.cards >= 2 && foe.strong + foe.backrow >= 1 && (g.chainBy === g.me || g.attackBy === g.me)
 };
+const STRONG_ATK = 1500;
 
 // Phase 3: Bewertung der Hauptphase. Die Gewichte sind so gewählt, dass die Kategorie-Reihenfolge der bisherigen
 // Heuristik (Zauber, Beschwörung, Spezialbeschwörung, Effekt, Falle, Battle Phase) gilt. Die Bewertung entscheidet
@@ -54,7 +58,11 @@ function logBattle(g, entry) {
 }
 
 const act = (action, index) => ({ type: R.SELECT_IDLECMD, action, index });
-const sideOf = (v) => ({ cards: [...v.mz, ...v.st, v.field].filter(Boolean).length, backrow: v.st.filter(Boolean).length, faceUp: v.mz.filter((c) => c && !(c.position & P.FACEDOWN)).length });
+const sideOf = (v) => ({
+  cards: [...v.mz, ...v.st, v.field].filter(Boolean).length, backrow: v.st.filter(Boolean).length,
+  faceUp: v.mz.filter((c) => c && !(c.position & P.FACEDOWN)).length,
+  strong: v.mz.filter((c) => c && !(c.position & P.FACEDOWN) && c.attack >= STRONG_ATK).length
+});
 
 // Alle Hauptphasen-Aktionen, die die bisherigen Regeln zulassen, mit Score, beste zuerst. Bei Gleichstand gewinnt die früher genannte.
 export function mainCandidates(m, table, g, mine = g.view()[g.bot], theirs = g.view()[g.me]) {
@@ -100,7 +108,7 @@ export function botPlay(m, table, g) {
   }
   if (m.type === M.SELECT_CHAIN && !m.forced) {
     // Erste Karte, deren Bedingung passt. Passt die vorderste, entscheidet botAnswer wie bisher (nie auf die eigene Kette).
-    const fits = m.selects.findIndex((c) => CHAIN_WHEN[table.name(c.code)]?.(sideOf(mine), sideOf(theirs)) ?? true);
+    const fits = m.selects.findIndex((c) => CHAIN_WHEN[table.name(c.code)]?.(sideOf(mine), sideOf(theirs), g) ?? true);
     if (fits !== 0) return { type: R.SELECT_CHAIN, index: fits > 0 && g.chainBy !== g.bot ? fits : null };
   }
   const value = (c) => (c.position & P.FACEDOWN ? FACEDOWN_GUESS : c.position & P.DEFENSE ? c.defense : c.attack);

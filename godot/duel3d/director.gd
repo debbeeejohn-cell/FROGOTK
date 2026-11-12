@@ -107,11 +107,14 @@ func _set_card(e: Dictionary) -> void:
 func _chain(e: Dictionary) -> void:
 	card_shown.emit(str(e.name))
 	var view = board.view_at(e.side, e.zone, e.index)
+	# Das Ereignis meldet eine gesetzte Falle schon als offen (die Engine dreht sie vorher um). Das Brett hält noch den
+	# Stand davor: war die Karte dort verdeckt, wird sie sichtbar umgeklappt.
+	var was_down: bool = view != null and view.data.get("down", false)
 	if view != null:
 		view.flash()
 	if speed <= 0.0:
 		return
-	var kind := _activation(e)
+	var kind := _activation(e, was_down)
 	if kind == "ray":   # Monster auf dem Feld: Strahlen, keine Karte in der Mitte
 		await board.rays(board.zone_pos(e.side, "mz", int(e.index)) + Vector3(0.0, 0.5, 0.0), 0.7 * speed)
 		return
@@ -136,10 +139,10 @@ func _chain(e: Dictionary) -> void:
 
 # Welche Darstellung eine aktivierte Karte bekommt:
 #   ray   Monstereffekt auf dem Feld (Strahlen)
-#   flip  Monster aus der Hand, verdeckte Falle oder verdeckter Schnellzauber (umklappen)
+#   flip  Monster aus der Hand, verdeckte Falle oder verdeckter Schnellzauber (umklappen; verdeckt = Stand des Bretts)
 #   light Dauerzauber, Feldzauber oder Ausrüstung aus der Hand (leuchten, bleibt liegen)
 #   plain alles andere (Karte zeigen)
-func _activation(e: Dictionary) -> String:
+func _activation(e: Dictionary, was_down: bool) -> String:
 	var facts: Dictionary = board.cards.get(e.name, {})
 	var frame: String = facts.get("frame", "normal")
 	var spell := frame == "spell" or frame == "trap"
@@ -150,7 +153,7 @@ func _activation(e: Dictionary) -> String:
 		return "flip"
 	if e.zone == "hand" and permanent:
 		return "light"
-	if e.zone == "st" and e.get("down", false):
+	if e.zone == "st" and was_down:
 		return "flip"
 	return "plain"
 

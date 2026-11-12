@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { loadCore, cardTable, newGame, traceOf, compareCombo, M, R, IDLE, BATTLE } from './duel-core.js';
-import { features, score, pickSoftmax, WEIGHTS } from './decide.js';
+import { features, score, pickSoftmax, WEIGHTS, CHAIN_WHEN } from './decide.js';
 import { snapshot, rollout, lookahead } from './lookahead.js';
 import { L, P, seededRandom } from './duel-core.js';
 
@@ -246,26 +246,41 @@ assert.deepEqual(a.log, b.log);
   assert.deepEqual(play(), a);
 }
 
-// Icarus Attack: the bot only chains it when I control at least 2 cards (both targets can be mine).
+// Icarus Attack is a real trap: it answers my activation or my attack, never a bare Summon.
 {
   const n = (x) => id.get(x);
-  const play = (extraCards) => {
-    const cards = [
-      { side: 'bot', code: n('Blackwing - Shura the Blue Flame'), location: L.MZONE, sequence: 0, position: P.FACEUP_ATTACK },
-      { side: 'bot', code: n('Icarus Attack'), location: L.SZONE, sequence: 0, position: P.FACEDOWN },
-      ...Array(3).fill({ side: 'bot', code: n('Black Whirlwind'), location: L.DECK }),
-      { side: 'me', code: n('Dupe Frog'), location: L.HAND, sequence: 0, position: P.FACEDOWN },
-      ...Array(4).fill({ side: 'me', code: n('Des Frog'), location: L.DECK }),
-      ...extraCards
-    ];
-    const game = newGame({ lib, table, scripts, me: codes(decks.frogOtk), bot: codes(decks.blackwing), start: { lp: { me: 8000, bot: 8000 }, cards }, botPlays: true, seed: [1n, 1n, 1n, 1n] });
-    game.respond({ type: R.SELECT_IDLECMD, action: IDLE.SELECT_SUMMON, index: game.prompt.summons.findIndex((c) => name(c) === 'Dupe Frog') });
+  const base = [
+    { side: 'bot', code: n('Blackwing - Shura the Blue Flame'), location: L.MZONE, sequence: 0, position: P.FACEUP_ATTACK },
+    { side: 'bot', code: n('Icarus Attack'), location: L.SZONE, sequence: 0, position: P.FACEDOWN },
+    ...Array(3).fill({ side: 'bot', code: n('Black Whirlwind'), location: L.DECK }),
+    ...Array(4).fill({ side: 'me', code: n('Des Frog'), location: L.DECK })
+  ];
+  const play = (mine, act) => {
+    const game = newGame({ lib, table, scripts, me: codes(decks.frogOtk), bot: codes(decks.blackwing), start: { lp: { me: 8000, bot: 8000 }, cards: [...base, ...mine] }, botPlays: true, seed: [1n, 1n, 1n, 1n] });
+    game.respond(act(game));
     const used = game.log.some((l) => l.includes('aktiviert Icarus Attack'));
     game.close();
     return used;
   };
-  assert.equal(play([]), false, 'one card of mine: Icarus Attack stays set');
-  assert.equal(play([{ side: 'me', code: n('Scapegoat'), location: L.SZONE, sequence: 0, position: P.FACEDOWN }]), true, 'two cards of mine: Icarus Attack is used');
+  const summon = (game) => ({ type: R.SELECT_IDLECMD, action: IDLE.SELECT_SUMMON, index: game.prompt.summons.findIndex((c) => name(c) === 'Dupe Frog') });
+  const activate = (card) => (game) => ({ type: R.SELECT_IDLECMD, action: IDLE.SELECT_ACTIVATE, index: game.prompt.activates.findIndex((c) => name(c) === card) });
+  const hand = (card) => ({ side: 'me', code: n(card), location: L.HAND, sequence: 0, position: P.FACEDOWN });
+  const two = [hand('Dupe Frog'), { side: 'me', code: n('Scapegoat'), location: L.SZONE, sequence: 0, position: P.FACEDOWN }];
+  assert.equal(play(two, summon), false, 'a bare Summon is no reason: Icarus Attack stays set even with two cards of mine');
+  const field = { side: 'me', code: n('Dupe Frog'), location: L.MZONE, sequence: 0, position: P.FACEUP_ATTACK };
+  assert.equal(play([field, hand('Scapegoat')], activate('Scapegoat')), true, 'my activation with two cards of mine: Icarus Attack answers');
 }
+
+// The condition itself: needs 2 of my cards, a valuable target, and my chain or my attack.
+{
+  const when = CHAIN_WHEN['Icarus Attack'];
+  const me = 0; const asks = (foe, g) => when({ cards: 0 }, foe, { me, chainBy: null, attackBy: null, ...g });
+  assert.equal(asks({ cards: 2, strong: 0, backrow: 1 }, { chainBy: me }), true, 'my chain, a set card to hit');
+  assert.equal(asks({ cards: 2, strong: 1, backrow: 0 }, { attackBy: me }), true, 'my attack, a strong monster to hit');
+  assert.equal(asks({ cards: 2, strong: 0, backrow: 0 }, { chainBy: me }), false, 'two weak monsters are not worth it');
+  assert.equal(asks({ cards: 1, strong: 1, backrow: 0 }, { chainBy: me }), false, 'only one target');
+  assert.equal(asks({ cards: 2, strong: 1, backrow: 1 }, {}), false, 'neither chain nor attack');
+}
+
 
 console.log('duel-core: all checks passed');
