@@ -7,6 +7,7 @@
 import { M, R } from '../duel-core.js';
 import { mainCandidates } from '../decide.js';
 import { graveOption } from './dimensions.js';
+import { potentialOf } from './potential.js';
 import { evaluateMain, observed } from './probe.js';
 import { evaluateChain } from './chain.js';
 import { knowledge } from './resources.js';
@@ -16,8 +17,9 @@ const rankKey = (r) => `${r.action}:${r.index}`;
 
 export function advisorHook(opts, weights, { worlds = 4, chain = true } = {}) {
   const ctx = { table: opts.table, weights, gyOption: graveOption(opts.scripts, opts.table), tendencies: opts.tendencies };
+  ctx.potential = potentialOf(opts, ctx); // Timing und Future: was die Karte im besten Fall bringt (gemessen, gemerkt)
   const entry = (g, kind, extra) => ({ turn: g.turn, kind, worlds, weights: weights.weights, knowledge: knowledge(observed(g, opts.table).foe), ...extra });
-  const shown = (r) => ({ key: r.key, label: r.label, dims: r.dims, spread: r.spread, samples: r.samples, parts: r.parts, total: r.total });
+  const shown = (r) => ({ key: r.key, label: r.label, dims: r.dims, spread: r.spread, samples: r.samples, potential: r.potential, timing: r.timing, waste: r.waste, parts: r.parts, total: r.total });
   return (m, g) => {
     if (chain && m.type === M.SELECT_CHAIN && !m.forced) {
       const r = evaluateChain(opts, g, m, ctx, { worlds });

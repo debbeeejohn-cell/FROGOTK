@@ -101,8 +101,9 @@ export function evaluateMain(opts, g, m, ctx, { worlds = 4 } = {}) {
   return list.filter((c) => samples.get(c.key).length).map((c) => {
     const s = samples.get(c.key);
     const dims = Object.fromEntries(KEYS.map((k) => [k, mean(s.map((x) => x[k]))]));
-    const scored = combine(compare(dims, zero), null, ctx.weights);
-    return { ...c, dims, spread: spread(s.map((x) => x.raw)), worlds: s.length, samples: s.map((x) => x.raw), parts: scored.parts, total: scored.total };
+    const potential = ctx.potential ? ctx.potential(c.first.code) : null;
+    const scored = combine(compare(dims, zero), potential, ctx.weights);
+    return { ...c, dims, spread: spread(s.map((x) => x.raw)), worlds: s.length, samples: s.map((x) => x.raw), potential, timing: scored.timing, waste: scored.waste, parts: scored.parts, total: scored.total };
   });
 }
 
