@@ -10,7 +10,7 @@ const LpGauge = preload("res://duel3d/lp_gauge.gd")
 const Banner = preload("res://duel3d/banner.gd")
 const SummonShow = preload("res://duel3d/summon_show.gd")
 
-const BUILD := "Stand 10"   # steht oben in der Statuszeile: zeigt auf einem Screenshot, welche Version läuft
+const BUILD := "Stand 11"   # steht oben in der Statuszeile: zeigt auf einem Screenshot, welche Version läuft
 const CAM_HOME := Transform3D(Basis.IDENTITY, Vector3(0.0, 13.0, 13.5))   # mittig über dem Feld: beide Seiten und meine Hand im Bild
 
 var board: Board
@@ -122,7 +122,7 @@ func _build_ui() -> void:
 	for side in ["me", "bot"]:
 		var gauge: LpGauge = LpGauge.new()
 		gauge.title = "Du" if side == "me" else "Bot"
-		gauge.radius = 44.0
+		gauge.radius = 56.0
 		gauge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		ui.add_child(gauge)
 		gauges[side] = gauge
