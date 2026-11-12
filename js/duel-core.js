@@ -127,15 +127,15 @@ export function newGame(opts) {
   function onMessage(m) {
     switch (m.type) {
       case M.HINT: if (m.hint_type === HINT_SELECTMSG && m.player === ME) g.hint = table.text(m.hint); break;
-      case M.NEW_TURN: g.botActs = 0; g.attackBy = null; g.turn += 1; g.active = m.player; say(`— Zug ${g.turn}: ${who(m.player)} —`); break;
-      case M.NEW_PHASE: g.phase = m.phase; g.attackBy = null; break;
+      case M.NEW_TURN: g.botActs = 0; g.attackBy = null; g.attackInfo = null; g.turn += 1; g.active = m.player; say(`— Zug ${g.turn}: ${who(m.player)} —`); break;
+      case M.NEW_PHASE: g.phase = m.phase; g.attackBy = null; g.attackInfo = null; break;
       case M.DRAW: say(m.player === ME ? `Du ziehst ${m.drawn.map((c) => named(c.code)).join(', ')}` : `Bot zieht ${m.drawn.length} Karte(n)`); break;
       case M.SUMMONING: say(`${who(m.controller)}: Normalbeschwörung ${named(m.code)}`); break;
       case M.SPSUMMONING: say(`${who(m.controller)}: Spezialbeschwörung ${named(m.code)}`); break;
       case M.FLIPSUMMONING: say(`${who(m.controller)}: Flippbeschwörung ${named(m.code)}`); break;
       case M.SET: say(`${who(m.controller)}: setzt ${m.code && m.controller === ME ? named(m.code) : 'eine Karte'}`); break;
-      case M.CHAINING: g.chainBy = m.controller; say(`${who(m.controller)}: aktiviert ${named(m.code)}${m.chain_size > 1 ? ` (Kettenglied ${m.chain_size})` : ''}`); break;
-      case M.CHAIN_END: g.chainBy = null; break;
+      case M.CHAINING: g.chainBy = m.controller; g.chainCode = m.code; g.chainSize = m.chain_size; say(`${who(m.controller)}: aktiviert ${named(m.code)}${m.chain_size > 1 ? ` (Kettenglied ${m.chain_size})` : ''}`); break;
+      case M.CHAIN_END: g.chainBy = null; g.chainCode = null; g.chainSize = 0; break;
       case M.CHAIN_NEGATED: case M.CHAIN_DISABLED: say(`Kettenglied ${m.chain_size} wird annulliert`); break;
       case M.MOVE:
         if ([L.GRAVE, L.REMOVED].includes(m.to.location) || (m.to.location === L.HAND && m.from.location !== L.DECK)
@@ -143,7 +143,7 @@ export function newGame(opts) {
           say(`${named(m.card)}: ${PLACE[m.from.location] ?? '?'} → ${PLACE[m.to.location] ?? '?'}`);
         }
         break;
-      case M.ATTACK: g.attackBy = m.card.controller; say(`${who(m.card.controller)}: ${named(g.view()[m.card.controller].mz[m.card.sequence]?.code)} greift an${m.target ? '' : ' (direkt)'}`); break;
+      case M.ATTACK: g.attackBy = m.card.controller; g.attackInfo = { from: { controller: m.card.controller, sequence: m.card.sequence }, to: m.target ? { controller: m.target.controller, sequence: m.target.sequence } : null }; say(`${who(m.card.controller)}: ${named(g.view()[m.card.controller].mz[m.card.sequence]?.code)} greift an${m.target ? '' : ' (direkt)'}`); break;
       case M.DAMAGE: g.lp[m.player] = Math.max(0, g.lp[m.player] - m.amount); say(`${who(m.player)}: −${m.amount} LP (${g.lp[m.player]})`); break;
       case M.PAY_LPCOST: g.lp[m.player] = Math.max(0, g.lp[m.player] - m.amount); say(`${who(m.player)} zahlt ${m.amount} LP (${g.lp[m.player]})`); break;
       case M.RECOVER: g.lp[m.player] += m.amount; say(`${who(m.player)}: +${m.amount} LP (${g.lp[m.player]})`); break;

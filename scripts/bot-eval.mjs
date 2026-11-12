@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Misst den Bot: Die Gegenseite (der Bot) spielt seine Heuristik, ich spiele zufällig, aber mit festem Seed je
 // Partie. So ist jeder Lauf wiederholbar, und zwei Versionen des Bots lassen sich direkt vergleichen.
-//   node --no-warnings scripts/bot-eval.mjs [games] [lookahead|advisor]
+//   node --no-warnings scripts/bot-eval.mjs [games] [lookahead|advisor|advisor-main]
 import { server } from './duel-server.mjs';
 
 export const PAIRS = [['blackwing', 'frogOtk'], ['frogOtk', 'blackwing'], ['jinzoOtk', 'gigavise']];
@@ -39,7 +39,7 @@ function myChoice(st, rand) {
 /** onState(st): wird nach jedem Zustand aufgerufen (für Auswertungen wie scripts/guess-eval.mjs). */
 export async function play(base, deck, opp, seed, onState = () => {}, variant = '') {
   const rand = rng(seed);
-  let st = await call(base, '/new', { deck, opp, seed: [seed, seed + 1, seed + 2, seed + 3].map(String), bot: 'aktiv', lookahead: variant === 'lookahead' || variant === true, advisor: variant === 'advisor' });
+  let st = await call(base, '/new', { deck, opp, seed: [seed, seed + 1, seed + 2, seed + 3].map(String), bot: 'aktiv', lookahead: variant === 'lookahead' || variant === true, advisor: variant === 'advisor' ? true : variant === 'advisor-main' ? 'main' : false });
   onState(st);
   let steps = 0;
   while (st.duel && st.winner === null && st.prompt && steps < 600) {

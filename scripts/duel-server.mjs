@@ -8,7 +8,8 @@
 //   GET  /image?name=Swap%20Frog -> image/jpeg (assets/cards-small, the same files the web page shows; 404 without one)
 //   POST /new    { deck, opp, hand: [names], first: true, bot: "aktiv"|"passiv", askAll: false, seed: [4 numbers as strings],
 //                  lookahead: false (the active bot tries its best moves in sampled worlds first, js/lookahead.js),
-//                  advisor: false (card advantage and strategic value, measured by the engine in sampled worlds, js/advisor/) }
+//                  advisor: false | true | "main" (card advantage and strategic value, measured by the engine in sampled worlds,
+//                           js/advisor/; "main" = first Main Phase action only, true = also answers in chain windows) }
 //   POST /answer { choice: id } | { pick: [ids] } | { name: "Card Name" }
 //   POST /undo
 //   GET  /state                 (also resends all card facts, for a client that reconnects)
@@ -194,7 +195,7 @@ function start(body) {
   const opts = { lib, table, scripts, me: deckCodes(deck), bot: deckCodes(opp), hand: codes(hand), seed, second: body.first === false, askAllChains: !!body.askAll, botPlays: body.bot !== 'passiv' };
   if (body.lookahead && body.advisor) return fail('lookahead und advisor schließen sich aus.');
   if (body.lookahead && opts.botPlays) opts.botHook = lookahead(opts, setWeights);
-  if (body.advisor && opts.botPlays) { opts.tendencies = setWeights; opts.botHook = advisorHook(opts, advisorWeights); }
+  if (body.advisor && opts.botPlays) { opts.tendencies = setWeights; opts.botHook = advisorHook(opts, advisorWeights, { chain: body.advisor !== 'main' }); }
   s = { g: newGame(opts), opts, answers: [], sent: 0, pending: null, known: new Set() };
   return state();
 }
