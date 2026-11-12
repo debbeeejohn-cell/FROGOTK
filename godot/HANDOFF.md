@@ -54,6 +54,7 @@ Genaue Set-Grenze und Banlist-Einträge vor dem Einbau mit einer öffentlichen Q
 
 ## Rechtliches (Vorgabe, nicht verhandeln)
 - Keine Konami-Spieldateien, -Grafiken, -Sounds oder -Codes übernehmen. Das gilt auch für Dateien aus Spielen, die der User besitzt (z. B. Over the Nexus), und auch für Rips.
+- Eigene Bilder (z. B. Kartenbilder in `godot/art/cards/`) liegen nur lokal auf dem eigenen Rechner und gehören nicht ins Repo; `.gitignore` schließt den Ordner aus.
 - Kartendaten (Name, ATK, DEF, Text) aus öffentlichen Datenbanken sind möglich. Kartenbilder sind urheberrechtlich geschützt.
 - Projekt bleibt privat und nicht kommerziell. Eigene oder freie Platzhalter-Grafik verwenden.
 

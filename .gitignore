@@ -7,3 +7,7 @@ assets/fonts/
 godot/.godot/
 godot/**/*.uid
 godot/**/*.tmp
+
+# eigene lokale Bilder (nicht ins Repo, siehe godot/HANDOFF.md)
+godot/art/cards/*
+!godot/art/cards/README.md
