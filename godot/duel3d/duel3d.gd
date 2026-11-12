@@ -10,7 +10,7 @@ const LpGauge = preload("res://duel3d/lp_gauge.gd")
 const Banner = preload("res://duel3d/banner.gd")
 const SummonShow = preload("res://duel3d/summon_show.gd")
 
-const BUILD := "Stand 8"   # steht oben in der Statuszeile: zeigt auf einem Screenshot, welche Version läuft
+const BUILD := "Stand 9"   # steht oben in der Statuszeile: zeigt auf einem Screenshot, welche Version läuft
 const CAM_HOME := Transform3D(Basis.IDENTITY, Vector3(0.0, 13.0, 13.5))   # mittig über dem Feld: beide Seiten und meine Hand im Bild
 
 var board: Board
@@ -36,6 +36,8 @@ var pile_view: PanelContainer # Friedhof, Verbannt oder Extra Deck als Liste
 var pile_title: Label
 var pile_list: HFlowContainer
 var result: Label             # „Gewonnen“ / „Verloren“ in der Bildmitte
+var action_popup: PanelContainer   # kleine Aktionsleiste direkt über der angeklickten Karte
+var action_box: VBoxContainer
 var bubble: PanelContainer    # Sprechblase des Lehrers unten rechts
 var bubble_text: Label
 var bubble_tail: Polygon2D
@@ -162,6 +164,23 @@ func _build_ui() -> void:
 	result.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	result.visible = false
 	ui.add_child(result)
+
+	action_popup = PanelContainer.new()
+	action_popup.visible = false
+	var popup_paper := StyleBoxFlat.new()
+	popup_paper.bg_color = Color(0.05, 0.07, 0.16, 0.96)
+	popup_paper.border_color = Color(0.45, 0.80, 1.0)
+	popup_paper.set_border_width_all(2)
+	popup_paper.set_corner_radius_all(8)
+	popup_paper.content_margin_left = 6.0
+	popup_paper.content_margin_right = 6.0
+	popup_paper.content_margin_top = 6.0
+	popup_paper.content_margin_bottom = 6.0
+	action_popup.add_theme_stylebox_override("panel", popup_paper)
+	ui.add_child(action_popup)
+	action_box = VBoxContainer.new()
+	action_box.add_theme_constant_override("separation", 6)
+	action_popup.add_child(action_box)
 
 	# Sprechblase des Lehrers: unten rechts über der Knopfleiste, Zipfel zeigt nach unten rechts.
 	bubble = PanelContainer.new()
@@ -384,6 +403,9 @@ func _clear_prompt() -> void:
 	focus = ""
 	for child in buttons.get_children():
 		child.queue_free()
+	for child in action_box.get_children():
+		child.queue_free()
+	action_popup.visible = false
 	board.set_marks({})
 
 
@@ -391,6 +413,9 @@ func _clear_prompt() -> void:
 func _show_prompt() -> void:
 	for child in buttons.get_children():
 		child.queue_free()
+	for child in action_box.get_children():
+		child.queue_free()
+	action_popup.visible = false
 	var marks := {}
 	var multi: bool = prompt.get("multi", false)
 	if prompt.is_empty():
@@ -410,8 +435,14 @@ func _show_prompt() -> void:
 		var label: String = choice.label
 		if choice.has("card"):
 			label = "%s: %s" % [choice.card.name, label]
-		var button := _button(label, _on_choice.bind(int(choice.id)), multi)
+		var in_popup: bool = on_board and focus == k and not multi
+		var button := _button(label, _on_choice.bind(int(choice.id)), multi, action_box if in_popup else buttons)
 		button.button_pressed = multi and picked.has(int(choice.id))
+		if in_popup:
+			button.custom_minimum_size = Vector2(230, 44)
+			button.add_theme_font_size_override("font_size", 16)
+	if focus != "" and action_box.get_child_count() > 0:
+		call_deferred("_place_popup", focus)
 	if multi:
 		_button("Bestätigen", _on_confirm, false)
 	board.set_marks(marks)
@@ -421,7 +452,18 @@ func _key(choice: Dictionary) -> String:
 	return Board.key(choice.card.side, choice.card.zone, int(choice.card.index)) if choice.has("card") else ""
 
 
-func _button(text: String, action: Callable, toggle: bool) -> Button:
+# Die Leiste schwebt über der Karte: Bildschirmposition der Karte, dann oberhalb zentriert.
+func _place_popup(key: String) -> void:
+	var view = board.views.get(key)
+	if view == null or action_box.get_child_count() == 0:
+		return
+	var at: Vector2 = cam.unproject_position(view.global_position + Vector3(0.0, 1.8, 0.0))
+	action_popup.reset_size()
+	action_popup.position = at - Vector2(action_popup.size.x / 2.0, action_popup.size.y)
+	action_popup.visible = true
+
+
+func _button(text: String, action: Callable, toggle: bool, parent: Node = null) -> Button:
 	var button := Button.new()
 	button.text = text
 	button.toggle_mode = toggle
@@ -440,7 +482,7 @@ func _button(text: String, action: Callable, toggle: bool) -> Button:
 		box.content_margin_bottom = 8.0
 		button.add_theme_stylebox_override(state, box)
 	button.pressed.connect(action)
-	buttons.add_child(button)
+	(parent if parent != null else buttons).add_child(button)
 	return button
 
 

@@ -100,18 +100,48 @@ func _chain(e: Dictionary) -> void:
 		view.flash()
 	if speed <= 0.0:
 		return
+	var kind := _activation(e)
+	if kind == "ray":   # Monster auf dem Feld: Strahlen, keine Karte in der Mitte
+		await board.rays(board.zone_pos(e.side, "mz", int(e.index)) + Vector3(0.0, 0.5, 0.0), 0.7 * speed)
+		return
 	var sign := 1.0 if e.side == "me" else -1.0
 	var origin: Vector3 = Board.HERO + Vector3(0.0, 0.6, sign * CAM_DIST)
 	var near := Transform3D(Basis.looking_at(Board.HERO - origin, Vector3.UP), origin)
 	var base := 0.0 if e.side == "me" else PI
-	var hero: Node3D = board.hero_card(str(e.name), str(e.side))
+	var flips: bool = kind == "flip"
+	var hero: Node3D = board.hero_card(str(e.name), str(e.side), flips)
 	await _cam_to(near, 0.45 * speed)
-	var flip := create_tween()
-	flip.tween_property(hero, "rotation:y", base, 0.4 * speed).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	await flip.finished
-	await _pause(0.9)
+	if flips:
+		var flip := create_tween()
+		flip.tween_property(hero, "rotation:y", base, 0.4 * speed).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		await flip.finished
+	if kind == "light":   # Dauerzauber: leuchtet beim Ausspielen, bleibt danach auf dem Feld
+		await board.light_card(hero, 3.0, 1.0 * speed)
+	else:
+		await _pause(0.9)
 	hero.queue_free()
 	await _cam_to(_home, 0.35 * speed)
+
+
+# Welche Darstellung eine aktivierte Karte bekommt:
+#   ray   Monstereffekt auf dem Feld (Strahlen)
+#   flip  Monster aus der Hand, verdeckte Falle oder verdeckter Schnellzauber (umklappen)
+#   light Dauerzauber, Feldzauber oder Ausrüstung aus der Hand (leuchten, bleibt liegen)
+#   plain alles andere (Karte zeigen)
+func _activation(e: Dictionary) -> String:
+	var facts: Dictionary = board.cards.get(e.name, {})
+	var frame: String = facts.get("frame", "normal")
+	var spell := frame == "spell" or frame == "trap"
+	var permanent := ["Continuous", "Field", "Equip"].any(func(word: String) -> bool: return word in facts.get("type", ""))
+	if e.zone == "mz" and not spell:
+		return "ray"
+	if e.zone == "hand" and not spell:
+		return "flip"
+	if e.zone == "hand" and permanent:
+		return "light"
+	if e.zone == "st" and e.get("down", false):
+		return "flip"
+	return "plain"
 
 
 # Phasen-Banner, nur wenn sich die Hauptphase ändert. Die Regie hält kurz an, damit man reagieren kann.
