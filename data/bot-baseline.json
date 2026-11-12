@@ -1,0 +1,9 @@
+{
+  "source": "Vergleichsbasis: der Bot vor dem Bewertungssystem (Git-Tag bot-baseline = Commit c937ecd). Bot ist die Gegenseite, ich spiele zufällig; Seeds 1000 + i * 7, 100 Partien je Paar.",
+  "command": "git checkout bot-baseline && node --no-warnings scripts/bot-eval.mjs 100",
+  "results": [
+    { "bot": "frogOtk", "against": "blackwing", "botWins": 45, "games": 100, "medianTurns": 23 },
+    { "bot": "blackwing", "against": "frogOtk", "botWins": 100, "games": 100, "medianTurns": 5 },
+    { "bot": "gigavise", "against": "jinzoOtk", "botWins": 10, "games": 100, "medianTurns": 21 }
+  ]
+}
