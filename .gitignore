@@ -11,3 +11,6 @@ godot/**/*.tmp
 # eigene lokale Bilder (nicht ins Repo, siehe godot/HANDOFF.md)
 godot/art/cards/*
 !godot/art/cards/README.md
+
+# Konami-Kartenbilder: nur lokal, nicht im Repo (siehe godot/HANDOFF.md). Neu laden: node scripts/fetch-cards.mjs
+assets/cards-small/
