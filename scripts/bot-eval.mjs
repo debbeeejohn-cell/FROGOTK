@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Misst den Bot: Die Gegenseite (der Bot) spielt seine Heuristik, ich spiele zufällig, aber mit festem Seed je
 // Partie. So ist jeder Lauf wiederholbar, und zwei Versionen des Bots lassen sich direkt vergleichen.
-//   node --no-warnings scripts/bot-eval.mjs [games] [lookahead]
+//   node --no-warnings scripts/bot-eval.mjs [games] [lookahead|advisor]
 import { server } from './duel-server.mjs';
 
 export const PAIRS = [['blackwing', 'frogOtk'], ['frogOtk', 'blackwing'], ['jinzoOtk', 'gigavise']];
@@ -37,9 +37,9 @@ function myChoice(st, rand) {
 }
 
 /** onState(st): wird nach jedem Zustand aufgerufen (für Auswertungen wie scripts/guess-eval.mjs). */
-export async function play(base, deck, opp, seed, onState = () => {}, lookahead = false) {
+export async function play(base, deck, opp, seed, onState = () => {}, variant = '') {
   const rand = rng(seed);
-  let st = await call(base, '/new', { deck, opp, seed: [seed, seed + 1, seed + 2, seed + 3].map(String), bot: 'aktiv', lookahead });
+  let st = await call(base, '/new', { deck, opp, seed: [seed, seed + 1, seed + 2, seed + 3].map(String), bot: 'aktiv', lookahead: variant === 'lookahead' || variant === true, advisor: variant === 'advisor' });
   onState(st);
   let steps = 0;
   while (st.duel && st.winner === null && st.prompt && steps < 600) {
@@ -60,7 +60,7 @@ if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/bot-eval.mjs')) {
   const base = `http://127.0.0.1:${server.address().port}`;
   for (const [deck, opp] of PAIRS) {
     const rows = [];
-    for (let i = 0; i < games; i += 1) rows.push(await play(base, deck, opp, 1000 + i * 7, undefined, process.argv[3] === 'lookahead'));
+    for (let i = 0; i < games; i += 1) rows.push(await play(base, deck, opp, 1000 + i * 7, undefined, process.argv[3] ?? ''));
     const botWins = rows.filter((r) => r.winner === 'bot').length;
     const turns = rows.map((r) => r.turns).sort((a, b) => a - b);
     console.log(`${opp.padEnd(10)} (Bot) gegen ${deck.padEnd(10)} (ich): Bot gewinnt ${botWins}/${games}, Züge Median ${turns[Math.floor(turns.length / 2)]}`);

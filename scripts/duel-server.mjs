@@ -7,7 +7,8 @@
 //   GET  /card?name=Swap%20Frog -> { name, type, desc, atk, def, level, attribute, race }
 //   GET  /image?name=Swap%20Frog -> image/jpeg (assets/cards-small, the same files the web page shows; 404 without one)
 //   POST /new    { deck, opp, hand: [names], first: true, bot: "aktiv"|"passiv", askAll: false, seed: [4 numbers as strings],
-//                  lookahead: false (the active bot tries its best moves in sampled worlds first, js/lookahead.js) }
+//                  lookahead: false (the active bot tries its best moves in sampled worlds first, js/lookahead.js),
+//                  advisor: false (card advantage and strategic value, measured by the engine in sampled worlds, js/advisor/) }
 //   POST /answer { choice: id } | { pick: [ids] } | { name: "Card Name" }
 //   POST /undo
 //   GET  /state                 (also resends all card facts, for a client that reconnects)
@@ -19,6 +20,7 @@
 import fs from 'node:fs';
 import http from 'node:http';
 import { lookahead } from '../js/lookahead.js';
+import { advisorHook } from '../js/advisor/index.js';
 import { loadCore, cardTable, newGame, L, P, M, R, IDLE, BATTLE, PLACE, PHASE, ZONE } from '../js/duel-core.js';
 
 const MAX_BODY = 64 * 1024;
@@ -31,6 +33,7 @@ const table = cardTable(coreCards);
 const coreRow = new Map(coreCards.cards.map((row) => [row[9], row])); // name -> [code, alias, setcode, type, level, attribute, race, atk, def, name]
 const { scripts } = json('core-scripts.json');
 const lib = await loadCore();
+const advisorWeights = json('advisor-weights.json');
 // Setz-Tendenzen nach Passcode, für die Probewelten des Lookahead
 const setWeights = Object.fromEntries(Object.entries(json('set-tendencies.json').weights).map(([name, w]) => [byName.get(name)?.id, w]));
 
@@ -169,7 +172,8 @@ function state() {
     lp: { me: g.lp[g.me], bot: g.lp[g.bot] }, winner: g.winner === null ? null : g.winner === g.me ? 'me' : g.winner === g.bot ? 'bot' : 'draw',
     field: { me: half(g.me, false), bot: half(g.bot, true) }, prompt: s.pending ? prompt : null,
     events, log: g.log.slice(0, 30), review: g.review ?? null, error: g.error || (g.errors.at(-1) ?? ''),
-    decisions: g.botLog?.splice(0) ?? [] // protokollierte Bot-Entscheidungen seit dem letzten Zustand
+    decisions: g.botLog?.splice(0) ?? [], // protokollierte Bot-Entscheidungen seit dem letzten Zustand
+    advisor: g.advisorLog?.splice(0) ?? [] // Bewertungen des Advisors (alle Kandidaten, Dimensionen, Wahl)
   };
   out.cards = {};
   for (const name of cardNames([out.field, out.prompt, out.events])) {
@@ -188,7 +192,9 @@ function start(body) {
   s?.g.close();
   const seed = Array.isArray(body.seed) ? body.seed.map((x) => BigInt(x)) : undefined; // same seed = same deck order
   const opts = { lib, table, scripts, me: deckCodes(deck), bot: deckCodes(opp), hand: codes(hand), seed, second: body.first === false, askAllChains: !!body.askAll, botPlays: body.bot !== 'passiv' };
+  if (body.lookahead && body.advisor) return fail('lookahead und advisor schließen sich aus.');
   if (body.lookahead && opts.botPlays) opts.botHook = lookahead(opts, setWeights);
+  if (body.advisor && opts.botPlays) { opts.tendencies = setWeights; opts.botHook = advisorHook(opts, advisorWeights); }
   s = { g: newGame(opts), opts, answers: [], sent: 0, pending: null, known: new Set() };
   return state();
 }
