@@ -29,8 +29,7 @@ export function buildEdisonDb(cards, banlist) {
       atk: c.atk,
       def: c.def,
       desc: c.desc,
-      limit: limited.has(c.name) ? 'limited' : semi.has(c.name) ? 'semiLimited' : null,
-      sprite: c.name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+      limit: limited.has(c.name) ? 'limited' : semi.has(c.name) ? 'semiLimited' : null
     }));
   return { cards: playable, excludedForbidden: cards.length - playable.length, notInCardData: missing };
 }

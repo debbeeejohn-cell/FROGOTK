@@ -11,7 +11,6 @@ const byName = new Map(db.cards.map((c) => [c.name, c]));
 // every card has the fields a front end needs
 for (const c of db.cards) {
   assert.ok(Number.isInteger(c.id) && c.name && c.type, `card ${c.id} has id, name, type`);
-  assert.ok(c.sprite && /^[a-z0-9_]+$/.test(c.sprite), `sprite name of ${c.name} is a plain file name`);
 }
 assert.ok(db.cards.length > 3000, 'the Edison pool is large');
 
