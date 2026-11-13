@@ -1,6 +1,8 @@
 // Run: node --no-warnings scripts/bot-audit.test.mjs  (Statistik des Audit-Werkzeugs; der volle Lauf ist bot-audit.mjs selbst)
 import assert from 'node:assert/strict';
 import { wilson, signTest } from './bot-audit.mjs';
+import { leakRows } from './audit-leak.mjs';
+import { PAIRS } from './bot-eval.mjs';
 
 // Wilson: bekannte Werte, 5 von 10 und 0 von 10
 const [lo, hi] = wilson(5, 10);
@@ -14,5 +16,12 @@ assert.ok(signTest(6, 4) > 0.5);
 assert.equal(signTest(0, 0), 1);
 assert.equal(signTest(3, 3), 1);
 assert.equal(signTest(10, 0), signTest(0, 10), 'symmetrisch');
+
+// Verdeckte Information: beide Bots bestehen, die Gegenprobe (liest die Gegnerhand) muss durchfallen, sonst taugt die Prüfung nichts
+const rows = await leakRows(4, PAIRS);
+const row = (start) => rows.find((r) => r.name.startsWith(start));
+assert.equal(row('Verdeckte Information, alter Bot').ok, true, row('Verdeckte Information, alter Bot').detail);
+assert.equal(row('Verdeckte Information, advisor').ok, true, row('Verdeckte Information, advisor').detail);
+assert.equal(row('Gegenprobe').ok, true, 'the control bot that reads the foe hand is caught');
 
 console.log('bot-audit: all checks passed');

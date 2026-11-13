@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { server } from './duel-server.mjs';
 import { PAIRS, play } from './bot-eval.mjs';
+import { leakRows } from './audit-leak.mjs';
 
 const rootDir = fileURLToPath(new URL('../', import.meta.url));
 const file = (p) => path.join(rootDir, p);
@@ -143,6 +144,7 @@ if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/bot-audit.mjs')) {
   const mode = process.argv.includes('--full') ? 'full' : 'quick';
   runTests();
   staticChecks();
+  for (const r of await leakRows(limits.leakPositions[mode], PAIRS)) add('Bot', r.name, r.ok === null ? WARN : r.ok ? OK : BAD, r.detail);
   await botChecks(mode);
   const md = report(mode);
   fs.writeFileSync(file('docs/AUDIT_REPORT.md'), md);
