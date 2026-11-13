@@ -1,0 +1,6 @@
+{
+  "games": { "quick": 10, "full": 50 },
+  "unfinishedMax": 0,
+  "maxSecondsPerGame": 30,
+  "maxFileLines": 1200
+}

@@ -47,6 +47,9 @@ Kein Test-Framework: jede Datei ist ein `assert`-Skript und endet mit „all che
     (Schalter `advisor` in `POST /new`, Standard aus). Die Engine misst jede Aktion in Probewelten, Dimensionen und Grenzen
     stehen in `docs/ADVISOR.md`, Gewichte in `data/advisor-weights.json`. Vergleich: `scripts/advisor-eval.mjs`; Vergleichsbasis
     ist der Tag `bot-baseline` (`data/bot-baseline.json`).
+  - `scripts/bot-audit.mjs`: Prüfwerkzeug mit Ampeln (`--quick` ca. 6 min, `--full`), schreibt `docs/AUDIT_REPORT.md`.
+    Prüft alle Tests, Einrückung, Links, Legalität, Determinismus, Laufzeit und Stärke (alt gegen Advisor, gleiche Seeds,
+    Wilson-Intervall, Vorzeichentest). Schwellen: `data/audit-thresholds.json`. Misst Stellvertreter, ersetzt keinen Menschen.
 - Daten: `data/decks.json` (7 Decks), `data/cards.json` + `assets/cards-small/` (YGOPRODeck),
   `data/core-cards.json` + `data/core-scripts.json` (BabelCDB + ProjectIgnis CardScripts),
   `data/edison-banlist.json`.
