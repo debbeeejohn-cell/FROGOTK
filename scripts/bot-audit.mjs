@@ -8,7 +8,8 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { server } from './duel-server.mjs';
 import { PAIRS, play } from './bot-eval.mjs';
-import { leakRows } from './audit-leak.mjs';
+import { leakRows, setup } from './audit-leak.mjs';
+import { refereeGames, HARD } from './audit-referee.mjs';
 
 const rootDir = fileURLToPath(new URL('../', import.meta.url));
 const file = (p) => path.join(rootDir, p);
@@ -124,6 +125,33 @@ export async function botChecks(mode) {
   server.close();
 }
 
+/** Schiedsrichter-Regeln und Arena: Bot gegen den alten Bot (gespiegelt), gleiche Seeds für beide Varianten. Startwerte der weichen Schwellen sind keine Regeln. */
+export async function refereeChecks(mode) {
+  const out = refereeGames(await setup(), limits.refereeGames[mode], PAIRS);
+  const where = (list) => list.slice(0, 3).map(({ g, f }) => `Bot ${g.botDeck} gegen ${g.meDeck}, Seed ${g.seed[0]}, Zug ${f.turn}`).join('; ');
+  for (const [variant, games] of Object.entries(out)) {
+    const name = variant || 'alter Bot';
+    const botTurns = games.reduce((s, g) => s + Math.floor(g.turns / 2), 0);
+    const finds = games.flatMap((g) => g.findings.map((f) => ({ g, f })));
+    const broken = games.filter((g) => g.errors.length);
+    add('Schiedsrichter', `Engine-Fehler, ${name}`, broken.length ? BAD : OK, broken.length ? `${broken.length} Partien: ${broken[0].errors[0]}` : `keine in ${games.length} Partien`);
+    const hard = finds.filter(({ f }) => f.severity === HARD);
+    add('Schiedsrichter', `Tödlicher Schaden nicht genutzt, ${name}`, hard.length ? BAD : OK, hard.length ? `${hard.length} Fälle: ${where(hard)}` : `keiner in ${botTurns} Bot-Zügen`);
+    for (const [rule, max] of Object.entries(limits.softRatePerBotTurn)) {
+      const list = finds.filter(({ f }) => f.rule === rule);
+      const rate = botTurns ? list.length / botTurns : 0;
+      add('Schiedsrichter', `${rule}, ${name} (Hinweis)`, rate > max ? WARN : OK, `${list.length} in ${botTurns} Bot-Zügen = ${pct(rate)} (Schwelle ${pct(max)})${list.length ? `; z. B. ${where(list)}` : ''}`);
+    }
+  }
+  const [o, a] = [out[''], out.advisor];
+  const wins = (l) => l.filter((g) => g.winner === 'bot').length;
+  const b = a.filter((g, i) => g.winner === 'bot' && o[i].winner !== 'bot').length, c = a.filter((g, i) => g.winner !== 'bot' && o[i].winner === 'bot').length;
+  const p = signTest(b, c), [lo, hi] = wilson(wins(a), a.length);
+  const verdict = p < 0.05 ? (b > c ? 'Advisor klar besser' : 'Advisor klar schlechter') : 'nicht unterscheidbar';
+  add('Schiedsrichter', 'Arena: Bot gegen Gegner mit den Regeln des alten Bots', verdict === 'Advisor klar schlechter' ? BAD : OK,
+    `alt ${wins(o)}/${o.length}, Advisor ${wins(a)}/${a.length} (${pct(lo)}–${pct(hi)}); nur Advisor ${b}, nur alt ${c}, p=${p.toFixed(3)}: ${verdict}`);
+}
+
 // --- Bericht ------------------------------------------------------------------------------------------------
 export function report(mode) {
   const icon = { [OK]: '🟢', [WARN]: '🟡', [BAD]: '🔴' };
@@ -132,7 +160,7 @@ export function report(mode) {
     `Gemessen von \`scripts/bot-audit.mjs\`. ${icon[OK]} ${count(OK)}  ${icon[WARN]} ${count(WARN)}  ${icon[BAD]} ${count(BAD)}.`, '',
     '**Grenzen:** Das Werkzeug stammt vom selben Autor wie der Bot (blinde Flecken möglich). Der Gegner spielt zufällig und ersetzt keinen Menschen.',
     'Es misst Stellvertreter, keine „menschliche“ Spielweise. Schwellen stehen in `data/audit-thresholds.json`.', ''];
-  for (const area of ['Code', 'Bot']) {
+  for (const area of ['Code', 'Schiedsrichter', 'Bot']) {
     lines.push(`## ${area}`, '', '| | Prüfung | Ergebnis |', '|---|---|---|');
     for (const r of rows.filter((x) => x.area === area)) lines.push(`| ${icon[r.status]} | ${r.name} | ${r.detail.replaceAll('|', '/')} |`);
     lines.push('');
@@ -145,6 +173,7 @@ if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/bot-audit.mjs')) {
   runTests();
   staticChecks();
   for (const r of await leakRows(limits.leakPositions[mode], PAIRS)) add('Bot', r.name, r.ok === null ? WARN : r.ok ? OK : BAD, r.detail);
+  await refereeChecks(mode);
   await botChecks(mode);
   const md = report(mode);
   fs.writeFileSync(file('docs/AUDIT_REPORT.md'), md);

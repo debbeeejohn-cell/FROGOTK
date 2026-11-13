@@ -1,6 +1,8 @@
 {
   "games": { "quick": 10, "full": 50 },
   "leakPositions": { "quick": 12, "full": 40 },
+  "refereeGames": { "quick": 6, "full": 40 },
+  "softRatePerBotTurn": { "freier Angriff": 0.05, "Normalbeschwörung": 0.25, "leerer Zug": 0.1 },
   "unfinishedMax": 0,
   "maxSecondsPerGame": 30,
   "maxFileLines": 1200

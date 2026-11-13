@@ -49,7 +49,9 @@ Kein Test-Framework: jede Datei ist ein `assert`-Skript und endet mit „all che
     ist der Tag `bot-baseline` (`data/bot-baseline.json`).
   - `scripts/bot-audit.mjs`: Prüfwerkzeug mit Ampeln (`--quick` ca. 6 min, `--full`), schreibt `docs/AUDIT_REPORT.md`.
     Prüft alle Tests, Einrückung, Links, Legalität, Determinismus, Laufzeit und Stärke (alt gegen Advisor, gleiche Seeds,
-    Wilson-Intervall, Vorzeichentest). Schwellen: `data/audit-thresholds.json`. Misst Stellvertreter, ersetzt keinen Menschen.
+    Wilson-Intervall, Vorzeichentest), dazu `scripts/audit-leak.mjs` (nutzt der Bot verdeckte Gegnerkarten? Gegenprobe liest
+    die Gegnerhand und muss durchfallen) und `scripts/audit-referee.mjs` (Schiedsrichter-Regeln je Bot-Entscheidung: tödlicher
+    Schaden ungenutzt = hart; freier Angriff, Normalbeschwörung, leerer Zug = Hinweis; passiver Bot als Gegenprobe). Schwellen: `data/audit-thresholds.json`. Misst Stellvertreter, ersetzt keinen Menschen.
 - Daten: `data/decks.json` (7 Decks), `data/cards.json` + `assets/cards-small/` (YGOPRODeck),
   `data/core-cards.json` + `data/core-scripts.json` (BabelCDB + ProjectIgnis CardScripts),
   `data/edison-banlist.json`.
