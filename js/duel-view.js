@@ -1,6 +1,6 @@
 // Bot Duel, reine Hilfen ohne DOM (testbar in Node): was die Engine anbietet, als Aktionen je Karte, Phasenmenü, Zonenzahlen, Summenregel.
 // js/duel.js zeichnet damit das Brett und die Menüs; die Engine bleibt die einzige Regel-Quelle.
-import { M, R, IDLE, BATTLE, L } from './duel-core.js';
+import { M, R, IDLE, BATTLE, L, P } from './duel-core.js';
 
 export const key = (c) => `${c.controller}:${c.location}:${c.sequence}`;
 
@@ -103,6 +103,17 @@ export function zoneKey(at, me, bot) {
   if (place) return `${p}:${place}:${at.index}`;
   if (at.zone === 'field') return `${p}:${L.SZONE}:5`;
   return ['deck', 'extra', 'gy', 'banished'].includes(at.zone) ? `${p}:${at.zone}` : null;
+}
+
+/**
+ * ATK auf meinem Feld (mz aus g.view()): die Summe der offenen Monster in Angriffsposition, nur sie können angreifen.
+ * Offene Monster in Verteidigung stehen getrennt, verdeckte zählen nicht (ihr Wert ist öffentlich unbekannt).
+ */
+export function atkTotal(mz) {
+  const open = mz.filter((c) => c && !(c.position & P.FACEDOWN));
+  const sum = (list) => list.reduce((total, c) => total + c.attack, 0);
+  const attackers = open.filter((c) => !(c.position & P.DEFENSE));
+  return { attack: sum(attackers), monsters: attackers.length, defense: sum(open.filter((c) => c.position & P.DEFENSE)) };
 }
 
 /** Füllstand des LP-Kreises: Anteil von 8000 (oben gedeckelt) und Farbton stufenlos rot (0) → gelb (60) → grün (120). */

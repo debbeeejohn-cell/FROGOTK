@@ -1,8 +1,8 @@
 // Run: node --no-warnings js/duel-view.test.mjs  (Bot-Duel-Hilfen auf der echten Engine, braucht data/core-*.json)
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { loadCore, cardTable, newGame, M, R, IDLE, PHASE } from './duel-core.js';
-import { actionsByCard, phaseButtons, phaseMenu, zoneCounts, sumState, key, PHASE_SHORT, PHASE_BANNER, animationSteps, lpRing, zoneKey } from './duel-view.js';
+import { loadCore, cardTable, newGame, M, R, IDLE, PHASE, P } from './duel-core.js';
+import { actionsByCard, phaseButtons, phaseMenu, zoneCounts, sumState, key, PHASE_SHORT, PHASE_BANNER, animationSteps, lpRing, zoneKey, atkTotal } from './duel-view.js';
 
 const json = (f) => JSON.parse(fs.readFileSync(new URL(`../data/${f}`, import.meta.url)));
 const table = cardTable(json('core-cards.json'));
@@ -77,6 +77,7 @@ assert.deepEqual(kinds(step), ['fly', 'show'], 'a summon: the card flies from th
 assert.deepEqual(step.steps[0].from, { side: 'me', zone: 'hand', index: 0, down: true, pos: 'def' });
 assert.equal(step.steps[0].to.zone, 'mz');
 assert.deepEqual(step.steps[1], { kind: 'show', name: 'Swap Frog', atk: 1000, def: 500, pos: 'atk', side: 'me' });
+assert.deepEqual(atkTotal(h.view()[h.me].mz), { attack: 1000, monsters: 1, defense: 0 }, 'the engine view: Swap Frog is 1000 ATK');
 n = h.events.length;
 h.respond({ type: R.SELECT_EFFECTYN, yes: true });
 step = animationSteps(h.events.slice(n), seen.lastPhase);
@@ -117,6 +118,11 @@ assert.equal(zoneKey({ side: 'bot', zone: 'deck', index: 9 }, 0, 1), '1:deck');
 assert.equal(zoneKey({ side: 'me', zone: 'other', index: 0 }, 0, 1), null, 'material has no place on the board');
 assert.equal(zoneKey(null, 0, 1), null);
 h.close();
+
+// ATK-Rechner: offene Monster in Angriffsposition zählen, Verteidigung getrennt, verdeckte gar nicht
+const mon = (position, attack) => ({ position, attack });
+assert.deepEqual(atkTotal([mon(P.FACEUP_ATTACK, 1000), mon(P.FACEUP_ATTACK, 2400), mon(P.FACEUP_DEFENSE, 1800), mon(P.FACEDOWN_DEFENSE, 2000), null]), { attack: 3400, monsters: 2, defense: 1800 });
+assert.deepEqual(atkTotal([null, null, null, null, null]), { attack: 0, monsters: 0, defense: 0 }, 'an empty field');
 
 // LP-Kreis: Anteil von 8000, oben gedeckelt, Farbton rot → gelb → grün
 assert.deepEqual(lpRing(8000), { ratio: 1, hue: 120 });

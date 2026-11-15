@@ -6,7 +6,7 @@ import { loadDecks, loadCards, deckOptions } from './decks.js';
 import { ocgRaceString, ocgAttributeString } from '../vendor/ocgcore/index.js';
 import { esc } from './util.js';
 import { getStoredSettings, saveSettings } from './store.js';
-import { key, actionsByCard as offeredActions, phaseButtons, sumState as levelSum, phaseMenu, PHASE_SHORT, animationSteps, lpRing } from './duel-view.js';
+import { key, actionsByCard as offeredActions, phaseButtons, sumState as levelSum, phaseMenu, PHASE_SHORT, animationSteps, lpRing, atkTotal } from './duel-view.js';
 import { createFx, speed } from './duel-fx.js';
 
 const getJson = (file) => fetch(`./data/${file}`).then((r) => {
@@ -173,6 +173,7 @@ export async function initDuel(root) {
       const { ratio, hue } = lpRing(g.lp[p]);
       return `<div class="dl-lp ${p === g.me ? 'me' : 'bot'}" data-lp="${p === g.me ? 'me' : 'bot'}"><div class="dl-ring" style="--ratio:${ratio};--hue:${hue}" role="img" aria-label="${label}: ${g.lp[p]} Lebenspunkte"><span>LP</span><strong>${g.lp[p]}</strong></div><small>${label.toUpperCase()}</small></div>`;
     };
+    const atk = atkTotal(me.mz); // der kleine Rechner in der Seitenleiste
     const next = replay ? null : phaseButtons(g.prompt)[0]; // die nächste Phase, die die Engine anbietet
     const tool = (attrs, text, label, off, cls = '') => `<button type="button" class="dl-tool ${cls}" ${attrs} aria-label="${esc(label)}" title="${esc(label)}"${off ? ' disabled' : ''}>${text}</button>`;
     const toolbar = `<div class="dl-toolbar" role="toolbar" aria-label="Duell"><details class="dl-menu"><summary class="dl-tool" aria-label="Menü" title="Menü">☰</summary>`
@@ -187,6 +188,8 @@ export async function initDuel(root) {
     const waiting = g.winner === null && !g.prompt ? 'Engine wartet …' : '';
     return `${banner}<div class="dl-wrap">
       <aside class="dl-side" aria-label="Inspektor">
+        <div class="dl-calc" aria-live="polite"><small>ATK AUF DEM FELD</small><strong>${atk.attack}</strong>
+          <span>${atk.monsters} Monster in Angriffsposition</span>${atk.defense ? `<span>+ ${atk.defense} ATK in Verteidigung</span>` : ''}</div>
         <div class="dl-tabs" role="tablist">${tabBtn('card', 'Karte ansehen')}${tabBtn('log', 'Duellprotokoll')}</div>
         ${replay ? `<div class="dl-replay"><strong>Combo „${esc(replay.name)}“</strong><span>Schritt ${answers.length} von ${replay.all.length}</span></div>
         <div class="dl-bar-btns"><button type="button" class="secondary-button" data-op="undo" ${answers.length ? '' : 'disabled'}>Zurück</button><button type="button" class="primary-button" data-op="step" ${answers.length < replay.all.length ? '' : 'disabled'}>Weiter</button><button type="button" class="secondary-button" data-op="takeover">Ab hier selbst spielen</button></div>` : ''}

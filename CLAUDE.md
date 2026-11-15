@@ -39,7 +39,7 @@ Kein Test-Framework: jede Datei ist ein `assert`-Skript und endet mit „all che
     Das Spielfeld ist ein 7-Spalten-Raster, das `css/duel.css` per `perspective` und `rotateX` nach hinten kippt (eigener Code,
     Hintergrund aus CSS-Verlauf). Hände nicht gekippt, meine als Fächer.
   - `js/duel-view.js`: reine Hilfen ohne DOM (Aktionen je Karte, Phasenmenü, Zonenzahlen, Summenregel, Animationsschritte
-    aus `g.events`, LP-Kreis), Test `js/duel-view.test.mjs`.
+    aus `g.events`, LP-Kreis, ATK-Rechner `atkTotal` für die Anzeige oben in der Seitenleiste), Test `js/duel-view.test.mjs`.
   - `js/duel-fx.js`: Animationen in einer Ebene `.dl-fx` außerhalb des Feldes (Web Animations API, keine Bibliothek), gespielt aus den
     Schritten von `animationSteps` (`g.events`): Phasen-Banner für alle sechs Phasen, LP-Kreis mit Zählen und schwebender Zahl,
     wandernde Karten (Geister fliegen von Quelle zu Ziel, das Feld zeigt schon den Endzustand, Zielkarten sind bis zur Landung
