@@ -198,10 +198,10 @@ export function createFx(root) {
       hero.remove();
     },
 
-    /** Angriff: ein Geist des Angreifers stößt zum Ziel (Monster oder LP-Kreis des Gegners) vor, das Feld wackelt, er kehrt zurück. */
+    /** Angriff: ein Geist des Angreifers stößt zum Ziel vor (Monster, bei einem direkten Angriff die Hand des Gegners), das Feld wackelt, er kehrt zurück. */
     async attack(s, f, c) {
       const attacker = cardIn(at(zoneKey(s.from, c.me, c.bot)));
-      const aim = s.to ? at(zoneKey(s.to, c.me, c.bot)) : ring(s.from.side === 'me' ? 'bot' : 'me');
+      const aim = s.to ? at(zoneKey(s.to, c.me, c.bot)) : root.querySelector(s.from.side === 'me' ? '.dl-handrow' : '.dl-hand');
       if (!attacker || !aim) return;
       const [src, dst] = [attacker.getBoundingClientRect(), aim.getBoundingClientRect()];
       const [dx, dy] = [(dst.left + dst.width / 2 - src.left - src.width / 2) * 0.85, (dst.top + dst.height / 2 - src.top - src.height / 2) * 0.85];
