@@ -46,6 +46,7 @@ export async function initDuel(root) {
 
   let myId; let g = null; let opts = null; let answers = [];
   let sel = null; let picked = new Set(); let status = '';
+  let tab = 'card'; let redo = []; // Inspektor: 'card' | 'log'; redo = zurückgenommene Antworten, jüngste zuletzt
   let duelDeck = null; let duelSetup = null; let openHand = []; let replay = null; // replay: { name, all: recorded answers, marks: answer counts before each shown step } while a saved combo is shown
   let setup = { opp: null, bot: 'aktiv', first: '1', askAll: '', hand: [] };
   const readSetup = (form) => { const fd = new FormData(form); return { askAll: '', ...Object.fromEntries(fd), hand: fd.getAll('hand') }; };
@@ -138,30 +139,36 @@ export async function initDuel(root) {
   function duelHtml() {
     const v = g.view(); const me = v[g.me]; const bot = v[g.bot];
     const actions = replay ? new Map() : actionsByCard(g.prompt);
-    const lp = (p, label) => `<div class="dl-lp ${p === g.me ? 'me' : 'bot'}"><div class="dl-lp-top"><strong>${label}</strong><span>${g.lp[p]}</span></div><div class="dl-bar"><i style="width:${Math.min(100, g.lp[p] / 80)}%"></i></div></div>`;
-    const phases = (replay ? [] : phaseButtons(g.prompt)).map((b, i) => `<button type="button" class="${b.primary ? 'primary-button' : 'secondary-button'}" data-phase="${i}">${b.label}</button>`).join('');
+    const lp = (p, label) => `<div class="dl-lp ${p === g.me ? 'me' : 'bot'}"><span class="dl-crest" aria-hidden="true">${label[0]}</span><div><small>${label.toUpperCase()}</small><strong>${g.lp[p]}<span class="dl-sr"> LP</span></strong><div class="dl-bar"><i style="width:${Math.min(100, g.lp[p] / 80)}%"></i></div></div></div>`;
+    const next = replay ? null : phaseButtons(g.prompt)[0]; // die nächste Phase, die die Engine anbietet
+    const tool = (attrs, text, label, off, cls = '') => `<button type="button" class="dl-tool ${cls}" ${attrs} aria-label="${esc(label)}" title="${esc(label)}"${off ? ' disabled' : ''}>${text}</button>`;
+    const toolbar = `<div class="dl-toolbar" role="toolbar" aria-label="Duell"><details class="dl-menu"><summary class="dl-tool" aria-label="Menü" title="Menü">☰</summary>`
+      + `<div class="dl-menu-list"><button type="button" class="secondary-button" data-op="save" ${answers.length && !replay ? '' : 'disabled'}>Combo speichern</button><button type="button" class="secondary-button" data-op="new">Duell beenden</button></div></details>`
+      + `${tool('data-op="undo"', '↶', 'Rückgängig', replay || !answers.length)}${tool('data-op="redo"', '↷', 'Wiederholen', replay || !redo.length)}${tool('data-tab="log"', '≡', 'Duellprotokoll', false)}`
+      + `${tool(next ? 'data-phase="0"' : '', `▶ ${next ? esc(next.label) : 'Phase'}`, next ? `Weiter: ${next.label}` : 'Keine Phase wählbar', !next, 'wide')}</div>`;
+    const tabBtn = (id, label) => `<button type="button" role="tab" class="dl-tab" data-tab="${id}" aria-selected="${tab === id}">${label}</button>`;
+    const logPane = `${g.review ? `<section class="dl-teacher" aria-label="Lehrer"><h3>Lehrer zu Zug ${g.review.turn}</h3>${teacherNotes().length
+      ? `<ul>${teacherNotes().map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : '<p>Nichts auszusetzen.</p>'}</section>` : ''}`
+      + `<ol class="dl-log" aria-label="Verlauf">${g.log.slice(0, 30).map((l) => `<li>${esc(l)}</li>`).join('')}</ol>`;
     const banner = g.winner !== null ? `<div class="dl-win" role="status">${g.winner === g.me ? 'Du gewinnst!' : g.winner === g.bot ? 'Der Bot gewinnt.' : 'Unentschieden.'} <button type="button" class="primary-button" data-op="new">Neues Duell</button></div>` : '';
     const waiting = g.winner === null && !g.prompt ? 'Engine wartet …' : '';
     return `${banner}<div class="dl-wrap">
-      <div class="dl-mat" aria-label="Spielfeld">
-        <div class="dl-handrow" aria-label="Hand des Bots: ${bot.hand.length} Karten">${bot.hand.map(() => '<i class="dl-back"></i>').join('')}</div>
-        <div class="dl-stage"><div class="dl-board">${board(v, actions)}</div></div>
-        <div class="dl-hand" aria-label="Deine Hand">${me.hand.map((c, i) => `<div class="dl-slot" style="--d:${i - (me.hand.length - 1) / 2}">${cardBtn(c, g.me, L.HAND, i, actions)}</div>`).join('') || '<span class="dl-hint">Hand leer</span>'}</div>
-      </div>
-      <aside class="dl-side">
-        <div class="dl-lps">${lp(g.me, 'Du')}${lp(g.bot, 'Bot')}</div>
-        ${replay ? `<div class="dl-replay"><strong>Combo „${esc(replay.name)}“</strong><span>Schritt ${answers.length} von ${replay.all.length}</span></div>` : ''}
-        <div class="dl-bar-btns">${replay
-    ? `<button type="button" class="secondary-button" data-op="undo" ${answers.length ? '' : 'disabled'}>Zurück</button><button type="button" class="primary-button" data-op="step" ${answers.length < replay.all.length ? '' : 'disabled'}>Weiter</button><button type="button" class="secondary-button" data-op="takeover">Ab hier selbst spielen</button>`
-    : `${phases}<button type="button" class="secondary-button" data-op="undo" ${answers.length ? '' : 'disabled'}>Rückgängig</button><button type="button" class="secondary-button" data-op="save" ${answers.length ? '' : 'disabled'}>Combo speichern</button>`}</div>
+      <aside class="dl-side" aria-label="Inspektor">
+        <div class="dl-tabs" role="tablist">${tabBtn('card', 'Karte ansehen')}${tabBtn('log', 'Duellprotokoll')}</div>
+        ${replay ? `<div class="dl-replay"><strong>Combo „${esc(replay.name)}“</strong><span>Schritt ${answers.length} von ${replay.all.length}</span></div>
+        <div class="dl-bar-btns"><button type="button" class="secondary-button" data-op="undo" ${answers.length ? '' : 'disabled'}>Zurück</button><button type="button" class="primary-button" data-op="step" ${answers.length < replay.all.length ? '' : 'disabled'}>Weiter</button><button type="button" class="secondary-button" data-op="takeover">Ab hier selbst spielen</button></div>` : ''}
         <p class="dl-status" role="status">${esc(status || g.error || waiting)}</p>
-        ${g.review ? `<section class="dl-teacher" aria-label="Lehrer"><h3>Lehrer zu Zug ${g.review.turn}</h3>${teacherNotes().length
-    ? `<ul>${teacherNotes().map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : '<p>Nichts auszusetzen.</p>'}</section>` : ''}
-        <section class="dl-detail" aria-label="Kartendetails">${detail(actions)}</section>
+        <div class="dl-pane" role="tabpanel">${tab === 'log' ? logPane : `<section class="dl-detail" aria-label="Kartendetails">${detail(actions)}</section>`}</div>
         ${g.errors.length ? `<p class="dl-hint">Skriptfehler: ${esc(g.errors.at(-1))}</p>` : ''}
-        <ol class="dl-log" aria-label="Verlauf">${g.log.slice(0, 30).map((l) => `<li>${esc(l)}</li>`).join('')}</ol>
-        <button type="button" class="ghost-button" data-op="new">Duell beenden</button>
-      </aside></div>`;
+      </aside>
+      <div class="dl-play">
+        ${toolbar}
+        <div class="dl-mat" aria-label="Spielfeld">
+          <div class="dl-top"><div class="dl-handrow" aria-label="Hand des Bots: ${bot.hand.length} Karten">${bot.hand.map(() => '<i class="dl-back"></i>').join('')}</div>${lp(g.bot, 'Bot')}</div>
+          <div class="dl-stage"><div class="dl-board">${board(v, actions)}</div></div>
+          <div class="dl-bottom">${lp(g.me, 'Du')}<div class="dl-hand" aria-label="Deine Hand">${me.hand.map((c, i) => `<div class="dl-slot" style="--d:${i - (me.hand.length - 1) / 2}">${cardBtn(c, g.me, L.HAND, i, actions)}</div>`).join('') || '<span class="dl-hint">Hand leer</span>'}</div></div>
+        </div>
+      </div></div>`;
   }
 
   // ---------- prompts (everything except the open game state) ----------
@@ -256,8 +263,9 @@ export async function initDuel(root) {
   }
 
   // ---------- answering ----------
-  function answer(response) {
+  function answer(response, keepRedo = false) {
     answers.push(response);
+    if (!keepRedo) redo = [];
     sel = null; picked = new Set(); status = '';
     try { g.respond(response); } catch (error) { status = error.message; }
     render();
@@ -272,7 +280,7 @@ export async function initDuel(root) {
       lib, table, scripts, me: deckCodes(deck), bot: deckCodes(decks[chosen.opp] ?? deck),
       hand: codes(hand), second: chosen.first === '0', askAllChains: !!chosen.askAll, botPlays: chosen.bot !== 'passiv', seed
     };
-    duelDeck = deckId; duelSetup = chosen; answers = []; sel = null; status = '';
+    duelDeck = deckId; duelSetup = chosen; answers = []; redo = []; sel = null; status = '';
     try { g = newGame(opts); } catch (error) { g = null; status = error.message; }
     openHand = g ? g.view()[g.me].hand.map((c) => name(c.code)) : [];
   }
@@ -324,7 +332,7 @@ export async function initDuel(root) {
   // Undo = replay the same duel (same seed) with every answer except the last one.
   function undo() {
     if (replay) answers.length = replay.marks.pop() ?? 0; // back one visible step
-    else answers.pop();
+    else redo.push(answers.pop());
     g.close();
     g = newGame(opts);
     for (const a of answers) g.respond(a);
@@ -353,8 +361,10 @@ export async function initDuel(root) {
     if (d.linePlay) { playLine(Number(d.linePlay)); return; }
     if (d.lineDel) { saveSettings({ duelLines: savedLines().filter((_, i) => i !== Number(d.lineDel)) }); render(); return; }
     if (d.op === 'undo') { undo(); return; }
+    if (d.op === 'redo') { const a = redo.pop(); if (a) answer(a, true); return; }
+    if (d.tab) { tab = d.tab; render(); return; }
     if (d.pile) { const [pl, field] = d.pile.split(':'); openPile(Number(pl), field); return; }
-    if (d.key) { if (pileDlg.open) pileDlg.close(); sel = sel === d.key ? null : d.key; render(); return; }
+    if (d.key) { if (pileDlg.open) pileDlg.close(); sel = sel === d.key ? null : d.key; tab = 'card'; render(); return; }
     if (d.phase) { answer(phaseButtons(p)[Number(d.phase)].response); return; }
     if (d.act) { answer(actionsByCard(p).get(sel)[Number(d.act)].response); return; }
     if (!p) return;

@@ -5,8 +5,30 @@
 .dl-hint, .dl-meta { color: var(--fg-muted); font-size: 0.85rem; margin: 0; }
 .dl-wrap {
   --gold: #e6b422; --ink: #eaf2ec; --dim: #9db5a5; --zone: rgba(96, 165, 250, 0.38);
-  display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start;
+  display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 16px; align-items: start;
 }
+.dl-play { display: grid; gap: 8px; min-width: 0; }
+.dl-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+
+/* Knopfleiste über dem Feld */
+.dl-toolbar { display: flex; flex-wrap: wrap; gap: 8px; max-width: 680px; width: 100%; margin: 0 auto; }
+.dl-tool {
+  display: inline-grid; place-items: center; min-width: var(--tap); min-height: var(--tap); padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--fg); font: inherit; font-size: 1.1rem; font-weight: 600; cursor: pointer; list-style: none;
+}
+.dl-tool::-webkit-details-marker { display: none; }
+.dl-tool:disabled { opacity: 0.45; cursor: default; }
+.dl-tool.wide { margin-left: auto; font-size: 0.95rem; background: var(--accent); border-color: var(--accent); color: #fff; }
+.dl-tool.wide:disabled { background: var(--surface); border-color: var(--border); color: var(--fg); }
+.dl-menu { position: relative; }
+.dl-menu-list { position: absolute; z-index: 5; top: calc(100% + 4px); left: 0; display: grid; gap: 6px; min-width: 190px; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+.dl-menu-list button { min-height: var(--tap); }
+
+/* Inspektor links: Tabs „Karte ansehen“ / „Duellprotokoll“ */
+.dl-tabs { display: flex; border-bottom: 1px solid var(--border); }
+.dl-tab { flex: 1; min-height: var(--tap); padding: 0 8px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--fg-muted); font: inherit; font-weight: 600; cursor: pointer; }
+.dl-tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+.dl-pane { display: grid; gap: 12px; }
 
 /* Spielfeld: ein 7-Spalten-Raster (Stapel links und rechts, fünf Zonen in der Mitte), per perspective nach hinten gekippt */
 .dl-mat { display: grid; gap: 4px; width: 100%; max-width: 680px; margin: 0 auto; color: var(--ink); }
@@ -89,12 +111,21 @@
 .dl-announce { width: 100%; min-height: var(--tap); margin: 8px 0 12px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--fg); }
 .dl-dialog [data-bit][aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
 .dl-side { display: grid; gap: 12px; }
-.dl-lps { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.dl-lp { padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); border-color: color-mix(in srgb, #4ade80 55%, var(--border)); }
-.dl-lp.bot { border-color: color-mix(in srgb, #60a5fa 55%, var(--border)); }
-.dl-lp-top { display: flex; justify-content: space-between; font-weight: 700; }
-.dl-bar { height: 6px; margin: 6px 0; border-radius: 3px; background: var(--border); overflow: hidden; }
-.dl-bar i { display: block; height: 100%; background: var(--accent); }
+/* LP-Kästen in den Ecken des Feldes: Wappen mit Initial, große Zahl, Balken */
+.dl-top, .dl-bottom { display: grid; align-items: center; gap: 8px; }
+.dl-top { grid-template-columns: minmax(0, 1fr) 150px; }
+.dl-bottom { grid-template-columns: 150px minmax(0, 1fr); }
+.dl-top .dl-lp { justify-self: end; }
+.dl-bottom .dl-lp { justify-self: start; align-self: end; }
+.dl-lp { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 8px 10px; border: 1px solid #2c3140; border-radius: var(--radius-sm); background: #0f121a; color: #fff; }
+.dl-lp > div { display: grid; flex: 1; min-width: 0; }
+.dl-lp small { color: var(--dim); font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; }
+.dl-lp strong { font-size: 1.5rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.dl-crest { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 50%; border: 2px solid #4ade80; background: #17202c; font-weight: 800; }
+.dl-lp.bot .dl-crest { border-color: #60a5fa; }
+.dl-bar { height: 5px; margin-top: 4px; border-radius: 3px; background: #2c3140; overflow: hidden; }
+.dl-bar i { display: block; height: 100%; background: #4ade80; }
+.dl-lp.bot .dl-bar i { background: #60a5fa; }
 .dl-bar-btns, .dl-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .dl-bar-btns button, .dl-actions button { min-height: var(--tap); }
 .dl-status { min-height: 1.4em; margin: 0; color: var(--error); font-weight: 600; }
@@ -115,6 +146,10 @@
 
 @media (max-width: 860px) {
   .dl-wrap { grid-template-columns: minmax(0, 1fr); }
+  .dl-play { order: -1; }
+  .dl-top, .dl-bottom { grid-template-columns: minmax(0, 1fr); }
+  .dl-top .dl-lp, .dl-bottom .dl-lp { justify-self: stretch; }
+  .dl-bottom .dl-lp { order: 2; }
   .dl-board { gap: 4px; padding: 8px; width: 94%; transform: rotateX(30deg); }
   .dl-stage { margin: -6% 0 -6%; }
   .dl-tag { font-size: 0.5rem; padding: 0 3px; letter-spacing: 0; }
