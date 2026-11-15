@@ -90,7 +90,7 @@ export function newGame(opts) {
   const ME = second ? 1 : 0; const BOT = 1 - ME;
   const g = {
     me: ME, bot: BOT, lp: [0, 1].map((p) => opts.start?.lp[p === ME ? 'me' : 'bot'] ?? 8000), turn: 0, active: null, phase: 0, winner: null,
-    log: [], events: [], errors: [], prompt: null, hint: '', error: ''
+    log: [], events: [], frames: [], errors: [], prompt: null, hint: '', error: ''
   };
   const team = (p) => ({ drawCountPerTurn: 1, startingDrawCount: opts.start ? 0 : p === ME ? Math.max(0, 5 - hand.length) : 5, startingLP: g.lp[p] });
   const h = lib.createDuel({
@@ -206,6 +206,8 @@ export function newGame(opts) {
       if (status !== OcgProcessResult.WAITING) continue;
       if (last.player === BOT) {
         if (retries > MAX_BOT_RETRIES) throw new Error(`Bot hängt bei Engine-Nachricht ${last.type}`);
+        // opts.frames: der echte Zwischenstand vor jeder Entscheidung des Bots, damit die Oberfläche eine Bot-Runde Aktion für Aktion zeigen kann
+        if (opts.frames) g.frames.push({ n: g.events.length, view: g.view(), lp: { ...g.lp }, turn: g.turn, active: g.active, phase: g.phase });
         if (opts.botPlays) g.features = features(last, table, g, g.bot); // protokolliert, entscheidet noch nicht
         lib.duelSetResponse(h, opts.botHook?.(last, g) || (opts.botPlays && botPlay(last, table, g)) || botAnswer(last, table, g));
         continue;

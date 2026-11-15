@@ -283,4 +283,21 @@ assert.deepEqual(a.log, b.log);
 }
 
 
+// frames: true hält an jeder Entscheidung des Bots den echten Zwischenstand fest (für die Anzeige Schritt für Schritt); sonst kostet es nichts
+{
+  const play = (extra) => {
+    const duel = start({ botPlays: true, ...extra });
+    duel.respond({ type: R.SELECT_IDLECMD, action: IDLE.TO_EP, index: null }); // ich passe, der Bot spielt seinen Zug
+    return duel;
+  };
+  const plain = play({});
+  assert.deepEqual(plain.frames, [], 'off by default: no snapshots');
+  const framed = play({ frames: true });
+  assert.ok(framed.frames.length >= 2, `the bot decided several times: ${framed.frames.length}`);
+  assert.ok(framed.frames.every((f, i) => i === 0 || f.n >= framed.frames[i - 1].n), 'event counts only grow');
+  assert.ok(framed.frames.every((f) => f.n <= framed.events.length && f.view.length === 2 && f.lp && Number.isInteger(f.turn)));
+  assert.deepEqual(framed.log, plain.log, 'the snapshots change nothing about the duel');
+  plain.close(); framed.close();
+}
+
 console.log('duel-core: all checks passed');

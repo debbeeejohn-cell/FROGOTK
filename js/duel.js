@@ -6,7 +6,7 @@ import { loadDecks, loadCards, deckOptions } from './decks.js';
 import { ocgRaceString, ocgAttributeString } from '../vendor/ocgcore/index.js';
 import { esc } from './util.js';
 import { getStoredSettings, saveSettings } from './store.js';
-import { key, actionsByCard as offeredActions, phaseButtons, sumState as levelSum, phaseMenu, PHASE_SHORT, animationSteps, lpRing, atkTotal } from './duel-view.js';
+import { key, actionsByCard as offeredActions, phaseButtons, sumState as levelSum, phaseMenu, PHASE_SHORT, animationSteps, animationPlan, lpRing, atkTotal } from './duel-view.js';
 import { createFx, speed } from './duel-fx.js';
 
 const getJson = (file) => fetch(`./data/${file}`).then((r) => {
@@ -45,6 +45,8 @@ export async function initDuel(root) {
   const pileDlg = root.querySelector('[data-pile]');
   const fx = createFx(root);
   let playing = false; let lastPhase = ''; // playing: eine Animation läuft, Eingaben sind gesperrt; lastPhase: zuletzt gezeigter Banner
+  let shown = null; // Zwischenstand des Bretts, solange die Animation einer Bot-Runde läuft (sonst der echte Stand)
+  const PAUSE_MS = 700; // Pause zwischen zwei Aktionen des Bots
   promptDlg.addEventListener('cancel', (ev) => ev.preventDefault()); // the engine waits for an answer
 
   let myId; let g = null; let opts = null; let answers = [];
@@ -92,7 +94,7 @@ export async function initDuel(root) {
   }
 
   /** Spielfeld als 7-Spalten-Raster, wie bei einem echten Feld: Stapel links und rechts (Bot punktgespiegelt), fünf Zonen in der Mitte. */
-  function board(v, actions) {
+  function board(v, actions, s) {
     const [me, bot] = [v[g.me], v[g.bot]];
     const cell = (row, col, html) => `<div class="dl-cell" style="grid-row:${row};grid-column:${col}">${html}</div>`;
     const cells = [];
@@ -106,7 +108,7 @@ export async function initDuel(root) {
       cell(3, 1, pile(bot, g.bot, 'banished', 'VERB.', actions, true)), cell(3, 7, pile(me, g.me, 'banished', 'VERB.', actions, true)),
       cell(4, 1, fieldSlot(me, g.me, actions)), cell(4, 7, pile(me, g.me, 'gy', 'FH', actions)),
       cell(5, 1, pile(me, g.me, 'extra', 'EXTRA', actions)), cell(5, 7, pile(me, g.me, 'deck', 'DECK', actions)),
-      `<button type="button" class="dl-turn" data-menu="phase" aria-label="Zug ${g.turn}, ${g.active === g.me ? 'du' : 'Bot'}, Phase ${PHASE_SHORT[g.phase] ?? ''}. Phasenmenü öffnen"${replay ? ' disabled' : ''}><small>ZUG ${g.turn} · ${g.active === g.me ? 'DU' : 'BOT'}</small><b>${PHASE_SHORT[g.phase] ?? ''}</b></button>`
+      `<button type="button" class="dl-turn" data-menu="phase" aria-label="Zug ${s.turn}, ${s.active === g.me ? 'du' : 'Bot'}, Phase ${PHASE_SHORT[s.phase] ?? ''}. Phasenmenü öffnen"${replay || shown ? ' disabled' : ''}><small>ZUG ${s.turn} · ${s.active === g.me ? 'DU' : 'BOT'}</small><b>${PHASE_SHORT[s.phase] ?? ''}</b></button>`
     );
     return cells.join('');
   }
@@ -167,14 +169,15 @@ export async function initDuel(root) {
   }
 
   function duelHtml() {
-    const v = g.view(); const me = v[g.me]; const bot = v[g.bot];
-    const actions = replay ? new Map() : actionsByCard(g.prompt);
+    const s = shown ?? snapshot(); // das Brett, das gerade gezeigt wird: der echte Stand oder ein Zwischenstand der Animation
+    const v = s.view; const me = v[g.me]; const bot = v[g.bot];
+    const actions = replay || shown ? new Map() : actionsByCard(g.prompt);
     const lp = (p, label) => {
-      const { ratio, hue } = lpRing(g.lp[p]);
-      return `<div class="dl-lp ${p === g.me ? 'me' : 'bot'}" data-lp="${p === g.me ? 'me' : 'bot'}"><div class="dl-ring" style="--ratio:${ratio};--hue:${hue}" role="img" aria-label="${label}: ${g.lp[p]} Lebenspunkte"><span>LP</span><strong>${g.lp[p]}</strong></div><small>${label.toUpperCase()}</small></div>`;
+      const { ratio, hue } = lpRing(s.lp[p]);
+      return `<div class="dl-lp ${p === g.me ? 'me' : 'bot'}" data-lp="${p === g.me ? 'me' : 'bot'}"><div class="dl-ring" style="--ratio:${ratio};--hue:${hue}" role="img" aria-label="${label}: ${s.lp[p]} Lebenspunkte"><span>LP</span><strong>${s.lp[p]}</strong></div><small>${label.toUpperCase()}</small></div>`;
     };
     const atk = atkTotal(me.mz); // der kleine Rechner in der Seitenleiste
-    const next = replay ? null : phaseButtons(g.prompt)[0]; // die nächste Phase, die die Engine anbietet
+    const next = replay || shown ? null : phaseButtons(g.prompt)[0]; // die nächste Phase, die die Engine anbietet
     const tool = (attrs, text, label, off, cls = '') => `<button type="button" class="dl-tool ${cls}" ${attrs} aria-label="${esc(label)}" title="${esc(label)}"${off ? ' disabled' : ''}>${text}</button>`;
     const toolbar = `<div class="dl-toolbar" role="toolbar" aria-label="Duell"><details class="dl-menu"><summary class="dl-tool" aria-label="Menü" title="Menü">☰</summary>`
       + `<div class="dl-menu-list"><button type="button" class="secondary-button" data-op="save" ${answers.length && !replay ? '' : 'disabled'}>Combo speichern</button><button type="button" class="secondary-button" data-op="new">Duell beenden</button></div></details>`
@@ -201,7 +204,7 @@ export async function initDuel(root) {
         ${toolbar}
         <div class="dl-mat" aria-label="Spielfeld">
           <div class="dl-top"><div class="dl-handrow" aria-label="Hand des Bots: ${bot.hand.length} Karten">${bot.hand.map((_, i) => `<i class="dl-back" data-z="${g.bot}:${L.HAND}:${i}"></i>`).join('')}</div>${lp(g.bot, 'Bot')}</div>
-          <div class="dl-stage"><div class="dl-board">${board(v, actions)}</div></div>
+          <div class="dl-stage"><div class="dl-board">${board(v, actions, s)}</div></div>
           <div class="dl-bottom">${lp(g.me, 'Du')}<div class="dl-hand" aria-label="Deine Hand">${me.hand.map((c, i) => `<div class="dl-slot" data-z="${g.me}:${L.HAND}:${i}" style="--d:${i - (me.hand.length - 1) / 2}">${cardBtn(c, g.me, L.HAND, i, actions)}</div>`).join('') || '<span class="dl-hint">Hand leer</span>'}</div></div>
         </div>
         ${popupHtml(actions)}
@@ -310,19 +313,44 @@ export async function initDuel(root) {
     answers.push(response);
     if (!keepRedo) redo = [];
     sel = null; menu = null; picked = new Set(); status = '';
-    const before = g.events.length; const lpBefore = { me: g.lp[g.me], bot: g.lp[g.bot] };
+    const n0 = g.events.length; const start = snapshot();
     const poses = speed() > 0 ? cardPoses() : null;
+    g.frames.length = 0;
     try { g.respond(response); } catch (error) { status = error.message; }
-    const next = animationSteps(g.events.slice(before), lastPhase);
-    lastPhase = next.lastPhase;
-    playing = speed() > 0 && next.steps.length > 0;
+    const plan = animationPlan(g.events, g.frames, n0, start, snapshot(), lastPhase);
+    lastPhase = plan.lastPhase;
+    playing = speed() > 0 && plan.segments.length > 0;
+    shown = playing ? plan.segments[0].start : null; // zuerst das Brett von vorher, die Animation führt zum Endstand
     render();
-    if (poses) turnCards(poses);
-    if (playing) {
-      const ctx = { lpBefore, lpAfter: { me: g.lp[g.me], bot: g.lp[g.bot] }, me: g.me, bot: g.bot, cardFace, meta };
-      fx.play(next.steps, ctx).then(() => { playing = false; if (g) { renderPrompt(); placePopup(); } });
+    if (poses && !playing) turnCards(poses);
+    if (playing) playSegments(plan.segments).catch((error) => console.warn('Animation:', error));
+  }
+
+  /**
+   * Spielt eine Antwort Abschnitt für Abschnitt: je Aktion des Bots das echte Brett von damals, die Animation darauf, dazwischen
+   * 0,7 s Pause. Am Ende (auch beim Überspringen) steht das echte Endbrett. So passt das Gezeigte zur Reihenfolge der Engine.
+   */
+  async function playSegments(segments) {
+    const lp = (snap) => ({ me: snap.lp[g.me], bot: snap.lp[g.bot] });
+    fx.start();
+    try {
+      for (const [i, seg] of segments.entries()) {
+        if (fx.skipped()) break;
+        if (i > 0) {
+          await fx.wait(PAUSE_MS);
+          if (fx.skipped()) break;
+          const poses = cardPoses();
+          shown = seg.start; render(); turnCards(poses);
+        }
+        await fx.play(seg.steps, { lpBefore: lp(seg.start), lpAfter: lp(seg.end), me: g.me, bot: g.bot, cardFace, meta });
+      }
+    } finally {
+      const poses = cardPoses();
+      shown = null; playing = false;
+      if (g) { render(); turnCards(poses); }
     }
   }
+  const snapshot = () => ({ view: g.view(), lp: { ...g.lp }, turn: g.turn, active: g.active, phase: g.phase });
 
   const cardFace = (cardName) => (idOf.has(cardName) ? face(idOf.get(cardName)) : `<span>${esc(cardName)}</span>`); // Bild oder Name, für die Geister
   const meta = (cardName) => { const code = idOf.get(cardName); const c = byId.get(code); return { code, level: c?.level, img: !!c?.img && !missing.has(code) }; };
@@ -344,7 +372,7 @@ export async function initDuel(root) {
     const hand = (chosen.hand ?? []).filter((n) => left.get(n) > 0 && left.set(n, left.get(n) - 1));
     opts = {
       lib, table, scripts, me: deckCodes(deck), bot: deckCodes(decks[chosen.opp] ?? deck),
-      hand: codes(hand), second: chosen.first === '0', askAllChains: !!chosen.askAll, botPlays: chosen.bot !== 'passiv', seed
+      hand: codes(hand), second: chosen.first === '0', askAllChains: !!chosen.askAll, botPlays: chosen.bot !== 'passiv', seed, frames: true
     };
     duelDeck = deckId; duelSetup = chosen; answers = []; redo = []; sel = null; status = '';
     try { g = newGame(opts); } catch (error) { g = null; status = error.message; }

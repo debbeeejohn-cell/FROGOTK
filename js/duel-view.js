@@ -93,6 +93,24 @@ export function animationSteps(events, lastPhase = '') {
 }
 
 /**
+ * Eine Antwort als Abfolge von Abschnitten, je einer pro Entscheidung des Bots: `start` ist das echte Brett vor dem Abschnitt,
+ * `end` das danach, `steps` die Animation dazwischen. So zeigt die Oberfläche eine Bot-Runde Aktion für Aktion, statt sofort den
+ * Endstand mit Animationen darüber. `frames` sind die Zwischenstände aus g.frames (opts.frames), `start`/`end` das Brett vor und
+ * nach der Antwort, `n0` die Zahl der Ereignisse davor. Abschnitte ohne sichtbaren Schritt entfallen; Banner werden nie doppelt gezeigt.
+ */
+export function animationPlan(events, frames, n0, start, end, lastPhase = '') {
+  const marks = [{ n: n0, snap: start }, ...frames.filter((f) => f.n > n0).map((f) => ({ n: f.n, snap: f })), { n: events.length, snap: end }];
+  const segments = [];
+  let last = lastPhase;
+  for (let i = 0; i + 1 < marks.length; i += 1) {
+    const part = animationSteps(events.slice(marks[i].n, marks[i + 1].n), last);
+    last = part.lastPhase;
+    if (part.steps.length) segments.push({ start: marks[i].snap, end: marks[i + 1].snap, steps: part.steps });
+  }
+  return { segments, lastPhase: last };
+}
+
+/**
  * Schlüssel des Elements (data-z im Feld) zu einem Ort aus einem Ereignis ({ side, zone, index }), oder null (z. B. Material).
  * Plätze: Spieler:Ort:Platz (wie data-key), Stapel: Spieler:deck|extra|gy|banished. me/bot sind die Spielerindizes der Partie.
  */

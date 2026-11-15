@@ -58,7 +58,6 @@ export function createFx(root) {
   const at = (key) => (key ? root.querySelector(`[data-z="${key}"]`) : null);
   const cardIn = (el) => (el?.matches('.dl-card, .dl-back') ? el : el?.querySelector('.dl-card'));
   const ring = (side) => root.querySelector(`.dl-lp[data-lp="${side}"] .dl-ring`);
-  const drawn = (s) => [...root.querySelectorAll(s.side === 'me' ? '.dl-hand .dl-slot' : '.dl-handrow .dl-back')].slice(-s.count);
   function rectOf(key, side) {
     const el = at(key);
     if (el) return el.getBoundingClientRect();
@@ -144,13 +143,10 @@ export function createFx(root) {
     },
 
     async draw(s, f, c) {
-      const src = rectOf(`${s.side === 'me' ? c.me : c.bot}:deck`, s.side);
-      if (!src) return;
-      for (const el of drawn(s)) {
-        const real = cardIn(el);
-        await glide(ghostOf(null, null, c), src, el.getBoundingClientRect(), f); // gezogen wird verdeckt, die echte Karte erscheint bei der Landung
-        reveal(real);
-      }
+      const p = s.side === 'me' ? c.me : c.bot;
+      const [src, dst] = [rectOf(`${p}:deck`, s.side), rectOf(`${p}:2:99`, s.side)]; // die neue Karte hat im Brett davor noch keinen Platz: Mitte der Hand
+      if (!src || !dst) return;
+      for (let i = 0; i < s.count; i += 1) await glide(ghostOf(null, null, c), src, dst, f); // gezogen wird verdeckt
     },
 
     /** Beschwörungs-Show (Vorlage summon_show.gd): Blende, Kartenbild, Name, rundes ATK/DEF-Wappen mit Stufe. */
@@ -220,20 +216,22 @@ export function createFx(root) {
 
   return {
     busy: () => running,
+    /** Beginn einer ganzen Abfolge (mehrere Abschnitte): ab jetzt gilt ein Überspringen für alle Abschnitte. */
+    start() { skipped = false; },
+    skipped: () => skipped,
     skip() { skipped = true; [...stops].forEach((stop) => stop()); },
+    /** Pause zwischen zwei Bot-Aktionen (ms bei vollem Tempo). */
+    wait: (ms) => pause(ms * speed()),
     /**
-     * Spielt die Schritte nacheinander. c: { lpBefore, lpAfter: { me, bot }, me, bot (Spielerindizes), cardFace(name), meta(name) → { code, level, img } }.
-     * Gibt sofort zurück, wenn das Tempo 0 ist. Ein Fehler in einem Schritt bricht nur diesen Schritt ab, das Spiel bleibt bedienbar.
+     * Spielt die Schritte eines Abschnitts nacheinander auf dem gerade gezeigten Brett.
+     * c: { lpBefore, lpAfter: { me, bot }, me, bot (Spielerindizes), cardFace(name), meta(name) → { code, level, img } }.
+     * Ein Fehler in einem Schritt bricht nur diesen Schritt ab, das Spiel bleibt bedienbar.
      */
     async play(steps, c) {
       const f = speed();
       if (!f || !steps.length) return;
-      running = true; skipped = false;
+      running = true;
       setRing('me', c.lpBefore.me); setRing('bot', c.lpBefore.bot); // erst der alte Stand, der Kreis zählt dann herunter
-      for (const s of steps) { // Ziele der Flüge sind bis zur Landung unsichtbar (das Feld zeigt schon den Endzustand)
-        if (s.kind === 'fly' && zoneKey(s.from, c.me, c.bot) !== zoneKey(s.to, c.me, c.bot)) hide(cardIn(at(zoneKey(s.to, c.me, c.bot))));
-        if (s.kind === 'draw') drawn(s).forEach((el) => hide(cardIn(el)));
-      }
       try {
         for (const s of steps) {
           if (skipped) break;

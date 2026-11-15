@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { loadCore, cardTable, newGame, M, R, IDLE, PHASE, P } from './duel-core.js';
-import { actionsByCard, phaseButtons, phaseMenu, zoneCounts, sumState, key, PHASE_SHORT, PHASE_BANNER, animationSteps, lpRing, zoneKey, atkTotal } from './duel-view.js';
+import { actionsByCard, phaseButtons, phaseMenu, zoneCounts, sumState, key, PHASE_SHORT, PHASE_BANNER, animationSteps, animationPlan, lpRing, zoneKey, atkTotal } from './duel-view.js';
 
 const json = (f) => JSON.parse(fs.readFileSync(new URL(`../data/${f}`, import.meta.url)));
 const table = cardTable(json('core-cards.json'));
@@ -118,6 +118,30 @@ assert.equal(zoneKey({ side: 'bot', zone: 'deck', index: 9 }, 0, 1), '1:deck');
 assert.equal(zoneKey({ side: 'me', zone: 'other', index: 0 }, 0, 1), null, 'material has no place on the board');
 assert.equal(zoneKey(null, 0, 1), null);
 h.close();
+
+// Abschnitte einer Bot-Runde: je Entscheidung des Bots das echte Brett davor, die Schritte, das Brett danach
+{
+  const snap = (duel) => ({ view: duel.view(), lp: { ...duel.lp }, turn: duel.turn, active: duel.active, phase: duel.phase });
+  const b = newGame({ lib, table, scripts, me: codes(decks.frogOtk), bot: codes(decks.blackwing), seed: [5n, 6n, 7n, 8n], botPlays: true, frames: true });
+  const before = snap(b); const n0 = b.events.length;
+  b.frames.length = 0;
+  b.respond({ type: R.SELECT_IDLECMD, action: IDLE.TO_EP, index: null }); // ich passe, der Bot spielt seine Runde
+  const after = snap(b);
+  const plan = animationPlan(b.events, b.frames, n0, before, after, '');
+  assert.ok(plan.segments.length >= 2, `a bot round is several parts: ${plan.segments.length}`);
+  assert.equal(plan.segments[0].start, before, 'the first part starts from the board before my answer');
+  assert.equal(plan.segments.at(-1).end, after, 'the last part ends on the real final board');
+  const botField = (s) => s.view[b.bot].mz.filter(Boolean).length + s.view[b.bot].st.filter(Boolean).length + s.view[b.bot].gy.length;
+  const counts = plan.segments.map((s) => botField(s.start));
+  assert.ok(counts.every((c, i) => i === 0 || c >= counts[i - 1]), `the boards the parts show only grow: ${counts}`);
+  assert.ok(botField(after) > botField(before), 'the bot put something on the board');
+  assert.ok(counts.at(-1) < botField(after) || plan.segments.at(-1).steps.length > 0, 'the last part still has something to show');
+  const all = plan.segments.flatMap((s) => s.steps);
+  assert.deepEqual(all, animationSteps(b.events.slice(n0), '').steps, 'the parts together are exactly the steps of the whole answer');
+  assert.equal(plan.lastPhase, animationSteps(b.events.slice(n0), '').lastPhase);
+  assert.deepEqual(animationPlan([], [], 0, before, after, 'Main-Phase 1'), { segments: [], lastPhase: 'Main-Phase 1' });
+  b.close();
+}
 
 // ATK-Rechner: offene Monster in Angriffsposition zählen, Verteidigung getrennt, verdeckte gar nicht
 const mon = (position, attack) => ({ position, attack });

@@ -45,8 +45,10 @@ Kein Test-Framework: jede Datei ist ein `assert`-Skript und endet mit „all che
     wandernde Karten (Geister fliegen von Quelle zu Ziel, das Feld zeigt schon den Endzustand, Zielkarten sind bis zur Landung
     unsichtbar), Beschwörungs-Show, Effekt-Aktivierung mit Kettennummer, Angriff mit Wackeln. Orte finden sie über `data-z`
     (Spieler:Ort:Platz bzw. Spieler:Stapel, Abbildung `zoneKey`). Moduswechsel Angriff ↔ Verteidigung dreht sich per CSS-Übergang.
-    Läuft nur nach `answer()` (nicht bei Rückgängig, Start, Combo); währenddessen sind Eingaben gesperrt, ein Klick oder Escape
-    überspringt. Respektiert „Animationen“ (`data-anim-mode`) und `prefers-reduced-motion` (die gelten nicht für die Web Animations API,
+    Eine Antwort läuft Abschnitt für Abschnitt (`animationPlan`): `newGame({ frames: true })` hält vor jeder Bot-Entscheidung den
+    echten Zwischenstand fest (`g.frames`), `js/duel.js` zeigt je Bot-Aktion das Brett von damals, spielt die Schritte darauf und
+    wartet 0,7 s; am Ende steht das echte Endbrett. Läuft nur nach `answer()` (nicht bei Rückgängig, Start, Combo); währenddessen
+    sind Eingaben gesperrt, ein Klick oder Escape überspringt. Respektiert „Animationen“ (`data-anim-mode`) und `prefers-reduced-motion` (die gelten nicht für die Web Animations API,
     deshalb prüft `speed()` sie selbst).
   - `js/decide.js`: Entscheidungen des aktiven Bots (Merkmale, Score, Angriffsregel).
   - `js/guess.js`: Schätzung verdeckter Karten aus Decklist, offen gesehenen Karten, Zone und Setz-Tendenz
