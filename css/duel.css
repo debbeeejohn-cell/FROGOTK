@@ -113,16 +113,17 @@
 .dl-replay { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--accent-soft); }
 .dl-check { display: flex !important; align-items: center; gap: 8px; font-weight: 500 !important; min-height: var(--tap); }
 .dl-check input { width: 20px; height: 20px; }
-.dl-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; max-height: 50vh; overflow-y: auto; margin: 8px 0 12px; }
-.dl-tile { display: grid; gap: 4px; padding: 4px; border: 2px solid transparent; border-radius: var(--radius-sm); background: var(--surface-2); color: var(--fg); cursor: pointer; text-align: center; }
+.dl-tiles { display: flex; gap: 8px; overflow-x: auto; margin: 8px 0 4px; padding: 4px 2px 8px; scroll-snap-type: x proximity; }
+.dl-tile { flex: 0 0 96px; scroll-snap-align: start; display: grid; align-content: start; gap: 4px; padding: 4px; border: 2px solid transparent; border-radius: var(--radius-sm); background: rgba(255, 255, 255, 0.06); color: inherit; cursor: pointer; text-align: center; }
+.dl-arrows { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px; }
 .dl-tile .dl-card { aspect-ratio: 59 / 86; height: auto; pointer-events: none; }
 .dl-tile small { font-size: 0.7rem; line-height: 1.2; overflow-wrap: anywhere; }
-.dl-tile[aria-pressed="true"] { border-color: var(--gold, #e6b422); background: var(--accent-soft); }
+.dl-tile[aria-pressed="true"] { border-color: var(--gold, #e6b422); background: rgba(230, 180, 34, 0.18); }
 .dl-tile:disabled { cursor: default; opacity: 1; }
 .dl-ask { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
 .dl-ask img, .dl-dialog > img { width: 84px; border-radius: 4px; }
 .dl-announce { width: 100%; min-height: var(--tap); margin: 8px 0 12px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--fg); }
-.dl-dialog [data-bit][aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+.dl-dialog [data-bit][aria-pressed="true"] { background: rgba(230, 180, 34, 0.2); border-color: var(--gold, #e6b422); }
 .dl-side { display: grid; gap: 12px; }
 /* LP-Kästen in den Ecken des Feldes: Wappen mit Initial, große Zahl, Balken */
 .dl-top, .dl-bottom { display: grid; align-items: center; gap: 8px; }
@@ -149,13 +150,18 @@
 .dl-desc { max-height: 9em; overflow-y: auto; margin: 8px 0; font-size: 0.85rem; white-space: pre-line; }
 .dl-log { margin: 0; padding-left: 18px; max-height: 12em; overflow-y: auto; color: var(--fg-muted); font-size: 0.8rem; }
 .dl-win { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 12px; padding: 12px 16px; border-radius: var(--radius-sm); background: var(--success-soft); border: 1px solid var(--success); font-weight: 700; }
-.dl-dialog { width: min(560px, calc(100vw - 32px)); max-height: 80vh; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--fg); }
+.dl-dialog { width: min(640px, calc(100vw - 32px)); max-height: 84vh; margin: 8vh auto auto; padding: 16px; border: 1px solid #3a3f52; border-radius: var(--radius); background: #0b0d14; color: #fff; }
+.dl-dialog .primary-button { border-color: var(--gold, #e6b422); background: var(--gold, #e6b422); color: #1a1405; font-weight: 700; }
+.dl-dialog .secondary-button, .dl-dialog .dl-tool { border-color: #3a3f52; background: #1b2030; color: #fff; }
+.dl-dialog .dl-actions button { flex: 1 1 120px; min-height: 52px; }
+.dl-dialog .dl-hint, .dl-dialog .dl-meta { color: #9aa4b8; }
+.dl-dialog .dl-announce { border-color: #3a3f52; background: #1b2030; color: #fff; }
 .dl-dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
 .dl-dialog h3 { margin: 0 0 12px; }
 .dl-pilegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; margin-bottom: 12px; max-height: 50vh; overflow-y: auto; }
 .dl-pilegrid .dl-slot { aspect-ratio: auto; }
 .dl-pilegrid .dl-card { aspect-ratio: 59 / 86; height: auto; }
-.dl-pilegrid small { display: block; font-size: 0.65rem; color: var(--fg-muted); overflow-wrap: anywhere; }
+.dl-pilegrid small { display: block; font-size: 0.65rem; color: #9aa4b8; overflow-wrap: anywhere; }
 
 @media (max-width: 860px) {
   .dl-wrap { grid-template-columns: minmax(0, 1fr); }

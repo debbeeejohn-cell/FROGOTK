@@ -201,6 +201,7 @@ export async function initDuel(root) {
   const tile = (c, attrs, on) => `<button type="button" class="dl-tile" ${attrs} aria-pressed="${!!on}">`
     + `<span class="dl-card${c.code ? '' : ' down'}">${c.code ? face(c.code) : ''}</span><small>${esc(c.code ? name(c.code) : 'Verdeckt')}<br>${c.controller === g.me ? 'Du' : 'Bot'} · ${PLACE[c.location] ?? ''}</small></button>`;
   const btn = (label, attrs, primary) => `<button type="button" class="${primary ? 'primary-button' : 'secondary-button'}" ${attrs}>${esc(label)}</button>`;
+  const tileRow = (tiles) => `<div class="dl-tiles">${tiles}</div><div class="dl-arrows"><button type="button" class="dl-tool" data-scroll="-1" aria-label="Nach links">‹</button><button type="button" class="dl-tool" data-scroll="1" aria-label="Nach rechts">›</button></div>`;
   const effectText = (c) => { const t = table.text(c.description); return t && !t.startsWith('Effekt von') ? `: ${t}` : ''; };
 
   const sumState = (p) => levelSum(p, picked); // Stufensummen (js/duel-view.js)
@@ -224,12 +225,12 @@ export async function initDuel(root) {
         const range = sum ? `Summe ${sum.total} / ${p.select_max ? 'mind. ' : ''}${p.amount & 0xffff}` : p.min === p.max ? `${p.min} Karte(n)` : `${p.min}–${p.max} Karten`;
         const must = (p.selects_must || []).map((c) => tile(c, 'disabled', true)).join('');
         const ok = picked.size > 0 && (sum ? sum.ok : picked.size >= p.min && picked.size <= p.max);
-        return [`${PROMPT_TITLE[p.type]} (${range})`, `${hint}<div class="dl-tiles">${must}${p.selects.map((c, i) => tile(c, `data-pick="${i}"`, picked.has(i))).join('')}</div>`,
+        return [`${PROMPT_TITLE[p.type]} (${range})`, `${hint}${tileRow(must + p.selects.map((c, i) => tile(c, `data-pick="${i}"`, picked.has(i))).join(''))}`,
           btn('Bestätigen', `data-confirm ${ok ? '' : 'disabled'}`, true) + (p.can_cancel ? btn('Abbrechen', 'data-cancel') : '')];
       }
       case M.SELECT_UNSELECT_CARD:
-        return [`${PROMPT_TITLE[p.type]} (${p.min}–${p.max})`, `${hint}<div class="dl-tiles">${p.select_cards.map((c, i) => tile(c, `data-unsel="${i}"`, false)).join('')}`
-          + `${p.unselect_cards.map((c, i) => tile(c, `data-unsel="${p.select_cards.length + i}"`, true)).join('')}</div>`,
+        return [`${PROMPT_TITLE[p.type]} (${p.min}–${p.max})`, `${hint}${tileRow(p.select_cards.map((c, i) => tile(c, `data-unsel="${i}"`, false)).join('')
+          + p.unselect_cards.map((c, i) => tile(c, `data-unsel="${p.select_cards.length + i}"`, true)).join(''))}`,
           (p.can_finish ? btn('Fertig', 'data-unsel="-1"', true) : '') + (p.can_cancel && !p.can_finish ? btn('Abbrechen', 'data-unsel="-1"') : '')];
       case M.SELECT_POSITION:
         return [`${name(p.code)}: Position wählen`, img(p.code), bitList(p.positions).map((b) => btn(POSITION[b], `data-pos="${b}"`, true)).join('')];
@@ -254,8 +255,11 @@ export async function initDuel(root) {
     const p = g?.prompt;
     if (replay || !p || p.type === M.SELECT_IDLECMD || p.type === M.SELECT_BATTLECMD) { if (promptDlg.open) promptDlg.close(); return; }
     const [title, body, buttons] = promptBody(p);
+    const scrolled = promptDlg.querySelector('.dl-tiles')?.scrollLeft ?? 0; // die Kartenreihe springt beim Anklicken nicht an den Anfang
     promptDlg.innerHTML = `<h3 id="dlPromptTitle">${esc(title)}</h3>${body}${g.error ? `<p class="dl-status">${esc(g.error)}</p>` : ''}<div class="dl-actions">${buttons}</div>`;
     if (!promptDlg.open) promptDlg.showModal();
+    const row = promptDlg.querySelector('.dl-tiles');
+    if (row) row.scrollLeft = scrolled;
   }
 
   function setupHtml() {
@@ -389,6 +393,7 @@ export async function initDuel(root) {
     const el = ev.target.closest('button');
     if (!el || !root.contains(el) || el.disabled) return;
     const d = el.dataset; const p = g?.prompt;
+    if (d.scroll) { el.closest('dialog').querySelector('.dl-tiles').scrollBy({ left: Number(d.scroll) * 300, behavior: 'smooth' }); return; }
     if (d.menu) { menu = menu === d.menu ? null : d.menu; sel = null; render(); return; }
     if (d.pphase) { const item = phaseMenu(p, g.phase).find((m) => m.id === d.pphase); if (item?.response) answer(item.response); return; }
     if (d.op === 'inspect') { menu = null; tab = 'card'; render(); return; }
