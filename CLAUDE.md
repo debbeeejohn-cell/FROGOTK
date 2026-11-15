@@ -36,6 +36,9 @@ Kein Test-Framework: jede Datei ist ein `assert`-Skript und endet mit „all che
   - `js/duel.js`: Oberfläche. Zeigt nur Aktionen, die die Engine anbietet; Dialoge für Ketten,
     Kartenwahl, Summen, Position, Ansagen. Rückgängig = Duell mit gleichem Seed neu abspielen.
     Combos (Setup + Seed + Antworten) liegen in localStorage `duelLines`.
+    Das Spielfeld ist ein 7-Spalten-Raster, das `css/duel.css` per `perspective` und `rotateX` nach hinten kippt (eigener Code,
+    Hintergrund aus CSS-Verlauf). Hände nicht gekippt, meine als Fächer.
+  - `js/duel-view.js`: reine Hilfen ohne DOM (Aktionen je Karte, Phasenmenü, Zonenzahlen, Summenregel), Test `js/duel-view.test.mjs`.
   - `js/decide.js`: Entscheidungen des aktiven Bots (Merkmale, Score, Angriffsregel).
   - `js/guess.js`: Schätzung verdeckter Karten aus Decklist, offen gesehenen Karten, Zone und Setz-Tendenz
     (`data/set-tendencies.json`). Messung gegen die Engine: `node --no-warnings scripts/guess-eval.mjs`.

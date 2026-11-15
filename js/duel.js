@@ -1,12 +1,12 @@
 // Bot Duel: practice duel against a passive bot on the real rules engine (duel-core.js, ygopro-core).
 // The engine decides what is legal and asks the questions (activate? which cards? which position?);
 // this module only draws the board and turns clicks into engine responses, like Dueling Nexus.
-import { loadCore, cardTable, newGame, traceOf, compareCombo, L, P, M, R, PLACE, PHASE } from './duel-core.js';
+import { loadCore, cardTable, newGame, traceOf, compareCombo, L, P, M, R, PLACE } from './duel-core.js';
 import { loadDecks, loadCards, deckOptions } from './decks.js';
 import { ocgRaceString, ocgAttributeString } from '../vendor/ocgcore/index.js';
 import { esc } from './util.js';
 import { getStoredSettings, saveSettings } from './store.js';
-import { key, actionsByCard as offeredActions, phaseButtons, sumState as levelSum } from './duel-view.js';
+import { key, actionsByCard as offeredActions, phaseButtons, sumState as levelSum, PHASE_SHORT } from './duel-view.js';
 
 const getJson = (file) => fetch(`./data/${file}`).then((r) => {
   if (!r.ok) throw new Error(`${file}: HTTP ${r.status}`);
@@ -67,15 +67,41 @@ export async function initDuel(root) {
     const label = hidden ? 'Verdeckte Karte des Bots' : `${name(c.code)}${down ? ' (verdeckt)' : ''}`;
     return `<button type="button" class="${cls}" data-key="${k}" aria-label="${esc(label)}" aria-pressed="${sel === k}">${hidden ? '' : face(c.code)}${stat}</button>`;
   }
-  const zones = (list, p, loc, label, actions) => `<div class="dl-zones">${list.map((c, i) => (c
-    ? `<div class="dl-slot">${cardBtn(c, p, loc, i, actions)}</div>` : `<div class="dl-slot empty" aria-hidden="true">${label}${i + 1}</div>`)).join('')}</div>`;
+  const slot = (c, p, loc, i, actions) => (c ? `<div class="dl-slot">${cardBtn(c, p, loc, i, actions)}</div>` : '<div class="dl-slot empty" aria-hidden="true"></div>');
+  const fieldSlot = (v, p, actions) => `<div class="dl-slot${v.field ? '' : ' empty'}">${v.field ? cardBtn(v.field, p, L.SZONE, 5, actions) : ''}<span class="dl-tag">FELD</span></div>`;
 
-  function piles(v, p, actions) {
-    const can = (loc) => ([...actions.keys()].some((k) => k.startsWith(`${p}:${loc}:`)) ? ' can' : '');
-    const pile = (loc, field, label) => `<button type="button" class="dl-pile${can(loc)}" data-pile="${p}:${field}" ${v[field].length ? '' : 'disabled'}><b>${v[field].length}</b>${label}</button>`;
-    const field = v.field ? `<div class="dl-slot">${cardBtn(v.field, p, L.SZONE, 5, actions)}</div>` : '<div class="dl-slot empty" aria-hidden="true">Feld</div>';
-    const extra = p === g.me ? pile(L.EXTRA, 'extra', 'Extra') : `<div class="dl-pile static"><b>${v.extra.length}</b>Extra</div>`;
-    return `<div class="dl-piles">${field}${pile(L.GRAVE, 'gy', 'Friedhof')}${pile(L.REMOVED, 'banished', 'Verbannt')}<div class="dl-pile static"><b>${v.deck}</b>Deck</div>${extra}</div>`;
+  /** Ein Stapel (Deck, Extra, Friedhof, Verbannt) mit Beschriftung wie „FH 3“. Friedhof und Verbannt zeigen die oberste Karte. */
+  function pile(v, p, field, tag, actions, low = false) {
+    const loc = { deck: L.DECK, extra: L.EXTRA, gy: L.GRAVE, banished: L.REMOVED }[field];
+    const n = field === 'deck' ? v.deck : v[field].length;
+    const top = field === 'gy' || field === 'banished' ? v[field].at(-1) : null;
+    const clickable = n > 0 && field !== 'deck' && (field !== 'extra' || p === g.me);
+    const can = [...actions.keys()].some((k) => k.startsWith(`${p}:${loc}:`)) ? ' can' : '';
+    const art = top ? face(top.code) : n && (field === 'deck' || field === 'extra') ? '<i class="dl-back"></i>' : '';
+    const label = esc(`${p === g.me ? 'Du' : 'Bot'}: ${PLACE[loc]} ${n}`);
+    const inner = `${art}<span class="dl-tag">${tag} <b>${n}</b></span>`;
+    const cls = `dl-pile${low ? ' low' : ''}${can}${clickable ? '' : ' static'}`;
+    return clickable ? `<button type="button" class="${cls}" data-pile="${p}:${field}" aria-label="${label}">${inner}</button>` : `<div class="${cls}" aria-label="${label}">${inner}</div>`;
+  }
+
+  /** Spielfeld als 7-Spalten-Raster, wie bei einem echten Feld: Stapel links und rechts (Bot punktgespiegelt), fünf Zonen in der Mitte. */
+  function board(v, actions) {
+    const [me, bot] = [v[g.me], v[g.bot]];
+    const cell = (row, col, html) => `<div class="dl-cell" style="grid-row:${row};grid-column:${col}">${html}</div>`;
+    const cells = [];
+    for (let i = 0; i < 5; i += 1) {
+      cells.push(cell(1, 6 - i, slot(bot.st[i], g.bot, L.SZONE, i, actions)), cell(2, 6 - i, slot(bot.mz[i], g.bot, L.MZONE, i, actions)),
+        cell(4, 2 + i, slot(me.mz[i], g.me, L.MZONE, i, actions)), cell(5, 2 + i, slot(me.st[i], g.me, L.SZONE, i, actions)));
+    }
+    cells.push(
+      cell(1, 1, pile(bot, g.bot, 'deck', 'DECK', actions)), cell(1, 7, pile(bot, g.bot, 'extra', 'EXTRA', actions)),
+      cell(2, 1, pile(bot, g.bot, 'gy', 'FH', actions)), cell(2, 7, fieldSlot(bot, g.bot, actions)),
+      cell(3, 1, pile(bot, g.bot, 'banished', 'VERB.', actions, true)), cell(3, 7, pile(me, g.me, 'banished', 'VERB.', actions, true)),
+      cell(4, 1, fieldSlot(me, g.me, actions)), cell(4, 7, pile(me, g.me, 'gy', 'FH', actions)),
+      cell(5, 1, pile(me, g.me, 'extra', 'EXTRA', actions)), cell(5, 7, pile(me, g.me, 'deck', 'DECK', actions)),
+      `<div class="dl-turn" role="status"><small>ZUG ${g.turn} · ${g.active === g.me ? 'DU' : 'BOT'}</small><b>${PHASE_SHORT[g.phase] ?? ''}</b></div>`
+    );
+    return cells.join('');
   }
 
   function findCard(k) {
@@ -118,11 +144,9 @@ export async function initDuel(root) {
     const waiting = g.winner === null && !g.prompt ? 'Engine wartet …' : '';
     return `${banner}<div class="dl-wrap">
       <div class="dl-mat" aria-label="Spielfeld">
-        <div class="dl-half bot"><div class="dl-handrow" aria-label="Hand des Bots: ${bot.hand.length} Karten">${bot.hand.map(() => '<i class="dl-back"></i>').join('')}</div>
-          ${piles(bot, g.bot, actions)}${zones(bot.st, g.bot, L.SZONE, 'S/T', actions)}${zones(bot.mz, g.bot, L.MZONE, 'M', actions)}</div>
-        <div class="dl-mid"><span>Zug ${g.turn} · ${g.active === g.me ? 'Du' : 'Bot'} · ${PHASE[g.phase] ?? ''}</span></div>
-        <div class="dl-half me">${zones(me.mz, g.me, L.MZONE, 'M', actions)}${zones(me.st, g.me, L.SZONE, 'S/T', actions)}${piles(me, g.me, actions)}
-          <div class="dl-hand" aria-label="Deine Hand">${me.hand.map((c, i) => `<div class="dl-slot">${cardBtn(c, g.me, L.HAND, i, actions)}</div>`).join('') || '<span class="dl-hint">Hand leer</span>'}</div></div>
+        <div class="dl-handrow" aria-label="Hand des Bots: ${bot.hand.length} Karten">${bot.hand.map(() => '<i class="dl-back"></i>').join('')}</div>
+        <div class="dl-stage"><div class="dl-board">${board(v, actions)}</div></div>
+        <div class="dl-hand" aria-label="Deine Hand">${me.hand.map((c, i) => `<div class="dl-slot" style="--d:${i - (me.hand.length - 1) / 2}">${cardBtn(c, g.me, L.HAND, i, actions)}</div>`).join('') || '<span class="dl-hint">Hand leer</span>'}</div>
       </div>
       <aside class="dl-side">
         <div class="dl-lps">${lp(g.me, 'Du')}${lp(g.bot, 'Bot')}</div>
