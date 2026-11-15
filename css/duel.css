@@ -7,7 +7,17 @@
   --gold: #e6b422; --ink: #eaf2ec; --dim: #9db5a5; --zone: rgba(96, 165, 250, 0.38);
   display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 16px; align-items: start;
 }
-.dl-play { display: grid; gap: 8px; min-width: 0; }
+.dl-play { position: relative; display: grid; gap: 8px; min-width: 0; }
+
+/* Menü am Feld: Aktionen einer Karte oder die sechs Phasen */
+.dl-popup { position: absolute; z-index: 6; display: grid; gap: 2px; min-width: 200px; max-width: min(320px, 92%); padding: 8px; border: 1px solid #3a3f52; border-radius: 8px; background: #0b0d14; color: #fff; }
+.dl-popup strong { padding: 4px 8px 8px; border-bottom: 1px solid #2c3140; font-size: 0.95rem; }
+.dl-pop-item { display: flex; align-items: center; gap: 10px; min-height: var(--tap); padding: 0 10px; border: 0; border-radius: 6px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.dl-pop-item b { min-width: 36px; color: var(--dim); font-size: 0.8rem; }
+.dl-pop-item:hover:not(:disabled), .dl-pop-item:focus-visible { background: rgba(255, 255, 255, 0.1); }
+.dl-pop-item:disabled { opacity: 0.4; cursor: default; }
+.dl-pop-item.current { background: rgba(230, 180, 34, 0.16); font-weight: 700; }
+.dl-pop-item.current:disabled { opacity: 1; }
 .dl-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 
 /* Knopfleiste über dem Feld */
@@ -43,6 +53,9 @@
 }
 .dl-cell { min-width: 0; }
 .dl-turn { grid-row: 3; grid-column: 2 / 7; display: grid; place-items: center; align-content: center; justify-self: center; min-width: 120px; padding: 8px 16px; border: 1px solid #6b5a2e; border-radius: 8px; background: #0b0d14; color: #fff; text-align: center; }
+.dl-turn { font: inherit; cursor: pointer; }
+.dl-turn:disabled { cursor: default; }
+.dl-turn:hover:not(:disabled) { border-color: var(--gold); }
 .dl-turn small { color: var(--dim); font-size: 0.65rem; font-weight: 700; letter-spacing: 0.12em; }
 .dl-turn b { font-size: 1.2rem; }
 .dl-slot { display: grid; gap: 2px; min-width: 0; aspect-ratio: 59 / 86; position: relative; }

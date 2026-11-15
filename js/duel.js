@@ -6,7 +6,7 @@ import { loadDecks, loadCards, deckOptions } from './decks.js';
 import { ocgRaceString, ocgAttributeString } from '../vendor/ocgcore/index.js';
 import { esc } from './util.js';
 import { getStoredSettings, saveSettings } from './store.js';
-import { key, actionsByCard as offeredActions, phaseButtons, sumState as levelSum, PHASE_SHORT } from './duel-view.js';
+import { key, actionsByCard as offeredActions, phaseButtons, sumState as levelSum, phaseMenu, PHASE_SHORT } from './duel-view.js';
 
 const getJson = (file) => fetch(`./data/${file}`).then((r) => {
   if (!r.ok) throw new Error(`${file}: HTTP ${r.status}`);
@@ -47,6 +47,7 @@ export async function initDuel(root) {
   let myId; let g = null; let opts = null; let answers = [];
   let sel = null; let picked = new Set(); let status = '';
   let tab = 'card'; let redo = []; // Inspektor: 'card' | 'log'; redo = zurückgenommene Antworten, jüngste zuletzt
+  let menu = null; // offenes Menü am Feld: 'card' (Aktionen der gewählten Karte) | 'phase'
   let duelDeck = null; let duelSetup = null; let openHand = []; let replay = null; // replay: { name, all: recorded answers, marks: answer counts before each shown step } while a saved combo is shown
   let setup = { opp: null, bot: 'aktiv', first: '1', askAll: '', hand: [] };
   const readSetup = (form) => { const fd = new FormData(form); return { askAll: '', ...Object.fromEntries(fd), hand: fd.getAll('hand') }; };
@@ -100,7 +101,7 @@ export async function initDuel(root) {
       cell(3, 1, pile(bot, g.bot, 'banished', 'VERB.', actions, true)), cell(3, 7, pile(me, g.me, 'banished', 'VERB.', actions, true)),
       cell(4, 1, fieldSlot(me, g.me, actions)), cell(4, 7, pile(me, g.me, 'gy', 'FH', actions)),
       cell(5, 1, pile(me, g.me, 'extra', 'EXTRA', actions)), cell(5, 7, pile(me, g.me, 'deck', 'DECK', actions)),
-      `<div class="dl-turn" role="status"><small>ZUG ${g.turn} · ${g.active === g.me ? 'DU' : 'BOT'}</small><b>${PHASE_SHORT[g.phase] ?? ''}</b></div>`
+      `<button type="button" class="dl-turn" data-menu="phase" aria-label="Zug ${g.turn}, ${g.active === g.me ? 'du' : 'Bot'}, Phase ${PHASE_SHORT[g.phase] ?? ''}. Phasenmenü öffnen"${replay ? ' disabled' : ''}><small>ZUG ${g.turn} · ${g.active === g.me ? 'DU' : 'BOT'}</small><b>${PHASE_SHORT[g.phase] ?? ''}</b></button>`
     );
     return cells.join('');
   }
@@ -122,10 +123,34 @@ export async function initDuel(root) {
     const info = byId.get(s.c.code);
     const meta = info ? [info.type, info.attribute, info.race, info.level != null ? `Stufe ${info.level}` : null,
       info.atk != null ? `ATK ${info.atk} / DEF ${info.def ?? '–'}` : null].filter(Boolean).join(' · ') : '';
-    const acts = (actions.get(sel) || []).map((a, i) => `<button type="button" class="primary-button" data-act="${i}">${esc(a.label)}</button>`).join('');
     return `<div class="dl-detail-head">${img(s.c.code)}<div><h3>${esc(name(s.c.code))}</h3><p class="dl-meta">${esc(meta)}</p>`
       + `<p class="dl-meta">${s.p === g.me ? 'Du' : 'Bot'} · ${PLACE[s.loc]}</p></div></div>`
-      + `${info?.desc ? `<p class="dl-desc">${esc(info.desc)}</p>` : ''}${acts ? `<div class="dl-actions">${acts}</div>` : ''}`;
+      + `${info?.desc ? `<p class="dl-desc">${esc(info.desc)}</p>` : ''}`;
+  }
+
+  /** Menü am Feld: Aktionen der gewählten Karte (Effekt, Beschwören, Setzen …) oder die sechs Phasen. Platziert wird es nach dem Zeichnen (placePopup). */
+  function popupHtml(actions) {
+    if (menu === 'phase') {
+      return `<div class="dl-popup" role="menu" aria-label="Phasen">${phaseMenu(g.prompt, g.phase).map((m) => `<button type="button" role="menuitem" class="dl-pop-item${m.current ? ' current' : ''}" ${m.response ? `data-pphase="${m.id}"` : 'disabled'}><b>${m.id}</b>${m.label}</button>`).join('')}</div>`;
+    }
+    const s = menu === 'card' && findCard(sel);
+    const acts = s ? actions.get(sel) ?? [] : [];
+    if (!acts.length) return '';
+    return `<div class="dl-popup" role="menu" aria-label="${esc(name(s.c.code))}"><strong>${esc(name(s.c.code))}</strong>${acts.map((a, i) => `<button type="button" role="menuitem" class="dl-pop-item" data-act="${i}">${esc(a.label)}</button>`).join('')}`
+      + '<button type="button" role="menuitem" class="dl-pop-item" data-op="inspect">Karte ansehen</button></div>';
+  }
+
+  function placePopup() {
+    const pop = main.querySelector('.dl-popup');
+    if (!pop) return;
+    const play = main.querySelector('.dl-play').getBoundingClientRect();
+    const anchor = (menu === 'phase' ? main.querySelector('.dl-turn') : main.querySelector(`[data-key="${sel}"]`))?.getBoundingClientRect()
+      ?? { left: play.left + play.width / 2, width: 0, top: play.top + 80, bottom: play.top + 80 }; // Karte im Stapel-Dialog: Mitte des Feldes
+    const left = Math.max(0, Math.min(anchor.left + anchor.width / 2 - pop.offsetWidth / 2 - play.left, play.width - pop.offsetWidth));
+    const above = anchor.top - pop.offsetHeight - 8 - play.top;
+    pop.style.left = `${left}px`;
+    pop.style.top = `${above >= 0 ? above : anchor.bottom + 8 - play.top}px`;
+    pop.querySelector('button:not(:disabled)')?.focus();
   }
 
   /** Rule checks from the engine plus a comparison with my saved combos for this deck. */
@@ -168,6 +193,7 @@ export async function initDuel(root) {
           <div class="dl-stage"><div class="dl-board">${board(v, actions)}</div></div>
           <div class="dl-bottom">${lp(g.me, 'Du')}<div class="dl-hand" aria-label="Deine Hand">${me.hand.map((c, i) => `<div class="dl-slot" style="--d:${i - (me.hand.length - 1) / 2}">${cardBtn(c, g.me, L.HAND, i, actions)}</div>`).join('') || '<span class="dl-hint">Hand leer</span>'}</div></div>
         </div>
+        ${popupHtml(actions)}
       </div></div>`;
   }
 
@@ -257,16 +283,18 @@ export async function initDuel(root) {
   function render() {
     const active = document.activeElement;
     const focusKey = active && main.contains(active) && (active.dataset.key ? `[data-key="${active.dataset.key}"]` : active.dataset.op ? `[data-op="${active.dataset.op}"]` : null);
+    if (!g || (menu === 'card' && !sel)) menu = null;
     main.innerHTML = g ? duelHtml() : setupHtml();
     if (focusKey) main.querySelector(focusKey)?.focus();
     renderPrompt();
+    placePopup();
   }
 
   // ---------- answering ----------
   function answer(response, keepRedo = false) {
     answers.push(response);
     if (!keepRedo) redo = [];
-    sel = null; picked = new Set(); status = '';
+    sel = null; menu = null; picked = new Set(); status = '';
     try { g.respond(response); } catch (error) { status = error.message; }
     render();
   }
@@ -336,7 +364,7 @@ export async function initDuel(root) {
     g.close();
     g = newGame(opts);
     for (const a of answers) g.respond(a);
-    sel = null; picked = new Set();
+    sel = null; menu = null; picked = new Set();
     render();
   }
 
@@ -350,10 +378,20 @@ export async function initDuel(root) {
     pileDlg.showModal();
   }
 
+  root.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Escape' || !menu) return;
+    menu = null; render();
+    main.querySelector(`[data-key="${sel}"]`)?.focus();
+  });
+
   root.addEventListener('click', (ev) => {
+    if (menu && !ev.target.closest('.dl-popup, [data-key], [data-menu]')) { menu = null; render(); } // Klick daneben schließt das Menü
     const el = ev.target.closest('button');
     if (!el || !root.contains(el) || el.disabled) return;
     const d = el.dataset; const p = g?.prompt;
+    if (d.menu) { menu = menu === d.menu ? null : d.menu; sel = null; render(); return; }
+    if (d.pphase) { const item = phaseMenu(p, g.phase).find((m) => m.id === d.pphase); if (item?.response) answer(item.response); return; }
+    if (d.op === 'inspect') { menu = null; tab = 'card'; render(); return; }
     if (d.op === 'new') { g?.close(); g = null; replay = null; status = ''; render(); return; }
     if (d.op === 'save') { saveLine(); return; }
     if (d.op === 'step') { replayStep(); return; }
@@ -364,7 +402,13 @@ export async function initDuel(root) {
     if (d.op === 'redo') { const a = redo.pop(); if (a) answer(a, true); return; }
     if (d.tab) { tab = d.tab; render(); return; }
     if (d.pile) { const [pl, field] = d.pile.split(':'); openPile(Number(pl), field); return; }
-    if (d.key) { if (pileDlg.open) pileDlg.close(); sel = sel === d.key ? null : d.key; tab = 'card'; render(); return; }
+    if (d.key) {
+      if (pileDlg.open) pileDlg.close();
+      const same = sel === d.key;
+      sel = same ? null : d.key; tab = 'card';
+      menu = !same && actionsByCard(p).has(d.key) ? 'card' : null; // hat die Karte Aktionen, öffnet sich ihr Menü
+      render(); return;
+    }
     if (d.phase) { answer(phaseButtons(p)[Number(d.phase)].response); return; }
     if (d.act) { answer(actionsByCard(p).get(sel)[Number(d.act)].response); return; }
     if (!p) return;
