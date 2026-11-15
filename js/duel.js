@@ -57,7 +57,7 @@ export async function initDuel(root) {
 
   const name = (code) => table.name(code);
   const missing = new Set(); // Karten, deren Bilddatei fehlt (assets/cards-small liegt nicht im Repo): dort steht der Name
-  const img = (code) => (byId.get(code)?.img && !missing.has(Number(code)) ? `<img src="assets/cards-small/${Number(code)}.jpg" alt="${esc(name(code))}" data-code="${Number(code)}" loading="lazy" />` : '');
+  const img = (code) => (byId.get(code)?.img && !missing.has(Number(code)) ? `<img src="assets/cards-small/${Number(code)}.jpg" alt="${esc(name(code))}" data-code="${Number(code)}" />` : '');
   const face = (code) => img(code) || `<span>${esc(name(code))}</span>`;
 
   const actionsByCard = (p) => offeredActions(p, table); // was die Engine anbietet, je Karte (js/duel-view.js)
@@ -416,10 +416,18 @@ export async function initDuel(root) {
     pileDlg.showModal();
   }
 
-  // Lädt ein Kartenbild nicht, steht an seiner Stelle der Name; `missing` verhindert, dass jedes Neuzeichnen es erneut versucht.
+  // Lädt ein Kartenbild nicht, wird es zweimal neu versucht: Ein einzelner Netzfehler (zu viele gleichzeitige Anfragen am lokalen Server,
+  // etwa bei abgeschaltetem Browser-Cache) darf die Karte nicht dauerhaft zum Namen machen. Erst danach steht dort der Name,
+  // und `missing` verhindert weitere Versuche.
   root.addEventListener('error', (ev) => {
     const el = ev.target;
     if (el.tagName !== 'IMG' || !el.dataset.code) return;
+    const tries = Number(el.dataset.tries ?? 0);
+    if (tries < 2) {
+      el.dataset.tries = tries + 1;
+      setTimeout(() => { if (el.isConnected) el.src = `assets/cards-small/${el.dataset.code}.jpg?retry=${tries + 1}`; }, 500 * (tries + 1));
+      return;
+    }
     missing.add(Number(el.dataset.code));
     const label = document.createElement('span');
     label.textContent = el.alt;
