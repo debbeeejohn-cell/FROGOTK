@@ -152,6 +152,33 @@
 .dl-fx { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
 .dl-banner { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); padding: 10px 28px; border: 2px solid #f2cc59; border-radius: 8px; background: rgba(13, 18, 41, 0.94); color: #ffeb99; font-size: 2rem; font-weight: 800; white-space: nowrap; }
 .dl-pop { position: absolute; font-size: 1.7rem; font-weight: 800; white-space: nowrap; text-shadow: -2px 0 #000, 2px 0 #000, 0 -2px #000, 0 2px #000; }
+/* wandernde Karten: Geister in der Ebene (Friedhof bläulich, Verbannt violett getönt, kein Leuchten) */
+.dl-ghost { position: absolute; }
+.dl-ghost .dl-card, .dl-ghost .dl-back { display: block; width: 100%; height: 100%; flex: none; }
+.dl-ghost.to-gy::after, .dl-ghost.to-removed::after { content: ''; position: absolute; inset: 0; border-radius: 6px; }
+.dl-ghost.to-gy::after { background: rgba(110, 140, 190, 0.38); }
+.dl-ghost.to-removed::after { background: rgba(165, 90, 215, 0.38); }
+/* Effekt-Aktivierung: große Karte in der Mitte, dreht sich auf, mit Kettennummer; Monster bekommen einen Ring */
+.dl-hero { position: absolute; transform-style: preserve-3d; }
+.dl-hero .face { position: absolute; inset: 0; border-radius: 8px; overflow: hidden; backface-visibility: hidden; }
+.dl-hero .face.back { transform: rotateY(180deg); }
+.dl-link { position: absolute; z-index: 2; top: -14px; left: -14px; display: grid; place-items: center; width: 38px; height: 38px; border: 2px solid #f2cc59; border-radius: 50%; background: #0b0d14; color: #ffeb99; font-weight: 800; }
+.dl-ringfx { position: absolute; width: 60px; height: 60px; border: 3px solid #f2cc59; border-radius: 50%; }
+/* Beschwörungs-Show (Vorlage summon_show.gd): Blende mit Sternen, Kartenausschnitt, Name, rundes ATK/DEF-Wappen mit Stufe */
+.dl-show {
+  position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px;
+  background:
+    radial-gradient(circle at 12% 18%, #fff 0 1.5px, transparent 2px), radial-gradient(circle at 82% 12%, #cde 0 1.5px, transparent 2px),
+    radial-gradient(circle at 30% 82%, #fff 0 1px, transparent 2px), radial-gradient(circle at 70% 72%, #cde 0 1.5px, transparent 2px),
+    radial-gradient(circle at 92% 46%, #fff 0 1px, transparent 2px), radial-gradient(circle at 6% 58%, #cde 0 1px, transparent 2px), rgba(8, 5, 26, 0.93);
+}
+.dl-show .art { width: min(280px, 60vw); aspect-ratio: 1; border: 2px solid #3a3f52; border-radius: 8px; background: #15172a no-repeat 50% 38.7% / 131.6% auto; }
+.dl-show h2 { margin: 0; color: #fff; font-size: 1.8rem; text-align: center; }
+.dl-show .badge { --bc: #ff8c26; display: grid; place-items: center; align-content: center; width: 128px; height: 128px; border: 5px solid var(--bc); border-radius: 50%; background: #0b0d14; color: #fff; }
+.dl-show .badge.def { --bc: #59a6ff; }
+.dl-show .badge small { color: var(--bc); font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em; }
+.dl-show .badge strong { font-size: 1.9rem; line-height: 1.1; }
+.dl-board .dl-card { transition: transform 0.35s ease, box-shadow var(--dur); } /* Angriff ↔ Verteidigung dreht sich */
 .dl-bar-btns, .dl-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .dl-bar-btns button, .dl-actions button { min-height: var(--tap); }
 .dl-status { min-height: 1.4em; margin: 0; color: var(--error); font-weight: 600; }

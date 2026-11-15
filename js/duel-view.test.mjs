@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { loadCore, cardTable, newGame, M, R, IDLE, PHASE } from './duel-core.js';
-import { actionsByCard, phaseButtons, phaseMenu, zoneCounts, sumState, key, PHASE_SHORT, PHASE_BANNER, animationSteps, lpRing } from './duel-view.js';
+import { actionsByCard, phaseButtons, phaseMenu, zoneCounts, sumState, key, PHASE_SHORT, PHASE_BANNER, animationSteps, lpRing, zoneKey } from './duel-view.js';
 
 const json = (f) => JSON.parse(fs.readFileSync(new URL(`../data/${f}`, import.meta.url)));
 const table = cardTable(json('core-cards.json'));
@@ -64,30 +64,58 @@ assert.equal(sumState({ ...sum, select_max: 1 }, new Set([0, 1])).ok, true, 'at 
 
 g.close();
 
-// Animation: Banner und LP-Schritte aus den Ereignissen einer echten Partie (Swap Frog beschwören, Zug beenden, angreifen)
+// Animation: Schritte aus den Ereignissen einer echten Partie (Swap Frog beschwören, Effekt, Zug beenden, angreifen)
+const banners = (r) => r.steps.filter((s) => s.kind === 'banner').map((s) => s.text);
+const kinds = (r) => r.steps.map((s) => s.kind);
 const h = newGame({ lib, table, scripts, me: codes(decks.frogOtk), bot: codes(decks.blackwing), hand: [id.get('Swap Frog'), id.get('Scapegoat')], seed: [5n, 6n, 7n, 8n] });
 let seen = animationSteps(h.events, '');
-assert.deepEqual(seen.steps.map((s) => s.text), ['Draw-Phase', 'Standby-Phase', 'Main-Phase 1'], 'the opening phases');
-h.respond({ type: R.SELECT_IDLECMD, action: IDLE.SELECT_SUMMON, index: h.prompt.summons.findIndex((c) => table.name(c.code) === 'Swap Frog') });
-h.respond({ type: R.SELECT_EFFECTYN, yes: false });
+assert.deepEqual(banners(seen), ['Draw-Phase', 'Standby-Phase', 'Main-Phase 1'], 'the opening phases');
 let n = h.events.length;
+h.respond({ type: R.SELECT_IDLECMD, action: IDLE.SELECT_SUMMON, index: h.prompt.summons.findIndex((c) => table.name(c.code) === 'Swap Frog') });
+let step = animationSteps(h.events.slice(n), seen.lastPhase);
+assert.deepEqual(kinds(step), ['fly', 'show'], 'a summon: the card flies from the hand to the zone, then the summon show');
+assert.deepEqual(step.steps[0].from, { side: 'me', zone: 'hand', index: 0, down: true, pos: 'def' });
+assert.equal(step.steps[0].to.zone, 'mz');
+assert.deepEqual(step.steps[1], { kind: 'show', name: 'Swap Frog', atk: 1000, def: 500, pos: 'atk', side: 'me' });
+n = h.events.length;
+h.respond({ type: R.SELECT_EFFECTYN, yes: true });
+step = animationSteps(h.events.slice(n), seen.lastPhase);
+assert.deepEqual(step.steps, [{ kind: 'chain', name: 'Swap Frog', link: 1, side: 'me', zone: 'mz', index: 0 }], 'the effect: activation with chain link');
+n = h.events.length;
+h.respond({ type: R.SELECT_CARD, indicies: [0] });
+step = animationSteps(h.events.slice(n), seen.lastPhase);
+assert.deepEqual(kinds(step), ['fly']);
+assert.deepEqual([step.steps[0].from.zone, step.steps[0].to.zone], ['deck', 'gy'], 'a card from the deck to the graveyard');
+n = h.events.length;
 h.respond(phaseMenu(h.prompt, h.phase).find((m) => m.id === 'EP').response);
 let next = animationSteps(h.events.slice(n), seen.lastPhase);
-const banners = next.steps.map((s) => s.text);
-assert.ok(banners.length >= 3 && banners.at(-1) === 'Main-Phase 1', `a whole round of phases: ${banners}`);
-assert.ok(banners.every((t, i) => t !== banners[i - 1]), 'never the same phase twice in a row');
-assert.ok(banners.includes('Draw-Phase') && banners.includes('End-Phase'));
+const round = banners(next);
+assert.ok(round.length >= 3 && round.at(-1) === 'Main-Phase 1', `a whole round of phases: ${round}`);
+assert.ok(round.every((t, i) => t !== round[i - 1]), 'never the same phase twice in a row');
+assert.ok(round.includes('Draw-Phase') && round.includes('End-Phase'));
+assert.deepEqual(next.steps.filter((s) => s.kind === 'draw').map((s) => [s.side, s.count]), [['bot', 1], ['me', 1]], 'the bot draws, then I draw');
 n = h.events.length;
 h.respond(phaseMenu(h.prompt, h.phase).find((m) => m.id === 'BP').response);
 seen = animationSteps(h.events.slice(n), next.lastPhase);
-assert.deepEqual(seen.steps.map((s) => s.text), ['Battle-Phase']);
+assert.deepEqual(banners(seen), ['Battle-Phase']);
 n = h.events.length;
 h.respond([...actionsByCard(h.prompt, table).values()].flat().find((a) => a.label === 'Angreifen').response);
 assert.equal(h.prompt.type, M.SELECT_CHAIN, 'the engine first offers a chain response to the attack declaration');
 h.respond({ type: R.SELECT_CHAIN, index: null });
 next = animationSteps(h.events.slice(n), seen.lastPhase);
-assert.deepEqual(next.steps, [{ kind: 'lp', change: 'damage', side: 'bot', amount: 1000, lp: 7000 }], 'the attack: LP step only, the Damage Step has no banner');
+assert.deepEqual(next.steps, [{ kind: 'attack', from: { side: 'me', zone: 'mz', index: 0, down: false, pos: 'atk' }, to: null }, { kind: 'lp', change: 'damage', side: 'bot', amount: 1000, lp: 7000 }],
+  'the attack: the attacker goes to the foe, then the damage; the Damage Step has no banner');
 assert.deepEqual(animationSteps([], 'Main-Phase 1'), { steps: [], lastPhase: 'Main-Phase 1' });
+
+// Zuordnung Ereignis -> Element: Spielerindex, Ort, Platz
+assert.equal(zoneKey({ side: 'me', zone: 'mz', index: 2 }, 0, 1), '0:4:2');
+assert.equal(zoneKey({ side: 'bot', zone: 'st', index: 1 }, 0, 1), '1:8:1');
+assert.equal(zoneKey({ side: 'bot', zone: 'hand', index: 3 }, 0, 1), '1:2:3');
+assert.equal(zoneKey({ side: 'me', zone: 'field', index: 5 }, 0, 1), '0:8:5');
+assert.equal(zoneKey({ side: 'me', zone: 'gy', index: 0 }, 0, 1), '0:gy');
+assert.equal(zoneKey({ side: 'bot', zone: 'deck', index: 9 }, 0, 1), '1:deck');
+assert.equal(zoneKey({ side: 'me', zone: 'other', index: 0 }, 0, 1), null, 'material has no place on the board');
+assert.equal(zoneKey(null, 0, 1), null);
 h.close();
 
 // LP-Kreis: Anteil von 8000, oben gedeckelt, Farbton rot → gelb → grün

@@ -73,8 +73,9 @@ export async function initDuel(root) {
     const label = hidden ? 'Verdeckte Karte des Bots' : `${name(c.code)}${down ? ' (verdeckt)' : ''}`;
     return `<button type="button" class="${cls}" data-key="${k}" aria-label="${esc(label)}" aria-pressed="${sel === k}">${hidden ? '' : face(c.code)}${stat}</button>`;
   }
-  const slot = (c, p, loc, i, actions) => (c ? `<div class="dl-slot">${cardBtn(c, p, loc, i, actions)}</div>` : '<div class="dl-slot empty" aria-hidden="true"></div>');
-  const fieldSlot = (v, p, actions) => `<div class="dl-slot${v.field ? '' : ' empty'}">${v.field ? cardBtn(v.field, p, L.SZONE, 5, actions) : ''}<span class="dl-tag">FELD</span></div>`;
+  // data-z = Spieler:Ort:Platz (Plätze) oder Spieler:deck|extra|gy|banished (Stapel): so findet js/duel-fx.js die Ziele der Animationen
+  const slot = (c, p, loc, i, actions) => (c ? `<div class="dl-slot" data-z="${p}:${loc}:${i}">${cardBtn(c, p, loc, i, actions)}</div>` : `<div class="dl-slot empty" data-z="${p}:${loc}:${i}" aria-hidden="true"></div>`);
+  const fieldSlot = (v, p, actions) => `<div class="dl-slot${v.field ? '' : ' empty'}" data-z="${p}:${L.SZONE}:5">${v.field ? cardBtn(v.field, p, L.SZONE, 5, actions) : ''}<span class="dl-tag">FELD</span></div>`;
 
   /** Ein Stapel (Deck, Extra, Friedhof, Verbannt) mit Beschriftung wie „FH 3“. Friedhof und Verbannt zeigen die oberste Karte. */
   function pile(v, p, field, tag, actions, low = false) {
@@ -87,7 +88,7 @@ export async function initDuel(root) {
     const label = esc(`${p === g.me ? 'Du' : 'Bot'}: ${PLACE[loc]} ${n}`);
     const inner = `${art}<span class="dl-tag">${tag} <b>${n}</b></span>`;
     const cls = `dl-pile${low ? ' low' : ''}${can}${clickable ? '' : ' static'}`;
-    return clickable ? `<button type="button" class="${cls}" data-pile="${p}:${field}" aria-label="${label}">${inner}</button>` : `<div class="${cls}" aria-label="${label}">${inner}</div>`;
+    return clickable ? `<button type="button" class="${cls}" data-pile="${p}:${field}" data-z="${p}:${field}" aria-label="${label}">${inner}</button>` : `<div class="${cls}" data-z="${p}:${field}" aria-label="${label}">${inner}</div>`;
   }
 
   /** Spielfeld als 7-Spalten-Raster, wie bei einem echten Feld: Stapel links und rechts (Bot punktgespiegelt), fünf Zonen in der Mitte. */
@@ -196,9 +197,9 @@ export async function initDuel(root) {
       <div class="dl-play">
         ${toolbar}
         <div class="dl-mat" aria-label="Spielfeld">
-          <div class="dl-top"><div class="dl-handrow" aria-label="Hand des Bots: ${bot.hand.length} Karten">${bot.hand.map(() => '<i class="dl-back"></i>').join('')}</div>${lp(g.bot, 'Bot')}</div>
+          <div class="dl-top"><div class="dl-handrow" aria-label="Hand des Bots: ${bot.hand.length} Karten">${bot.hand.map((_, i) => `<i class="dl-back" data-z="${g.bot}:${L.HAND}:${i}"></i>`).join('')}</div>${lp(g.bot, 'Bot')}</div>
           <div class="dl-stage"><div class="dl-board">${board(v, actions)}</div></div>
-          <div class="dl-bottom">${lp(g.me, 'Du')}<div class="dl-hand" aria-label="Deine Hand">${me.hand.map((c, i) => `<div class="dl-slot" style="--d:${i - (me.hand.length - 1) / 2}">${cardBtn(c, g.me, L.HAND, i, actions)}</div>`).join('') || '<span class="dl-hint">Hand leer</span>'}</div></div>
+          <div class="dl-bottom">${lp(g.me, 'Du')}<div class="dl-hand" aria-label="Deine Hand">${me.hand.map((c, i) => `<div class="dl-slot" data-z="${g.me}:${L.HAND}:${i}" style="--d:${i - (me.hand.length - 1) / 2}">${cardBtn(c, g.me, L.HAND, i, actions)}</div>`).join('') || '<span class="dl-hint">Hand leer</span>'}</div></div>
         </div>
         ${popupHtml(actions)}
       </div></div>`;
@@ -307,12 +308,29 @@ export async function initDuel(root) {
     if (!keepRedo) redo = [];
     sel = null; menu = null; picked = new Set(); status = '';
     const before = g.events.length; const lpBefore = { me: g.lp[g.me], bot: g.lp[g.bot] };
+    const poses = speed() > 0 ? cardPoses() : null;
     try { g.respond(response); } catch (error) { status = error.message; }
     const next = animationSteps(g.events.slice(before), lastPhase);
     lastPhase = next.lastPhase;
     playing = speed() > 0 && next.steps.length > 0;
     render();
-    if (playing) fx.play(next.steps, lpBefore, { me: g.lp[g.me], bot: g.lp[g.bot] }).then(() => { playing = false; if (g) { renderPrompt(); placePopup(); } });
+    if (poses) turnCards(poses);
+    if (playing) {
+      const ctx = { lpBefore, lpAfter: { me: g.lp[g.me], bot: g.lp[g.bot] }, me: g.me, bot: g.bot, cardFace, meta };
+      fx.play(next.steps, ctx).then(() => { playing = false; if (g) { renderPrompt(); placePopup(); } });
+    }
+  }
+
+  const cardFace = (cardName) => (idOf.has(cardName) ? face(idOf.get(cardName)) : `<span>${esc(cardName)}</span>`); // Bild oder Name, für die Geister
+  const meta = (cardName) => { const code = idOf.get(cardName); const c = byId.get(code); return { code, level: c?.level, img: !!c?.img && !missing.has(code) }; };
+  const cardPoses = () => new Map([...main.querySelectorAll('.dl-board .dl-card[data-key]')].map((el) => [el.dataset.key, { def: el.classList.contains('def'), label: el.getAttribute('aria-label') }]));
+  /** Wechselt dieselbe Karte auf ihrem Platz den Modus (Angriff ↔ Verteidigung), dreht sie sich per Übergang, statt zu springen. */
+  function turnCards(before) {
+    for (const [k, old] of before) {
+      const el = main.querySelector(`[data-key="${k}"]`);
+      if (!el || el.getAttribute('aria-label') !== old.label || el.classList.contains('def') === old.def) continue;
+      el.classList.toggle('def'); void el.offsetWidth; el.classList.toggle('def');
+    }
   }
   const syncPhase = () => { lastPhase = animationSteps(g.events).lastPhase; }; // undo, Spielstart, Combo: nichts abspielen, nur den Stand merken
 

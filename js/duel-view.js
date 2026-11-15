@@ -1,6 +1,6 @@
 // Bot Duel, reine Hilfen ohne DOM (testbar in Node): was die Engine anbietet, als Aktionen je Karte, Phasenmenü, Zonenzahlen, Summenregel.
 // js/duel.js zeichnet damit das Brett und die Menüs; die Engine bleibt die einzige Regel-Quelle.
-import { M, R, IDLE, BATTLE } from './duel-core.js';
+import { M, R, IDLE, BATTLE, L } from './duel-core.js';
 
 export const key = (c) => `${c.controller}:${c.location}:${c.sequence}`;
 
@@ -64,8 +64,15 @@ export function sumState(p, picked) {
 export const PHASE_BANNER = { 'Draw Phase': 'Draw-Phase', 'Standby Phase': 'Standby-Phase', 'Main Phase 1': 'Main-Phase 1', 'Battle Phase': 'Battle-Phase', 'Main Phase 2': 'Main-Phase 2', 'End Phase': 'End-Phase' };
 
 /**
- * Aus neuen Ereignissen (g.events.slice(vorher)) die Schritte für die Animation: Banner je Phasenwechsel (nie zweimal dieselbe Phase
- * hintereinander, wie in Godot) und LP-Änderungen. `lastPhase` ist der zuletzt gezeigte Banner-Text; das Ergebnis liefert den neuen.
+ * Aus neuen Ereignissen (g.events.slice(vorher)) die Schritte für die Animation, in der Reihenfolge der Engine:
+ *   banner  Phasenwechsel (nie zweimal dieselbe Phase hintereinander, wie in Godot; der Schadensschritt bleibt stumm)
+ *   fly     eine Karte wechselt die Zone (Beschwören, Setzen, Friedhof, Hand, Suchen …): move
+ *   draw    Karten ziehen (nur die Anzahl, die Karten stehen schon in der Hand)
+ *   show    Beschwörung eines offenen Monsters: Vollbild mit Wappen
+ *   chain   Effekt-Aktivierung mit Kettennummer
+ *   attack  Angriff auf ein Monster (to) oder direkt (null)
+ *   lp      LP-Änderung
+ * `lastPhase` ist der zuletzt gezeigte Banner-Text; das Ergebnis liefert den neuen.
  */
 export function animationSteps(events, lastPhase = '') {
   const steps = [];
@@ -76,9 +83,26 @@ export function animationSteps(events, lastPhase = '') {
       if (text && text !== last) { steps.push({ kind: 'banner', text }); last = text; }
     } else if (e.type === 'damage' || e.type === 'pay' || e.type === 'heal') {
       steps.push({ kind: 'lp', change: e.type, side: e.side, amount: e.amount, lp: e.lp });
-    }
+    } else if (e.type === 'move') steps.push({ kind: 'fly', name: e.name, from: e.from, to: e.to });
+    else if (e.type === 'draw') steps.push({ kind: 'draw', side: e.side, count: e.count });
+    else if (e.type === 'summon' && !e.down) steps.push({ kind: 'show', name: e.name, atk: e.atk, def: e.def, pos: e.pos, side: e.side });
+    else if (e.type === 'chain') steps.push({ kind: 'chain', name: e.name, link: e.link, side: e.side, zone: e.zone, index: e.index });
+    else if (e.type === 'attack') steps.push({ kind: 'attack', from: e.from, to: e.to });
   }
   return { steps, lastPhase: last };
+}
+
+/**
+ * Schlüssel des Elements (data-z im Feld) zu einem Ort aus einem Ereignis ({ side, zone, index }), oder null (z. B. Material).
+ * Plätze: Spieler:Ort:Platz (wie data-key), Stapel: Spieler:deck|extra|gy|banished. me/bot sind die Spielerindizes der Partie.
+ */
+export function zoneKey(at, me, bot) {
+  if (!at) return null;
+  const p = at.side === 'me' ? me : bot;
+  const place = { mz: L.MZONE, st: L.SZONE, hand: L.HAND }[at.zone];
+  if (place) return `${p}:${place}:${at.index}`;
+  if (at.zone === 'field') return `${p}:${L.SZONE}:5`;
+  return ['deck', 'extra', 'gy', 'banished'].includes(at.zone) ? `${p}:${at.zone}` : null;
 }
 
 /** Füllstand des LP-Kreises: Anteil von 8000 (oben gedeckelt) und Farbton stufenlos rot (0) → gelb (60) → grün (120). */
