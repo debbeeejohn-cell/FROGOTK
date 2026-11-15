@@ -53,7 +53,8 @@ export async function initDuel(root) {
   const readSetup = (form) => { const fd = new FormData(form); return { askAll: '', ...Object.fromEntries(fd), hand: fd.getAll('hand') }; };
 
   const name = (code) => table.name(code);
-  const img = (code) => (byId.get(code)?.img ? `<img src="assets/cards-small/${Number(code)}.jpg" alt="" loading="lazy" />` : '');
+  const missing = new Set(); // Karten, deren Bilddatei fehlt (assets/cards-small liegt nicht im Repo): dort steht der Name
+  const img = (code) => (byId.get(code)?.img && !missing.has(Number(code)) ? `<img src="assets/cards-small/${Number(code)}.jpg" alt="${esc(name(code))}" data-code="${Number(code)}" loading="lazy" />` : '');
   const face = (code) => img(code) || `<span>${esc(name(code))}</span>`;
 
   const actionsByCard = (p) => offeredActions(p, table); // was die Engine anbietet, je Karte (js/duel-view.js)
@@ -381,6 +382,16 @@ export async function initDuel(root) {
       + '<form method="dialog"><button class="secondary-button">Schließen</button></form>';
     pileDlg.showModal();
   }
+
+  // Lädt ein Kartenbild nicht, steht an seiner Stelle der Name; `missing` verhindert, dass jedes Neuzeichnen es erneut versucht.
+  root.addEventListener('error', (ev) => {
+    const el = ev.target;
+    if (el.tagName !== 'IMG' || !el.dataset.code) return;
+    missing.add(Number(el.dataset.code));
+    const label = document.createElement('span');
+    label.textContent = el.alt;
+    el.replaceWith(label);
+  }, true);
 
   root.addEventListener('keydown', (ev) => {
     if (ev.key !== 'Escape' || !menu) return;
