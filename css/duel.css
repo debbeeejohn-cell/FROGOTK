@@ -125,21 +125,33 @@
 .dl-announce { width: 100%; min-height: var(--tap); margin: 8px 0 12px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--fg); }
 .dl-dialog [data-bit][aria-pressed="true"] { background: rgba(230, 180, 34, 0.2); border-color: var(--gold, #e6b422); }
 .dl-side { display: grid; gap: 12px; }
-/* LP-Kästen in den Ecken des Feldes: Wappen mit Initial, große Zahl, Balken */
-.dl-top, .dl-bottom { display: grid; align-items: center; gap: 8px; }
-.dl-top { grid-template-columns: minmax(0, 1fr) 150px; }
-.dl-bottom { grid-template-columns: 150px minmax(0, 1fr); }
-.dl-top .dl-lp { justify-self: end; }
-.dl-bottom .dl-lp { justify-self: start; align-self: end; }
-.dl-lp { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 8px 10px; border: 1px solid #2c3140; border-radius: var(--radius-sm); background: #0f121a; color: #fff; }
-.dl-lp > div { display: grid; flex: 1; min-width: 0; }
-.dl-lp small { color: var(--dim); font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; }
-.dl-lp strong { font-size: 1.5rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
-.dl-crest { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 50%; border: 2px solid #4ade80; background: #17202c; font-weight: 800; }
-.dl-lp.bot .dl-crest { border-color: #60a5fa; }
-.dl-bar { height: 5px; margin-top: 4px; border-radius: 3px; background: #2c3140; overflow: hidden; }
-.dl-bar i { display: block; height: 100%; background: #4ade80; }
-.dl-lp.bot .dl-bar i { background: #60a5fa; }
+/* LP-Kreis (Vorlage lp_gauge.gd im Godot-Client): Stahlrahmen, LP-Bogen ab 12 Uhr, Regenbogenscheibe, Zahl im Kreis */
+.dl-top, .dl-bottom { display: block; }
+.dl-lp { position: absolute; z-index: 4; display: grid; justify-items: center; gap: 2px; }
+.dl-lp.bot { top: 56px; right: 0; }
+.dl-lp.me { bottom: 8px; left: 0; }
+.dl-lp small { color: var(--fg-muted); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; }
+.dl-ring {
+  --c: hsl(var(--hue, 120) 85% 55%);
+  position: relative; display: grid; place-items: center; align-content: center; width: 96px; height: 96px; border-radius: 50%;
+  background: conic-gradient(var(--c) calc(var(--ratio, 1) * 360deg), #1c2740 0);
+}
+.dl-ring::before { content: ''; position: absolute; inset: 7px; border-radius: 50%; border: 3px solid #3d5a85; background: #0f1a30; }
+.dl-ring::after {
+  content: ''; position: absolute; inset: 15px; border-radius: 50%; border: 2px solid rgba(5, 8, 18, 0.85);
+  background: conic-gradient(hsl(0 78% 62%), hsl(60 78% 62%), hsl(120 78% 62%), hsl(180 78% 62%), hsl(240 78% 62%), hsl(300 78% 62%), hsl(360 78% 62%));
+}
+.dl-ring span, .dl-ring strong {
+  position: relative; z-index: 1; color: #fff; font-weight: 800; line-height: 1;
+  text-shadow: -2px 0 #0d1230, 2px 0 #0d1230, 0 -2px #0d1230, 0 2px #0d1230, -1px -1px #0d1230, 1px -1px #0d1230, -1px 1px #0d1230, 1px 1px #0d1230;
+}
+.dl-ring span { font-size: 0.8rem; }
+.dl-ring strong { font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+
+/* Animationsebene: Phasen-Banner und schwebende LP-Zahlen (js/duel-fx.js) */
+.dl-fx { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
+.dl-banner { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); padding: 10px 28px; border: 2px solid #f2cc59; border-radius: 8px; background: rgba(13, 18, 41, 0.94); color: #ffeb99; font-size: 2rem; font-weight: 800; white-space: nowrap; }
+.dl-pop { position: absolute; font-size: 1.7rem; font-weight: 800; white-space: nowrap; text-shadow: -2px 0 #000, 2px 0 #000, 0 -2px #000, 0 2px #000; }
 .dl-bar-btns, .dl-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .dl-bar-btns button, .dl-actions button { min-height: var(--tap); }
 .dl-status { min-height: 1.4em; margin: 0; color: var(--error); font-weight: 600; }
@@ -166,9 +178,11 @@
 @media (max-width: 860px) {
   .dl-wrap { grid-template-columns: minmax(0, 1fr); }
   .dl-play { order: -1; }
-  .dl-top, .dl-bottom { grid-template-columns: minmax(0, 1fr); }
-  .dl-top .dl-lp, .dl-bottom .dl-lp { justify-self: stretch; }
-  .dl-bottom .dl-lp { order: 2; }
+  .dl-lp { position: static; }
+  .dl-ring { width: 80px; height: 80px; }
+  .dl-ring::before { inset: 6px; }
+  .dl-ring::after { inset: 13px; }
+  .dl-banner { font-size: 1.4rem; padding: 8px 18px; }
   .dl-board { gap: 4px; padding: 8px; width: 94%; transform: rotateX(30deg); }
   .dl-stage { margin: -6% 0 -6%; }
   .dl-tag { font-size: 0.5rem; padding: 0 3px; letter-spacing: 0; }

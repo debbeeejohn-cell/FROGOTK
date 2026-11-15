@@ -59,3 +59,30 @@ export function sumState(p, picked) {
   const ok = p.select_max ? total >= target && parts.every((n) => total - n < target) : total === target;
   return { total, ok };
 }
+
+/** Banner-Texte der Phasen (wie im Godot-Client). Der Schadensschritt hat keinen und bleibt stumm. */
+export const PHASE_BANNER = { 'Draw Phase': 'Draw-Phase', 'Standby Phase': 'Standby-Phase', 'Main Phase 1': 'Main-Phase 1', 'Battle Phase': 'Battle-Phase', 'Main Phase 2': 'Main-Phase 2', 'End Phase': 'End-Phase' };
+
+/**
+ * Aus neuen Ereignissen (g.events.slice(vorher)) die Schritte für die Animation: Banner je Phasenwechsel (nie zweimal dieselbe Phase
+ * hintereinander, wie in Godot) und LP-Änderungen. `lastPhase` ist der zuletzt gezeigte Banner-Text; das Ergebnis liefert den neuen.
+ */
+export function animationSteps(events, lastPhase = '') {
+  const steps = [];
+  let last = lastPhase;
+  for (const e of events) {
+    if (e.type === 'phase') {
+      const text = PHASE_BANNER[e.phase];
+      if (text && text !== last) { steps.push({ kind: 'banner', text }); last = text; }
+    } else if (e.type === 'damage' || e.type === 'pay' || e.type === 'heal') {
+      steps.push({ kind: 'lp', change: e.type, side: e.side, amount: e.amount, lp: e.lp });
+    }
+  }
+  return { steps, lastPhase: last };
+}
+
+/** Füllstand des LP-Kreises: Anteil von 8000 (oben gedeckelt) und Farbton stufenlos rot (0) → gelb (60) → grün (120). */
+export function lpRing(lp) {
+  const ratio = Math.max(0, Math.min(1, lp / 8000));
+  return { ratio, hue: Math.round(ratio * 120) };
+}

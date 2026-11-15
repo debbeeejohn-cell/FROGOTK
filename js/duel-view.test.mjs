@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { loadCore, cardTable, newGame, M, R, IDLE, PHASE } from './duel-core.js';
-import { actionsByCard, phaseButtons, phaseMenu, zoneCounts, sumState, key, PHASE_SHORT } from './duel-view.js';
+import { actionsByCard, phaseButtons, phaseMenu, zoneCounts, sumState, key, PHASE_SHORT, PHASE_BANNER, animationSteps, lpRing } from './duel-view.js';
 
 const json = (f) => JSON.parse(fs.readFileSync(new URL(`../data/${f}`, import.meta.url)));
 const table = cardTable(json('core-cards.json'));
@@ -63,4 +63,39 @@ assert.equal(sumState({ ...sum, select_max: 1 }, new Set([0, 2])).ok, false, 'at
 assert.equal(sumState({ ...sum, select_max: 1 }, new Set([0, 1])).ok, true, 'at least the target, every card needed');
 
 g.close();
+
+// Animation: Banner und LP-Schritte aus den Ereignissen einer echten Partie (Swap Frog beschwören, Zug beenden, angreifen)
+const h = newGame({ lib, table, scripts, me: codes(decks.frogOtk), bot: codes(decks.blackwing), hand: [id.get('Swap Frog'), id.get('Scapegoat')], seed: [5n, 6n, 7n, 8n] });
+let seen = animationSteps(h.events, '');
+assert.deepEqual(seen.steps.map((s) => s.text), ['Draw-Phase', 'Standby-Phase', 'Main-Phase 1'], 'the opening phases');
+h.respond({ type: R.SELECT_IDLECMD, action: IDLE.SELECT_SUMMON, index: h.prompt.summons.findIndex((c) => table.name(c.code) === 'Swap Frog') });
+h.respond({ type: R.SELECT_EFFECTYN, yes: false });
+let n = h.events.length;
+h.respond(phaseMenu(h.prompt, h.phase).find((m) => m.id === 'EP').response);
+let next = animationSteps(h.events.slice(n), seen.lastPhase);
+const banners = next.steps.map((s) => s.text);
+assert.ok(banners.length >= 3 && banners.at(-1) === 'Main-Phase 1', `a whole round of phases: ${banners}`);
+assert.ok(banners.every((t, i) => t !== banners[i - 1]), 'never the same phase twice in a row');
+assert.ok(banners.includes('Draw-Phase') && banners.includes('End-Phase'));
+n = h.events.length;
+h.respond(phaseMenu(h.prompt, h.phase).find((m) => m.id === 'BP').response);
+seen = animationSteps(h.events.slice(n), next.lastPhase);
+assert.deepEqual(seen.steps.map((s) => s.text), ['Battle-Phase']);
+n = h.events.length;
+h.respond([...actionsByCard(h.prompt, table).values()].flat().find((a) => a.label === 'Angreifen').response);
+assert.equal(h.prompt.type, M.SELECT_CHAIN, 'the engine first offers a chain response to the attack declaration');
+h.respond({ type: R.SELECT_CHAIN, index: null });
+next = animationSteps(h.events.slice(n), seen.lastPhase);
+assert.deepEqual(next.steps, [{ kind: 'lp', change: 'damage', side: 'bot', amount: 1000, lp: 7000 }], 'the attack: LP step only, the Damage Step has no banner');
+assert.deepEqual(animationSteps([], 'Main-Phase 1'), { steps: [], lastPhase: 'Main-Phase 1' });
+h.close();
+
+// LP-Kreis: Anteil von 8000, oben gedeckelt, Farbton rot → gelb → grün
+assert.deepEqual(lpRing(8000), { ratio: 1, hue: 120 });
+assert.deepEqual(lpRing(4000), { ratio: 0.5, hue: 60 });
+assert.deepEqual(lpRing(0), { ratio: 0, hue: 0 });
+assert.equal(lpRing(12000).ratio, 1);
+assert.equal(lpRing(-50).ratio, 0);
+for (const phase of Object.values(PHASE).filter((p) => p !== 'Damage Step')) assert.ok(PHASE_BANNER[phase], `banner text for ${phase}`);
+
 console.log('duel-view: all checks passed');

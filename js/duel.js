@@ -6,7 +6,8 @@ import { loadDecks, loadCards, deckOptions } from './decks.js';
 import { ocgRaceString, ocgAttributeString } from '../vendor/ocgcore/index.js';
 import { esc } from './util.js';
 import { getStoredSettings, saveSettings } from './store.js';
-import { key, actionsByCard as offeredActions, phaseButtons, sumState as levelSum, phaseMenu, PHASE_SHORT } from './duel-view.js';
+import { key, actionsByCard as offeredActions, phaseButtons, sumState as levelSum, phaseMenu, PHASE_SHORT, animationSteps, lpRing } from './duel-view.js';
+import { createFx, speed } from './duel-fx.js';
 
 const getJson = (file) => fetch(`./data/${file}`).then((r) => {
   if (!r.ok) throw new Error(`${file}: HTTP ${r.status}`);
@@ -38,10 +39,12 @@ export async function initDuel(root) {
     extra: codes((deck.extra || []).flatMap((c) => Array(c.count).fill(c.card)))
   });
 
-  root.innerHTML = '<div class="dl-main"></div><dialog class="dl-dialog" data-prompt aria-labelledby="dlPromptTitle"></dialog><dialog class="dl-dialog" data-pile aria-labelledby="dlPileTitle"></dialog>';
+  root.innerHTML = '<div class="dl-main"></div><dialog class="dl-dialog" data-prompt aria-labelledby="dlPromptTitle"></dialog><dialog class="dl-dialog" data-pile aria-labelledby="dlPileTitle"></dialog><div class="dl-fx" aria-hidden="true"></div>';
   const main = root.querySelector('.dl-main');
   const promptDlg = root.querySelector('[data-prompt]');
   const pileDlg = root.querySelector('[data-pile]');
+  const fx = createFx(root);
+  let playing = false; let lastPhase = ''; // playing: eine Animation läuft, Eingaben sind gesperrt; lastPhase: zuletzt gezeigter Banner
   promptDlg.addEventListener('cancel', (ev) => ev.preventDefault()); // the engine waits for an answer
 
   let myId; let g = null; let opts = null; let answers = [];
@@ -165,7 +168,10 @@ export async function initDuel(root) {
   function duelHtml() {
     const v = g.view(); const me = v[g.me]; const bot = v[g.bot];
     const actions = replay ? new Map() : actionsByCard(g.prompt);
-    const lp = (p, label) => `<div class="dl-lp ${p === g.me ? 'me' : 'bot'}"><span class="dl-crest" aria-hidden="true">${label[0]}</span><div><small>${label.toUpperCase()}</small><strong>${g.lp[p]}<span class="dl-sr"> LP</span></strong><div class="dl-bar"><i style="width:${Math.min(100, g.lp[p] / 80)}%"></i></div></div></div>`;
+    const lp = (p, label) => {
+      const { ratio, hue } = lpRing(g.lp[p]);
+      return `<div class="dl-lp ${p === g.me ? 'me' : 'bot'}" data-lp="${p === g.me ? 'me' : 'bot'}"><div class="dl-ring" style="--ratio:${ratio};--hue:${hue}" role="img" aria-label="${label}: ${g.lp[p]} Lebenspunkte"><span>LP</span><strong>${g.lp[p]}</strong></div><small>${label.toUpperCase()}</small></div>`;
+    };
     const next = replay ? null : phaseButtons(g.prompt)[0]; // die nächste Phase, die die Engine anbietet
     const tool = (attrs, text, label, off, cls = '') => `<button type="button" class="dl-tool ${cls}" ${attrs} aria-label="${esc(label)}" title="${esc(label)}"${off ? ' disabled' : ''}>${text}</button>`;
     const toolbar = `<div class="dl-toolbar" role="toolbar" aria-label="Duell"><details class="dl-menu"><summary class="dl-tool" aria-label="Menü" title="Menü">☰</summary>`
@@ -254,7 +260,7 @@ export async function initDuel(root) {
 
   function renderPrompt() {
     const p = g?.prompt;
-    if (replay || !p || p.type === M.SELECT_IDLECMD || p.type === M.SELECT_BATTLECMD) { if (promptDlg.open) promptDlg.close(); return; }
+    if (playing || replay || !p || p.type === M.SELECT_IDLECMD || p.type === M.SELECT_BATTLECMD) { if (promptDlg.open) promptDlg.close(); return; } // während der Animation noch keine Frage
     const [title, body, buttons] = promptBody(p);
     const scrolled = promptDlg.querySelector('.dl-tiles')?.scrollLeft ?? 0; // die Kartenreihe springt beim Anklicken nicht an den Anfang
     promptDlg.innerHTML = `<h3 id="dlPromptTitle">${esc(title)}</h3>${body}${g.error ? `<p class="dl-status">${esc(g.error)}</p>` : ''}<div class="dl-actions">${buttons}</div>`;
@@ -300,9 +306,15 @@ export async function initDuel(root) {
     answers.push(response);
     if (!keepRedo) redo = [];
     sel = null; menu = null; picked = new Set(); status = '';
+    const before = g.events.length; const lpBefore = { me: g.lp[g.me], bot: g.lp[g.bot] };
     try { g.respond(response); } catch (error) { status = error.message; }
+    const next = animationSteps(g.events.slice(before), lastPhase);
+    lastPhase = next.lastPhase;
+    playing = speed() > 0 && next.steps.length > 0;
     render();
+    if (playing) fx.play(next.steps, lpBefore, { me: g.lp[g.me], bot: g.lp[g.bot] }).then(() => { playing = false; if (g) { renderPrompt(); placePopup(); } });
   }
+  const syncPhase = () => { lastPhase = animationSteps(g.events).lastPhase; }; // undo, Spielstart, Combo: nichts abspielen, nur den Stand merken
 
   function begin(deckId, chosen, seed) {
     const deck = decks[deckId];
@@ -315,6 +327,7 @@ export async function initDuel(root) {
     };
     duelDeck = deckId; duelSetup = chosen; answers = []; redo = []; sel = null; status = '';
     try { g = newGame(opts); } catch (error) { g = null; status = error.message; }
+    if (g) syncPhase();
     openHand = g ? g.view()[g.me].hand.map((c) => name(c.code)) : [];
   }
 
@@ -359,6 +372,7 @@ export async function initDuel(root) {
       replay = null;
     }
     sel = null;
+    syncPhase();
     render();
   }
 
@@ -369,6 +383,7 @@ export async function initDuel(root) {
     g.close();
     g = newGame(opts);
     for (const a of answers) g.respond(a);
+    syncPhase();
     sel = null; menu = null; picked = new Set();
     render();
   }
@@ -394,13 +409,15 @@ export async function initDuel(root) {
   }, true);
 
   root.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && playing) { fx.skip(); return; }
     if (ev.key !== 'Escape' || !menu) return;
     menu = null; render();
     main.querySelector(`[data-key="${sel}"]`)?.focus();
   });
 
   root.addEventListener('click', (ev) => {
-    if (menu && !ev.target.closest('.dl-popup, [data-key], [data-menu]')) { menu = null; render(); } // Klick daneben schließt das Menü
+    if (playing) { fx.skip(); return; } // ein Klick überspringt die Animation
+    if (menu &&!ev.target.closest('.dl-popup, [data-key], [data-menu]')) { menu = null; render(); } // Klick daneben schließt das Menü
     const el = ev.target.closest('button');
     if (!el || !root.contains(el) || el.disabled) return;
     const d = el.dataset; const p = g?.prompt;
