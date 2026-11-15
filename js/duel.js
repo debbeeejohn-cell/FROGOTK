@@ -1,11 +1,12 @@
 // Bot Duel: practice duel against a passive bot on the real rules engine (duel-core.js, ygopro-core).
 // The engine decides what is legal and asks the questions (activate? which cards? which position?);
 // this module only draws the board and turns clicks into engine responses, like Dueling Nexus.
-import { loadCore, cardTable, newGame, traceOf, compareCombo, L, P, M, R, IDLE, BATTLE, PLACE, PHASE } from './duel-core.js';
+import { loadCore, cardTable, newGame, traceOf, compareCombo, L, P, M, R, PLACE, PHASE } from './duel-core.js';
 import { loadDecks, loadCards, deckOptions } from './decks.js';
 import { ocgRaceString, ocgAttributeString } from '../vendor/ocgcore/index.js';
 import { esc } from './util.js';
 import { getStoredSettings, saveSettings } from './store.js';
+import { key, actionsByCard as offeredActions, phaseButtons, sumState as levelSum } from './duel-view.js';
 
 const getJson = (file) => fetch(`./data/${file}`).then((r) => {
   if (!r.ok) throw new Error(`${file}: HTTP ${r.status}`);
@@ -13,7 +14,6 @@ const getJson = (file) => fetch(`./data/${file}`).then((r) => {
 });
 const POSITION = { 1: 'Offene Angriffsposition', 2: 'Verdeckte Angriffsposition', 4: 'Offene Verteidigungsposition', 8: 'Verdeckte Verteidigungsposition' };
 const PROMPT_TITLE = { [M.SELECT_CARD]: 'Karten wählen', [M.SELECT_TRIBUTE]: 'Als Tribut wählen', [M.SELECT_SUM]: 'Karten wählen', [M.SELECT_UNSELECT_CARD]: 'Karten wählen' };
-const key = (c) => `${c.controller}:${c.location}:${c.sequence}`;
 // Saved combos keep BigInt values (seed, declared Types) as { $big } so they survive JSON.
 const toJson = (v) => JSON.stringify(v, (k, x) => (typeof x === 'bigint' ? { $big: String(x) } : x));
 const fromJson = (text) => JSON.parse(text, (k, x) => (x && x.$big !== undefined ? BigInt(x.$big) : x));
@@ -54,30 +54,7 @@ export async function initDuel(root) {
   const img = (code) => (byId.get(code)?.img ? `<img src="assets/cards-small/${Number(code)}.jpg" alt="" loading="lazy" />` : '');
   const face = (code) => img(code) || `<span>${esc(name(code))}</span>`;
 
-  /** Actions the engine offers in an open game state, grouped by card. */
-  function actionsByCard(p) {
-    const map = new Map();
-    const push = (c, label, response) => { if (!map.has(key(c))) map.set(key(c), []); map.get(key(c)).push({ label, response }); };
-    const effect = (c) => { const t = table.text(c.description); return t && !t.startsWith('Effekt von') ? `Aktivieren: ${t}` : 'Aktivieren'; };
-    if (p?.type === M.SELECT_IDLECMD) {
-      [['summons', IDLE.SELECT_SUMMON, 'Normalbeschwören'], ['special_summons', IDLE.SELECT_SPECIAL_SUMMON, 'Spezialbeschwören'],
-        ['pos_changes', IDLE.SELECT_POS_CHANGE, 'Position ändern'], ['monster_sets', IDLE.SELECT_MONSTER_SET, 'Monster setzen'],
-        ['spell_sets', IDLE.SELECT_SPELL_SET, 'Setzen'], ['activates', IDLE.SELECT_ACTIVATE, null]]
-        .forEach(([field, action, label]) => p[field].forEach((c, index) => push(c, label ?? effect(c), { type: R.SELECT_IDLECMD, action, index })));
-    }
-    if (p?.type === M.SELECT_BATTLECMD) {
-      p.attacks.forEach((c, index) => push(c, 'Angreifen', { type: R.SELECT_BATTLECMD, action: BATTLE.SELECT_BATTLE, index }));
-      p.chains.forEach((c, index) => push(c, effect(c), { type: R.SELECT_BATTLECMD, action: BATTLE.SELECT_CHAIN, index }));
-    }
-    return map;
-  }
-
-  function phaseButtons(p) {
-    const b = (label, response, primary) => ({ label, response, primary });
-    if (p?.type === M.SELECT_IDLECMD) return [p.to_bp && b('Battle Phase', { type: R.SELECT_IDLECMD, action: IDLE.TO_BP, index: null }), p.to_ep && b('Zug beenden', { type: R.SELECT_IDLECMD, action: IDLE.TO_EP, index: null }, true)].filter(Boolean);
-    if (p?.type === M.SELECT_BATTLECMD) return [p.to_m2 && b('Main Phase 2', { type: R.SELECT_BATTLECMD, action: BATTLE.TO_M2, index: null }), p.to_ep && b('Zug beenden', { type: R.SELECT_BATTLECMD, action: BATTLE.TO_EP, index: null }, true)].filter(Boolean);
-    return [];
-  }
+  const actionsByCard = (p) => offeredActions(p, table); // was die Engine anbietet, je Karte (js/duel-view.js)
 
   // ---------- board ----------
   function cardBtn(c, p, loc, i, actions) {
@@ -169,16 +146,7 @@ export async function initDuel(root) {
   const btn = (label, attrs, primary) => `<button type="button" class="${primary ? 'primary-button' : 'secondary-button'}" ${attrs}>${esc(label)}</button>`;
   const effectText = (c) => { const t = table.text(c.description); return t && !t.startsWith('Effekt von') ? `: ${t}` : ''; };
 
-  // Level sums (e.g. Machina Fortress): exactly the target, or (select_max = 1) at least the target
-  // with every picked card needed. Uses the card's first value; amount >>> 16 is an alternative level.
-  function sumState(p) {
-    const lvl = (c) => c.amount & 0xffff;
-    const target = p.amount & 0xffff;
-    const parts = [...picked].map((i) => lvl(p.selects[i]));
-    const total = p.selects_must.reduce((t, c) => t + lvl(c), 0) + parts.reduce((t, n) => t + n, 0);
-    const ok = p.select_max ? total >= target && parts.every((n) => total - n < target) : total === target;
-    return { total, ok };
-  }
+  const sumState = (p) => levelSum(p, picked); // Stufensummen (js/duel-view.js)
 
   function promptBody(p) {
     const hint = g.hint ? `<p class="dl-hint">${esc(g.hint)}</p>` : '';
