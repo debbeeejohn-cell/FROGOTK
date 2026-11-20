@@ -108,7 +108,7 @@ export async function initDuel(root) {
       cell(3, 1, pile(bot, g.bot, 'banished', 'VERB.', actions, true)), cell(3, 7, pile(me, g.me, 'banished', 'VERB.', actions, true)),
       cell(4, 1, fieldSlot(me, g.me, actions)), cell(4, 7, pile(me, g.me, 'gy', 'FH', actions)),
       cell(5, 1, pile(me, g.me, 'extra', 'EXTRA', actions)), cell(5, 7, pile(me, g.me, 'deck', 'DECK', actions)),
-      `<button type="button" class="dl-turn" data-menu="phase" aria-label="Zug ${s.turn}, ${s.active === g.me ? 'du' : 'Bot'}, Phase ${PHASE_SHORT[s.phase] ?? ''}. Phasenmenü öffnen"${replay || shown ? ' disabled' : ''}><small>ZUG ${s.turn} · ${s.active === g.me ? 'DU' : 'BOT'}</small><b>${PHASE_SHORT[s.phase] ?? ''}</b></button>`
+      `<button type="button" class="dl-turn ${s.active === g.me ? 'me' : 'bot'}" data-menu="phase" aria-label="Zug ${s.turn}, ${s.active === g.me ? 'du' : 'Bot'}, Phase ${PHASE_SHORT[s.phase] ?? ''}. Phasenmenü öffnen"${replay || shown ? ' disabled' : ''}><small>ZUG ${s.turn} · ${s.active === g.me ? 'DU' : 'BOT'}</small><span class="dl-chips" aria-hidden="true">${['DP', 'SP', 'MP1', 'BP', 'MP2', 'EP'].map((id) => `<i${PHASE_SHORT[s.phase] === id ? ' class="on"' : ''}>${id.replace('MP', 'M')}</i>`).join('')}</span></button>`
     );
     return cells.join('');
   }

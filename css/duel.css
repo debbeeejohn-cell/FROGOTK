@@ -47,7 +47,16 @@
 .dl-pane { display: grid; gap: 12px; }
 
 /* Spielfeld: ein 7-Spalten-Raster (Stapel links und rechts, fünf Zonen in der Mitte), per perspective nach hinten gekippt */
-.dl-mat { display: grid; gap: 4px; width: 100%; max-width: 680px; margin: 0 auto; color: var(--ink); }
+/* Nachtstadion (Vorlage docs/duel-ui): Himmelsverlauf mit Sternen, nur Verläufe, keine Leuchtschatten */
+.dl-mat {
+  display: grid; gap: 4px; width: 100%; max-width: 680px; margin: 0 auto; padding: 10px; border-radius: 12px; color: var(--ink);
+  background:
+    radial-gradient(1px 1px at 12% 18%, #fff 50%, transparent), radial-gradient(1px 1px at 37% 9%, #cfd8ff 50%, transparent),
+    radial-gradient(1.5px 1.5px at 64% 14%, #fff 50%, transparent), radial-gradient(1px 1px at 86% 22%, #cfd8ff 50%, transparent),
+    radial-gradient(1px 1px at 24% 40%, #fff 50%, transparent), radial-gradient(1px 1px at 78% 46%, #fff 50%, transparent),
+    radial-gradient(ellipse at 20% 0%, rgba(120, 70, 200, 0.28), transparent 55%), radial-gradient(ellipse at 85% 10%, rgba(60, 110, 255, 0.22), transparent 50%),
+    linear-gradient(#0a0f2e, #151b48 45%, #05070d);
+}
 .dl-stage { perspective: 2000px; perspective-origin: 50% 50%; margin: -9% 0 -9%; }
 .dl-board {
   display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; width: 88%; margin: 0 auto; padding: 14px; border: 1px solid #2c3140; border-radius: 10px;
@@ -63,7 +72,12 @@
 .dl-turn:disabled { cursor: default; }
 .dl-turn:hover:not(:disabled) { border-color: var(--gold); }
 .dl-turn small { color: var(--dim); font-size: 0.65rem; font-weight: 700; letter-spacing: 0.12em; }
-.dl-turn b { font-size: 1.2rem; }
+.dl-turn.me { border-color: #3f8cff; }
+.dl-turn.bot { border-color: #ff5a4d; }
+.dl-chips { display: flex; gap: 4px; margin-top: 4px; }
+.dl-chips i { min-width: 28px; padding: 3px 4px; border-radius: 4px; background: #1c2233; color: var(--dim); font-size: 0.7rem; font-style: normal; font-weight: 700; }
+.dl-turn.me .dl-chips i.on { background: #3f8cff; color: #0a0d16; }
+.dl-turn.bot .dl-chips i.on { background: #ff5a4d; color: #0a0d16; }
 .dl-slot { display: grid; gap: 2px; min-width: 0; aspect-ratio: 59 / 86; position: relative; }
 .dl-slot small { display: none; }
 .dl-slot.empty { border: 1px solid var(--zone); border-radius: 6px; background: rgba(20, 40, 70, 0.28); }
@@ -138,11 +152,13 @@
 .dl-lp.me { bottom: 8px; left: 0; }
 .dl-lp small { color: var(--fg-muted); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; }
 .dl-ring {
-  --c: hsl(var(--hue, 120) 85% 55%);
+  --c: #3f8cff; /* Spielerfarbe: Du blau, Bot rot; die LP zeigt der Bogen als Anteil */
   position: relative; display: grid; place-items: center; align-content: center; width: 96px; height: 96px; border-radius: 50%;
   background: conic-gradient(var(--c) calc(var(--ratio, 1) * 360deg), #1c2740 0);
 }
-.dl-ring::before { content: ''; position: absolute; inset: 7px; border-radius: 50%; border: 3px solid #3d5a85; background: #0f1a30; }
+.dl-ring::before { content: ''; position: absolute; inset: 7px; border-radius: 50%; border: 3px solid #3f8cff; background: #0f1a30; }
+.dl-lp.bot .dl-ring { --c: #ff5a4d; }
+.dl-lp.bot .dl-ring::before { border-color: #ff5a4d; }
 .dl-ring::after {
   content: ''; position: absolute; inset: 15px; border-radius: 50%; border: 2px solid rgba(5, 8, 18, 0.85);
   background: conic-gradient(hsl(0 78% 62%), hsl(60 78% 62%), hsl(120 78% 62%), hsl(180 78% 62%), hsl(240 78% 62%), hsl(300 78% 62%), hsl(360 78% 62%));
@@ -220,5 +236,7 @@
   .dl-stage { margin: -6% 0 -6%; }
   .dl-tag { font-size: 0.5rem; padding: 0 3px; letter-spacing: 0; }
   .dl-turn { min-width: 96px; padding: 4px 10px; }
+  .dl-chips { gap: 2px; }
+  .dl-chips i { min-width: 22px; padding: 2px 2px; font-size: 0.6rem; }
   .dl-hand .dl-slot { flex-basis: 64px; }
 }
