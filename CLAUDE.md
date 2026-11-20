@@ -81,6 +81,8 @@ Kein Test-Framework: jede Datei ist ein `assert`-Skript und endet mit „all che
   wären der nächste Schritt, falls das Verhalten stimmen soll.
 - `data/edison-scripts.json`: eigene Anpassungen an den Engine-Skripten (z. B. Goyo Guardian ohne ERDE-Bedingung, Edison ist generisch).
   Wird von `scripts/fetch-core.mjs` angewandt; ohne Neu-Laden: `node --no-warnings scripts/apply-edison-overrides.mjs`.
+- `scripts/fetch-images.mjs`: lädt die Bilder des ganzen Edison-Pools (`data/edison-db.json`, 3665 Karten, ca. 6 Min, nur lokal,
+  `assets/cards-small/` ist gitignored) und setzt `img: 1` in `data/cards.json`. Idempotent. `node scripts/fetch-images.mjs`.
 - `scripts/fetch-cards.mjs`, `scripts/fetch-core.mjs`: laden die Daten neu. Nötig nach Änderungen an
   `data/decks.json` (neue Karten brauchen Kartendaten und Lua-Skript). Workflow „Karten laden“ macht beides.
 
