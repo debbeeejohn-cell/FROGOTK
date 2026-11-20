@@ -66,6 +66,11 @@ Kein Test-Framework: jede Datei ist ein `assert`-Skript und endet mit „all che
     Wilson-Intervall, Vorzeichentest), dazu `scripts/audit-leak.mjs` (nutzt der Bot verdeckte Gegnerkarten? Gegenprobe liest
     die Gegnerhand und muss durchfallen) und `scripts/audit-referee.mjs` (Schiedsrichter-Regeln je Bot-Entscheidung: tödlicher
     Schaden ungenutzt = hart; freier Angriff, Normalbeschwörung, leerer Zug = Hinweis; passiver Bot als Gegenprobe). Schwellen: `data/audit-thresholds.json`. Misst Stellvertreter, ersetzt keinen Menschen.
+- `docs/duel-ui/`: Wunschbild des Nutzers für Look und Animationen (5D's-Nachtstadion, schräges Feld, LP-Ringe, Phasenleiste,
+  Ansagen mit Hologramm und Sprechblase, Synchro-Ringe). `reference/duel-preview.html` im Browser öffnen (braucht Internet für die
+  Schriften), `UI-SPEC.md` hat Maße, Farben und Abläufe, `EVENTS.md` die Ereignis-Schnittstelle. Nur Referenz, noch nicht umgesetzt.
+  Vor dem Übernehmen klären: Leuchteffekte (die Regeln unten verbieten Leuchtschatten) und Kartenbilder (die Referenz nutzt nur
+  Platzhalter aus Code).
 - Daten: `data/decks.json` (7 Decks), `data/cards.json` + `assets/cards-small/` (YGOPRODeck),
   `data/core-cards.json` + `data/core-scripts.json` (BabelCDB + ProjectIgnis CardScripts),
   `data/edison-banlist.json`.
