@@ -69,8 +69,8 @@ Kein Test-Framework: jede Datei ist ein `assert`-Skript und endet mit „all che
 - `docs/duel-ui/`: Wunschbild des Nutzers für Look und Animationen (5D's-Nachtstadion, schräges Feld, LP-Ringe, Phasenleiste,
   Ansagen mit Hologramm und Sprechblase, Synchro-Ringe). `reference/duel-preview.html` im Browser öffnen (braucht Internet für die
   Schriften), `UI-SPEC.md` hat Maße, Farben und Abläufe, `EVENTS.md` die Ereignis-Schnittstelle. Nur Referenz, noch nicht umgesetzt.
-  Vor dem Übernehmen klären: Leuchteffekte (die Regeln unten verbieten Leuchtschatten) und Kartenbilder (die Referenz nutzt nur
-  Platzhalter aus Code).
+  Leuchteffekte sind im Duell-Look erlaubt (Entscheidung des Nutzers, 21.11.2026), Kartenbilder kommen lokal per
+  `scripts/fetch-images.mjs` (die Referenz nutzt nur Platzhalter aus Code). Umgesetzt: Nachtstadion, blau/rote LP-Ringe, Phasen-Chips.
 - Daten: `data/decks.json` (7 Decks), `data/cards.json` + `assets/cards-small/` (YGOPRODeck),
   `data/core-cards.json` + `data/core-scripts.json` (BabelCDB + ProjectIgnis CardScripts),
   `data/edison-banlist.json`.
@@ -108,7 +108,7 @@ Offene Design-Punkte für den Anime-Look: `godot/ROADMAP.md`.
 - Jede Engine-Änderung zuerst als Fall in `js/duel-core.test.mjs`, dann die Oberfläche.
 - HTML nur über `esc()` (`js/util.js`) zusammenbauen. CSP steht in `index.html`
   (`script-src 'self' 'wasm-unsafe-eval'`).
-- Gestaltung: keine Leuchtschatten, keine dicken farbigen Seitenränder, Innenabstand mindestens 8 px,
+- Gestaltung: keine Leuchtschatten (Ausnahme: Duell-Look in `css/duel.css` und `js/duel-fx.js`), keine dicken farbigen Seitenränder, Innenabstand mindestens 8 px,
   Bedienelemente mindestens 44 px hoch.
 - Fallen der Engine: Abfrage-Flag `TYPE` bricht den Parser von `duelQueryLocation`; Handkarten haben
   für die Engine die Position „verdeckt“; Tokens haben eigene Passcodes und kein Skript.

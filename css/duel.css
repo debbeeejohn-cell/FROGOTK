@@ -47,7 +47,7 @@
 .dl-pane { display: grid; gap: 12px; }
 
 /* Spielfeld: ein 7-Spalten-Raster (Stapel links und rechts, fünf Zonen in der Mitte), per perspective nach hinten gekippt */
-/* Nachtstadion (Vorlage docs/duel-ui): Himmelsverlauf mit Sternen, nur Verläufe, keine Leuchtschatten */
+/* Nachtstadion (Vorlage docs/duel-ui): Himmelsverlauf mit Sternen. Leuchteffekte sind im Duell-Look erlaubt */
 .dl-mat {
   display: grid; gap: 4px; width: 100%; max-width: 680px; margin: 0 auto; padding: 10px; border-radius: 12px; color: var(--ink);
   background:
